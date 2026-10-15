@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "code": "ProductCreated",
+      "serviceName": "catalog",
+      "category": "DataMutation",
+      "description": "Seller tạo sản phẩm mới",
+      "isEnabled": true
+    },
+    {
+      "code": "OrderCreated",
+      "serviceName": "commerce",
+      "category": "DataMutation",
+      "description": "Buyer tạo đơn hàng",
+      "isEnabled": true
+    }
+  ],
+  "total": 2
+}

@@ -1,0 +1,321 @@
+syntax = "proto3";
+option csharp_namespace = "ShoppingCart.Contracts.V1";
+package shoppingcart.v1;
+
+// Gateway and backend share this versioned contract; field numbers must never be reused.
+// Canonical source of truth: ShoppingCart.Gateway/Contracts/shop.proto (xem quyết định D2 trong AGENTS/Plan/plan-gateway.md).
+// SchemaVersion: v3 — mọi thay đổi từ đây phải là ADDITIVE (thêm field/message/rpc mới, không sửa số cũ).
+// Service copy đúng file này; sửa contract mà không thêm field mới ⇒ sai luật hệ thống.
+
+service CatalogApi {
+  // v1
+  rpc ListCategories(PageRequest) returns (CategoryPage);
+  rpc ListProducts(ProductQuery) returns (ProductPage);
+  rpc GetProduct(IdRequest) returns (Product);
+  // v2 — CRUD catalog + kho ảo
+  rpc CreateCategory(CategoryInput) returns (Category);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (Category);
+  rpc DeleteCategory(IdRequest) returns (DeleteResponse);
+  rpc CreateProduct(ProductInput) returns (Product);
+  rpc UpdateProduct(UpdateProductRequest) returns (Product);
+  rpc DeleteProduct(IdRequest) returns (DeleteResponse);
+  rpc ListProductsBySeller(ProductQuery) returns (ProductPage);
+  rpc GetInventory(UserRequest) returns (InventoryPage);
+  rpc AdjustInventory(AdjustInventoryRequest) returns (Inventory);
+  // v3 — internal: saga checkout (commerce) gọi; KHÔNG expose qua Gateway
+  rpc ReserveStock(ReserveStockRequest) returns (ReserveStockResponse);
+  rpc ReleaseStock(ReleaseStockRequest) returns (ReleaseStockResponse);
+  rpc CommitStock(CommitStockRequest) returns (CommitStockResponse);
+}
+
+service CommerceApi {
+  // v1
+  rpc GetCart(UserRequest) returns (Cart);
+  // v3 (2026-10-12c): `MyOrdersRequest` = `UserRequest` + phân trang (`user_id = 1` giữ nguyên số/kiểu ⇒ additive về wire)
+  rpc ListOrders(MyOrdersRequest) returns (OrderPage);
+  rpc CreateOrder(CreateOrderRequest) returns (Order);
+  // v2 — thao tác giỏ, chi tiết đơn, danh sách theo seller/staff
+  rpc AddCartItem(CartItemRequest) returns (Cart);
+  rpc UpdateCartItem(UpdateCartItemRequest) returns (Cart);
+  rpc RemoveCartItem(RemoveCartItemRequest) returns (Cart);
+  rpc ClearCart(UserRequest) returns (Cart);
+  rpc GetOrder(OrderRequest) returns (Order);
+  rpc ListOrdersBySeller(SellerOrdersRequest) returns (OrderPage);
+  rpc ListAllOrders(PageRequest) returns (OrderPage);
+}
+
+service UsersApi {
+  // v1
+  rpc GetProfile(UserRequest) returns (UserProfile);
+  // v2 — auth, profile, RBAC, duyệt seller
+  rpc Register(RegisterRequest) returns (UserProfile);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UserProfile);
+  rpc ListUsers(ListUsersRequest) returns (UserPage);
+  rpc AssignRoles(AssignRolesRequest) returns (UserProfile);
+  rpc ListRoles(Empty) returns (RoleList);
+  rpc ListPermissions(Empty) returns (PermissionList);
+  rpc RequestSellerUpgrade(SellerUpgradeRequest) returns (SellerRegistrationInfo);
+  rpc ApproveSeller(ApproveSellerRequest) returns (SellerRegistrationInfo);
+  // v3 (2026-10-12c) — additive: admin tạo user kèm gán role trong **một** lời gọi (Register là đường ẩn danh, chỉ `buyer`)
+  rpc CreateUser(CreateUserRequest) returns (UserProfile);
+}
+
+service AuditApi {
+  // v3 — thêm additive: service mới, message mới, KHÔNG đổi field number/payload cũ ⇒ không bump SchemaVersion.
+  rpc QueryAuditLogs(QueryAuditLogsRequest) returns (AuditLogPage);
+  rpc GetAuditLog(IdRequest) returns (AuditLog);
+  rpc ListAuditEventTypes(Empty) returns (AuditEventTypeList);
+  rpc SetAuditEventTypeEnabled(SetAuditEventTypeEnabledRequest) returns (AuditEventType);
+}
+
+service AuctionApi {
+  rpc ListAuctions(AuctionQuery) returns (AuctionPage);
+  rpc GetAuction(IdRequest) returns (Auction);
+  rpc CreateAuction(CreateAuctionRequest) returns (Auction);
+  rpc PlaceBid(PlaceBidRequest) returns (Bid);
+  rpc ListBids(IdRequest) returns (BidPage);
+}
+
+service FulfillmentApi {
+  rpc GetInventory(IdRequest) returns (FulfillmentInventory);
+  rpc CalculateShippingFee(ShippingFeeRequest) returns (ShippingFeeQuote);
+  rpc GetShipmentTracking(IdRequest) returns (ShipmentTracking);
+}
+
+service NotificationApi {
+  rpc ListNotifications(UserRequest) returns (NotificationPage);
+  rpc MarkNotificationRead(IdRequest) returns (Notification);
+  rpc GetPreferences(UserRequest) returns (NotificationPreferences);
+  rpc UpdatePreferences(UpdateNotificationPreferencesRequest) returns (NotificationPreferences);
+}
+
+service WalletApi {
+  rpc GetWallet(UserRequest) returns (Wallet);
+  rpc Deposit(WalletDepositRequest) returns (WalletTransaction);
+  rpc Withdraw(WalletWithdrawRequest) returns (WalletTransaction);
+  rpc Transfer(WalletTransferRequest) returns (WalletTransaction);
+  rpc ListTransactions(WalletTransactionsRequest) returns (WalletTransactionPage);
+}
+
+// ---------- v1 messages (giữ nguyên, KHÔNG sửa field number) ----------
+message PageRequest { int32 page = 1; int32 page_size = 2; }
+message IdRequest { string id = 1; }
+message UserRequest { string user_id = 1; }
+message Category { string id = 1; string name = 2; }
+message CategoryPage { repeated Category items = 1; int32 total = 2; }
+message Product {
+  string id = 1; string name = 2; string category_id = 3; string price = 4; string currency = 5;
+  string seller_id = 6;      // v2
+  string description = 7;    // v2
+  string slug = 8;           // v2
+  int32 available = 9;       // v2 — kho ảo khả dụng
+}
+message ProductPage { repeated Product items = 1; int32 total = 2; }
+message CartItem {
+  string product_id = 1; int32 quantity = 2;
+  string seller_id = 3; string unit_price = 4; string product_name = 5;   // v2
+}
+message Cart {
+  string id = 1; string user_id = 2; repeated CartItem items = 3;
+  string total = 4; string currency = 5;                                   // v2
+}
+// v3 (2026-10-12b) — dòng hàng do client chọn trực tiếp ("mua ngay"), additive, KHÔNG đổi field cũ.
+message CreateOrderLine { string product_id = 1; int32 quantity = 2; }
+message CreateOrderRequest {
+  string user_id = 1; string cart_id = 2; string idempotency_key = 3;
+  repeated CreateOrderLine items = 4;   // có phần tử ⇒ lập đơn từ đúng danh sách này, KHÔNG dùng giỏ
+}
+message OrderItem {
+  string product_id = 1; string seller_id = 2; string product_name = 3; string unit_price = 4; int32 quantity = 5;
+}
+message Order {
+  string id = 1; string user_id = 2; string status = 3; string total = 4; string currency = 5;
+  repeated OrderItem items = 6;    // v2
+  string placed_at = 7;            // v2 — RFC3339 UTC
+  string payment_status = 8;       // v2 — Unpaid | Paid
+}
+message OrderPage { repeated Order items = 1; int32 total = 2; }
+message UserProfile {
+  string id = 1; string display_name = 2; string email = 3;
+  repeated string roles = 4; string status = 5; string shop_name = 6;      // v2
+}
+
+// ---------- v2 additions ----------
+message Empty {}
+
+message DeleteResponse { string id = 1; bool deleted = 2; }
+
+message ProductQuery { int32 page = 1; int32 page_size = 2; string category_id = 3; string seller_id = 4; string q = 5; }
+
+// Catalog
+message CategoryInput { string name = 1; string parent_id = 2; }
+message UpdateCategoryRequest { string id = 1; string name = 2; string parent_id = 3; }
+message ProductInput {
+  string seller_id = 1; string name = 2; string description = 3; string category_id = 4;
+  string price = 5; string currency = 6; int32 available = 7; string slug = 8;
+}
+message UpdateProductRequest {
+  string id = 1; string seller_id = 2; string name = 3; string description = 4; string category_id = 5;
+  string price = 6; string currency = 7; int32 available = 8; string slug = 9;
+}
+message Inventory { string product_id = 1; string seller_id = 2; int32 available = 3; int32 reserved = 4; }
+message InventoryPage { repeated Inventory items = 1; int32 total = 2; }
+message AdjustInventoryRequest { string product_id = 1; string seller_id = 2; int32 available = 3; string reason = 4; }
+
+// Catalog — internal (saga checkout)
+message ReserveItem { string product_id = 1; string seller_id = 2; int32 quantity = 3; }
+message ReserveStockRequest { string saga_id = 1; repeated ReserveItem items = 2; }
+message ReserveResult { string product_id = 1; string seller_id = 2; bool success = 3; string reason = 4; }
+message ReserveStockResponse { repeated ReserveResult results = 1; bool success = 2; }
+message ReleaseStockRequest { string saga_id = 1; }
+message ReleaseStockResponse { bool success = 1; }
+message CommitStockRequest { string saga_id = 1; }
+message CommitStockResponse { bool success = 1; }
+
+// Commerce
+message CartItemRequest { string user_id = 1; string product_id = 2; int32 quantity = 3; }
+message UpdateCartItemRequest { string user_id = 1; string product_id = 2; int32 quantity = 3; }
+message RemoveCartItemRequest { string user_id = 1; string product_id = 2; }
+message OrderRequest { string order_id = 1; string user_id = 2; string role = 3; }
+message SellerOrdersRequest { string seller_id = 1; int32 page = 2; int32 page_size = 3; }
+// v3 (2026-10-12c) — đơn của chính người gọi, có phân trang (trước đây RPC nhận `UserRequest` nên Gateway cứng `page=1`)
+message MyOrdersRequest { string user_id = 1; int32 page = 2; int32 page_size = 3; }
+
+// Users
+message RegisterRequest { string username = 1; string email = 2; string password = 3; string display_name = 4; }
+// v3 (2026-10-12c) — admin tạo user kèm role; `roles` rỗng ⇒ mặc định `buyer`
+message CreateUserRequest {
+  string username = 1; string email = 2; string password = 3; string display_name = 4;
+  repeated string roles = 5;
+}
+message LoginRequest { string username = 1; string password = 2; }
+message LoginResponse { string access_token = 1; string expires_at = 2; string user_id = 3; repeated string roles = 4; }
+message UpdateProfileRequest { string user_id = 1; string display_name = 2; string email = 3; }
+message ListUsersRequest { int32 page = 1; int32 page_size = 2; string q = 3; string role = 4; }
+message UserPage { repeated UserProfile items = 1; int32 total = 2; }
+message AssignRolesRequest { string user_id = 1; repeated string roles = 2; }
+message Role { string id = 1; string name = 2; }
+message RoleList { repeated Role items = 1; int32 total = 2; }
+message Permission { string id = 1; string code = 2; }
+message PermissionList { repeated Permission items = 1; int32 total = 2; }
+message SellerUpgradeRequest {
+  string user_id = 1; string shop_name = 2; string description = 3;
+  string contact_email = 4; string contact_phone = 5; string address = 6;
+}
+message SellerRegistrationInfo {
+  string id = 1; string user_id = 2; string shop_name = 3; string status = 4;
+  string contact_email = 5; string rejection_reason = 6;
+}
+message ApproveSellerRequest { string registration_id = 1; bool approve = 2; string reason = 3; }
+
+// ---------- Audit (thêm additive ở v3) ----------
+// Quy ước: id/uuid là string; thời gian là RFC3339 ("o"); payload là chuỗi JSON (jsonb ở DB).
+message AuditLog {
+  string id = 1;
+  string occurred_at = 2;
+  string recorded_at = 3;
+  string service_name = 4;
+  string event_type = 5;
+  string action = 6;
+  string entity_name = 7;
+  string entity_id = 8;
+  string actor_user_id = 9;
+  string actor_username = 10;
+  string actor_role = 11;
+  string correlation_id = 12;
+  string causation_id = 13;
+  string message_id = 14;
+  int32 schema_version = 15;
+  string trace_id = 16;
+  // Chỉ `GetAuditLog` trả payload; danh sách để rỗng cho nhẹ.
+  string payload = 17;
+}
+message AuditLogPage { repeated AuditLog items = 1; int32 total = 2; }
+message QueryAuditLogsRequest {
+  int32 page = 1; int32 page_size = 2;
+  string from = 3; string to = 4;                 // RFC3339; rỗng = bỏ qua
+  string service_name = 5; string event_type = 6;
+  string entity_name = 7; string entity_id = 8;
+  string actor_user_id = 9; string correlation_id = 10;
+}
+message AuditEventType {
+  string code = 1; string service_name = 2; string category = 3; string description = 4; bool is_enabled = 5;
+}
+message AuditEventTypeList { repeated AuditEventType items = 1; int32 total = 2; }
+message SetAuditEventTypeEnabledRequest { string code = 1; bool enabled = 2; }
+
+// ---------- Auction messages ----------
+message AuctionQuery { int32 page = 1; int32 page_size = 2; string status = 3; string seller_id = 4; }
+message CreateAuctionRequest {
+  string product_id = 1; string seller_id = 2; string starting_price = 3;
+  string step_price = 4; string start_time = 5; string end_time = 6; string title = 7;
+}
+message Auction {
+  string id = 1; string product_id = 2; string seller_id = 3; string title = 4;
+  string starting_price = 5; string current_price = 6; string step_price = 7;
+  string start_time = 8; string end_time = 9; string status = 10;
+  int32 bid_count = 11; string winner_id = 12;
+}
+message AuctionPage { repeated Auction items = 1; int32 total = 2; }
+message PlaceBidRequest { string auction_id = 1; string user_id = 2; string amount = 3; }
+message Bid {
+  string id = 1; string auction_id = 2; string user_id = 3; string amount = 4;
+  string created_at = 5; string bidder_name = 6;
+}
+message BidPage { repeated Bid items = 1; int32 total = 2; }
+
+// ---------- Fulfillment messages ----------
+message FulfillmentInventory {
+  string sku_id = 1; string warehouse_code = 2; int32 total_qty = 3;
+  int32 reserved_qty = 4; int32 available_qty = 5;
+}
+message ShippingFeeRequest {
+  string seller_address = 1; string buyer_address = 2; int32 weight_grams = 3;
+}
+message ShippingFeeQuote {
+  string fee = 1; string currency = 2; string estimated_delivery = 3; string carrier = 4;
+}
+message ShipmentTracking {
+  string tracking_code = 1; string order_id = 2; string status = 3;
+  string carrier = 4; string current_location = 5; string updated_at = 6;
+}
+
+// ---------- Notification messages ----------
+message Notification {
+  string id = 1; string user_id = 2; string title = 3; string content = 4;
+  string type = 5; bool is_read = 6; string created_at = 7;
+}
+message NotificationPage { repeated Notification items = 1; int32 total = 2; }
+message NotificationPreferences {
+  string user_id = 1; bool email_enabled = 2; bool push_enabled = 3; bool order_updates = 4; bool auction_alerts = 5;
+}
+message UpdateNotificationPreferencesRequest {
+  string user_id = 1; bool email_enabled = 2; bool push_enabled = 3; bool order_updates = 4; bool auction_alerts = 5;
+}
+
+// ---------- Wallet messages ----------
+message Wallet {
+  string id = 1; string user_id = 2; string balance = 3; string currency = 4;
+  string status = 5; string updated_at = 6;
+}
+message WalletDepositRequest {
+  string user_id = 1; string amount = 2; string currency = 3; string payment_method = 4;
+}
+message WalletWithdrawRequest {
+  string user_id = 1; string amount = 2; string currency = 3; string bank_account = 4;
+}
+message WalletTransferRequest {
+  string sender_user_id = 1; string recipient_user_id = 2; string amount = 3; string note = 4;
+}
+message WalletTransaction {
+  string id = 1; string wallet_id = 2; string user_id = 3; string type = 4;
+  string amount = 5; string currency = 6; string balance_after = 7;
+  string status = 8; string note = 9; string created_at = 10;
+}
+message WalletTransactionsRequest {
+  string user_id = 1; int32 page = 2; int32 page_size = 3; string type = 4;
+}
+message WalletTransactionPage {
+  repeated WalletTransaction items = 1; int32 total = 2;
+}

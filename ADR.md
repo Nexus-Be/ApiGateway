@@ -1,0 +1,16 @@
+- dotnet 8
+- ef core, orm code first
+- web api, microservice
+- outbox, inbox
+- rabbitmq(message broker)
+- saga pattern
+- no repository pattern, use ef core
+- mock api in gateway, have request, response, response api factory(input.md)
+- mock can control by backend in appsetting
+- rate limit
+- jwt
+- permission rbac
+- back end can edit cors
+- gateway với client thì bằng rest full, nội bộ thì bằng grpc
+- event bus
+- hasspassqord bằng agon2

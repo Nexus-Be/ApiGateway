@@ -1,0 +1,100 @@
+## =============================================================================
+## .gitignore — Nexus API Gateway (.NET 8)
+## =============================================================================
+
+# Build results & artifacts
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+publish/
+out/
+dist/
+artifacts/
+
+# Visual Studio / Rider / IDE cache & options
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+Generated\ Files/
+[Bb]uild[Ll]og.*
+project.lock.json
+project.fragment.lock.json
+
+# JetBrains Rider & Resharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.DotSettings.user
+
+# Visual Studio Code
+.vscode/
+
+# Test Results & Coverage
+[Tt]est[Rr]esult*/
+TestResults/
+*.trx
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+coverage/
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+!packages/build/
+.nuget/
+
+# Environment Variables & Secrets (DO NOT COMMIT)
+.env
+.env.*
+.env.local
+!.env.example
+!.env.*.example
+*.pfx
+*.pem
+*.cer
+*.key
+secrets.json
+.secrets/
+
+# Local appsettings overrides
+# appsettings.Local.json
+# appsettings.*.Local.json
+# appsettings.*.local.json
+# appsettings.Secrets.json
+# appsettings.*.Secrets.json
+
+# Operating System Files
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Local tool / agent scratch
+.local/
+.claude/
+
