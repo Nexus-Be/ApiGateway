@@ -19,7 +19,7 @@ public static class SwaggerExtension
                     API Gateway cho 8 microservices (catalog, commerce, fulfillment, users, auction, notification, audit, wallet).
 
                     Hướng dẫn test độc lập trên Swagger UI:
-                    - Tiền tố API chuẩn: /gateway/api/v1/{service}/...
+                    - Tiền tố API chuẩn: /api/v1/{service}/... (đường dẫn cũ /gateway/api/v1/... vẫn được hỗ trợ tương thích).
                     - Test độc lập không cần đăng nhập: Khi service ở chế độ Mock, bạn có thể click 'Try it out' -> 'Execute' trực tiếp trên bất kỳ API nào mà không cần nhập token!
                     - Test phân quyền RBAC: Bấm nút 'Authorize' màu xanh ở góc trên và nhập vai trò: 'admin', 'seller', 'staff', hoặc 'buyer'.
                     """

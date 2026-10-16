@@ -58,7 +58,7 @@ public sealed class MockSecurityAdapterMiddleware
             context.AllowsMockAuthorizationBypass())
         {
             var authHeader = context.Request.Headers.Authorization.ToString();
-            var hasRealToken = !string.IsNullOrEmpty(authHeader) && 
+            var hasRealToken = !string.IsNullOrEmpty(authHeader) &&
                                !authHeader.Contains("mock-token", StringComparison.OrdinalIgnoreCase) &&
                                !authHeader.Equals("Bearer seller", StringComparison.OrdinalIgnoreCase) &&
                                !authHeader.Equals("Bearer admin", StringComparison.OrdinalIgnoreCase) &&

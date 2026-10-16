@@ -28,7 +28,7 @@ public sealed class MockEngineDocumentFilter(IMockEngine mockEngine) : IDocument
                 _ => OperationType.Get
             };
 
-            // Don't overwrite if manually mapped via Minimal API
+            // Don't overwrite if manually mapped via Controller
             if (pathItem.Operations.ContainsKey(operationType))
             {
                 continue;
@@ -41,7 +41,7 @@ public sealed class MockEngineDocumentFilter(IMockEngine mockEngine) : IDocument
             var operation = new OpenApiOperation
             {
                 Tags = [new OpenApiTag { Name = tagName }],
-                Summary = string.IsNullOrEmpty(def.Description) ? $"[Mock] {def.NormalizedMethod} {def.NormalizedPath}" : def.Description,
+                Summary = string.IsNullOrEmpty(def.Description) ? $"[Mock] {def.NormalizedMethod} {cleanPath}" : def.Description,
                 Description = $"[Mock Engine] Service: {def.Service} | Policy: {def.Policy} | Status: {def.StatusCode}"
             };
 

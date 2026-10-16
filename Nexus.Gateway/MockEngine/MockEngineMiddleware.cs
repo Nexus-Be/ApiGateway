@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Nexus.Gateway.Common;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 using Nexus.Gateway.Services;
@@ -30,7 +31,8 @@ public sealed class MockEngineMiddleware
         IAuthorizationService authorizationService,
         IApiResponseFactory responseFactory)
     {
-        var match = mockEngine.Match(context.Request.Method, context.Request.Path);
+        var match = GatewayRequestResolution.Get(context)?.MockMatch
+            ?? mockEngine.Match(context.Request.Method, context.Request.Path);
         if (!match.IsMatch || match.Definition is null)
         {
             await _next(context);
@@ -40,7 +42,9 @@ public sealed class MockEngineMiddleware
         var def = match.Definition;
         var serviceConfig = options.CurrentValue.GetService(def.Service);
         var configuredMode = serviceConfig?.Mode ?? "Mock";
-        var effectiveMode = runtimeManager.ResolveEffectiveMode(context, def.Service, configuredMode);
+        var effectiveMode = GatewayRequestResolution.Get(context) is { } resolution
+            ? resolution.EffectiveMode(context, def.Service, options.CurrentValue, runtimeManager)
+            : runtimeManager.ResolveEffectiveMode(context, def.Service, configuredMode);
 
         // If service is in Real mode, let the request pass through to the real backend / endpoints
         if (effectiveMode == "Real")
@@ -83,10 +87,18 @@ public sealed class MockEngineMiddleware
             var pageIndex = 1;
             var pageSize = 20;
 
-            if (int.TryParse(context.Request.Query["page"], out var p) && p > 0)
-                pageIndex = p;
-            if (int.TryParse(context.Request.Query["pageSize"], out var ps) && ps > 0 && ps <= 100)
-                pageSize = ps;
+            var invalidPage = context.Request.Query.TryGetValue("page", out var requestedPage) &&
+                              (!int.TryParse(requestedPage, out pageIndex) || pageIndex < 1);
+            var invalidSize = context.Request.Query.TryGetValue("pageSize", out var requestedPageSize) &&
+                              (!int.TryParse(requestedPageSize, out pageSize) || pageSize is < 1 or > 100);
+            if (invalidPage || invalidSize || !ValidationHelpers.PageOk(pageIndex, pageSize))
+            {
+                await responseFactory.FailureResult(context, "One or more validation errors occurred.",
+                    StatusCodes.Status400BadRequest, ValidationHelpers.PageMessage, "VAL_INVALID_INPUT",
+                    errors: new Dictionary<string, string[]> { ["Pagination"] = [ValidationHelpers.PageMessage] })
+                    .ExecuteAsync(context);
+                return;
+            }
 
             var itemsList = new List<JsonElement>();
             var totalCount = 0;

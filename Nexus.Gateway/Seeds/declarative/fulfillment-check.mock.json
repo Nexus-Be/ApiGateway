@@ -2,7 +2,7 @@
   "id": "fulfillment-check-delivery",
   "service": "fulfillment",
   "method": "POST",
-  "path": "/gateway/api/v1/fulfillment/check-delivery",
+  "path": "/api/v1/fulfillment/check-delivery",
   "description": "Kiểm tra tính khả dụng giao hàng theo địa chỉ",
   "policy": "public",
   "statusCode": 200,

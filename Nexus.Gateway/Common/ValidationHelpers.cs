@@ -16,4 +16,16 @@ public static class ValidationHelpers
 
     public static bool PageOk(int page, int size) => ApiResponseFactory.PageOk(page, size);
     public static bool GuidOk(string? value) => ApiResponseFactory.GuidOk(value);
+
+    public static void EnsureGuid(string? value, string field = "Id")
+    {
+        if (!GuidOk(value))
+            throw new GatewayInputException($"{field} phải là UUID", field);
+    }
+
+    public static void EnsureRequired(string? value, string field)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            throw new GatewayInputException($"{field} là bắt buộc", field);
+    }
 }

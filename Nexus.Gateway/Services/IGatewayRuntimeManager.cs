@@ -19,6 +19,13 @@ public sealed record GatewayStateResponse(string AuthMode, IReadOnlyDictionary<s
     public string GatewayMode => AuthMode == "Bypass" ? "Bypass" : "Standard";
 }
 
+public enum BulkModesUpdateResult
+{
+    Success,
+    InvalidAuthMode,
+    InvalidServiceMode
+}
+
 public interface IGatewayRuntimeManager
 {
     string GetAuthMode(HttpContext? context = null);
@@ -30,6 +37,8 @@ public interface IGatewayRuntimeManager
     Task<bool> SetServiceModeAsync(string service, string mode, CancellationToken cancellationToken = default);
 
     Task<bool> SetBulkServiceModesAsync(Dictionary<string, string> updates, CancellationToken cancellationToken = default);
+
+    Task<BulkModesUpdateResult> SetBulkModesAsync(string? authMode, Dictionary<string, string>? services, CancellationToken cancellationToken = default);
 
     string ResolveEffectiveMode(HttpContext context, string service, string configuredMode);
 

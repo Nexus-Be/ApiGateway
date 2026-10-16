@@ -13,6 +13,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
+[Route("api/v1")]
 [BackendTag("catalog")]
 [EnableRateLimiting("api")]
 public sealed class CatalogController : ControllerBase
@@ -28,50 +29,47 @@ public sealed class CatalogController : ControllerBase
 
     // ---------- Catalog Public Endpoints ----------
 
-    [HttpGet("gateway/api/v1/catalog/categories")]
+    [HttpGet("catalog/categories")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Category>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListCategories([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public Task<IResult> ListCategories([FromQuery] PaginationRequest pagination)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "catalog",
             "categories",
-            page,
-            pageSize,
-            o => _client.ListCategoriesAsync(new PageRequest { Page = page, PageSize = pageSize }, o),
+            pagination.Page,
+            pagination.PageSize,
+            o => _client.ListCategoriesAsync(new PageRequest { Page = pagination.Page, PageSize = pagination.PageSize }, o),
             CategoryPage.Parser
         );
     }
 
-    [HttpGet("gateway/api/v1/catalog/products")]
+    [HttpGet("catalog/products")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Product>>), StatusCodes.Status200OK)]
     public Task<IResult> ListProducts(
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] string? categoryId = null,
         [FromQuery] string? sellerId = null,
-        [FromQuery] string? q = null,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20)
+        [FromQuery] string? q = null)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
-        if (!ValidationHelpers.GuidOk(categoryId) || !ValidationHelpers.GuidOk(sellerId))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "categoryId/sellerId phải là UUID"));
+        pagination.EnsureValid();
+        ValidationHelpers.EnsureGuid(categoryId, "categoryId");
+        ValidationHelpers.EnsureGuid(sellerId, "sellerId");
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "catalog",
             "products",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListProductsAsync(new ProductQuery
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 CategoryId = categoryId ?? "",
                 SellerId = sellerId ?? "",
                 Q = q ?? ""
@@ -80,7 +78,7 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpGet("gateway/api/v1/catalog/products/{id:guid}")]
+    [HttpGet("catalog/products/{id:guid}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<Product>), StatusCodes.Status200OK)]
     public Task<IResult> GetProduct([FromRoute] Guid id)
@@ -97,15 +95,13 @@ public sealed class CatalogController : ControllerBase
 
     // ---------- Catalog Admin Endpoints ----------
 
-    [HttpPost("gateway/api/v1/catalog/categories")]
+    [HttpPost("catalog/categories")]
     [Authorize("admin")]
     [ProducesResponseType(typeof(ApiResponse<Category>), StatusCodes.Status200OK)]
     public Task<IResult> CreateCategory([FromBody] CategoryRequestDto body)
     {
-        if (string.IsNullOrWhiteSpace(body.Name))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "name là bắt buộc", field: "Name"));
-        if (!ValidationHelpers.GuidOk(body.ParentId))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "parentId phải là UUID", field: "ParentId"));
+        ValidationHelpers.EnsureRequired(body.Name, "Name");
+        ValidationHelpers.EnsureGuid(body.ParentId, "ParentId");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -121,15 +117,13 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpPut("gateway/api/v1/catalog/categories/{id:guid}")]
+    [HttpPut("catalog/categories/{id:guid}")]
     [Authorize("admin")]
     [ProducesResponseType(typeof(ApiResponse<Category>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateCategory([FromRoute] Guid id, [FromBody] CategoryRequestDto body)
     {
-        if (string.IsNullOrWhiteSpace(body.Name))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "name là bắt buộc", field: "Name"));
-        if (!ValidationHelpers.GuidOk(body.ParentId))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "parentId phải là UUID", field: "ParentId"));
+        ValidationHelpers.EnsureRequired(body.Name, "Name");
+        ValidationHelpers.EnsureGuid(body.ParentId, "ParentId");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -146,7 +140,7 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpDelete("gateway/api/v1/catalog/categories/{id:guid}")]
+    [HttpDelete("catalog/categories/{id:guid}")]
     [Authorize("admin")]
     [ProducesResponseType(typeof(ApiResponse<DeleteResponse>), StatusCodes.Status200OK)]
     public Task<IResult> DeleteCategory([FromRoute] Guid id)
@@ -163,37 +157,35 @@ public sealed class CatalogController : ControllerBase
 
     // ---------- Seller Catalog Endpoints ----------
 
-    [HttpGet("gateway/api/v1/seller/products")]
+    [HttpGet("seller/products")]
     [Authorize("seller")]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Product>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListSellerProducts([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public Task<IResult> ListSellerProducts([FromQuery] PaginationRequest pagination)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "catalog",
             "seller-products",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListProductsBySellerAsync(new ProductQuery
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 SellerId = HttpContext.ToUserRequest().UserId
             }, o),
             ProductPage.Parser
         );
     }
 
-    [HttpPost("gateway/api/v1/seller/products")]
+    [HttpPost("seller/products")]
     [Authorize("seller")]
     [ProducesResponseType(typeof(ApiResponse<Product>), StatusCodes.Status200OK)]
     public Task<IResult> CreateProduct([FromBody] ProductRequestDto body)
     {
-        if (!ProductValid(body, out var price, out var error))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, error));
+        var price = ValidateProduct(body);
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -215,15 +207,14 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpPut("gateway/api/v1/seller/products/{id:guid}")]
+    [HttpPut("seller/products/{id:guid}")]
     [Authorize("seller")]
     [ProducesResponseType(typeof(ApiResponse<Product>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateProduct([FromRoute] Guid id, [FromBody] ProductRequestDto body)
     {
-        if (!ProductValid(body, out var price, out var error))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, error));
+        var price = ValidateProduct(body);
         if (body.Available != 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "available không đổi qua cập nhật sản phẩm — dùng PUT /gateway/api/v1/seller/inventory/{productId}", field: "Available"));
+            throw new GatewayInputException("available không đổi qua cập nhật sản phẩm — dùng PUT /api/v1/seller/inventory/{productId}", "Available");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -245,7 +236,7 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpDelete("gateway/api/v1/seller/products/{id:guid}")]
+    [HttpDelete("seller/products/{id:guid}")]
     [Authorize("seller")]
     [ProducesResponseType(typeof(ApiResponse<DeleteResponse>), StatusCodes.Status200OK)]
     public Task<IResult> DeleteProduct([FromRoute] Guid id)
@@ -260,7 +251,7 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpGet("gateway/api/v1/seller/inventory")]
+    [HttpGet("seller/inventory")]
     [Authorize("seller")]
     [ProducesResponseType(typeof(ApiResponse<InventoryPage>), StatusCodes.Status200OK)]
     public Task<IResult> GetInventory()
@@ -275,13 +266,13 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpPut("gateway/api/v1/seller/inventory/{productId:guid}")]
+    [HttpPut("seller/inventory/{productId:guid}")]
     [Authorize("seller")]
     [ProducesResponseType(typeof(ApiResponse<Inventory>), StatusCodes.Status200OK)]
     public Task<IResult> AdjustInventory([FromRoute] Guid productId, [FromBody] AdjustInventoryRequestDto body)
     {
         if (body.Available < 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "available phải >= 0", field: "Available"));
+            throw new GatewayInputException("available phải >= 0", "Available");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -299,31 +290,14 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    private static bool ProductValid(ProductRequestDto body, out string price, out string error)
+    private static string ValidateProduct(ProductRequestDto body)
     {
-        price = "";
-        error = "";
-        if (string.IsNullOrWhiteSpace(body.Name))
-        {
-            error = "name là bắt buộc";
-            return false;
-        }
-        if (!decimal.TryParse(body.Price, NumberStyles.Number, CultureInfo.InvariantCulture, out var value) || value <= 0)
-        {
-            error = "price phải là số thập phân > 0 (ví dụ \"1250000.00\")";
-            return false;
-        }
+        ValidationHelpers.EnsureRequired(body.Name, "Name");
+        if (!MoneyPrecision.TryParsePositive(body.Price, out var value))
+            throw new GatewayInputException("price phải là số thập phân > 0 (ví dụ \"1250000.00\")", "Price");
         if (body.Available < 0)
-        {
-            error = "available phải >= 0";
-            return false;
-        }
-        if (!ValidationHelpers.GuidOk(body.CategoryId))
-        {
-            error = "categoryId phải là UUID";
-            return false;
-        }
-        price = value.ToString("0.00", CultureInfo.InvariantCulture);
-        return true;
+            throw new GatewayInputException("available phải >= 0", "Available");
+        ValidationHelpers.EnsureGuid(body.CategoryId, "CategoryId");
+        return value.ToString("0.00", CultureInfo.InvariantCulture);
     }
 }

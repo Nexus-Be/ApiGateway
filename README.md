@@ -1,121 +1,22 @@
 # Nexus API Gateway (.NET 8)
 
-API Gateway hoàn chỉnh cho 7 Microservices theo các quyết định trong [ADR.md](ADR.md) và chuẩn định dạng dữ liệu trong [input.md](input.md), tích hợp **Gateway State Switching** (Standard vs Mock Bypass) và **Declarative Mock Engine**.
+HTTP gateway gồm **10 controller** và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `audit`, `auction`, `fulfillment`, `notification`, `wallet`. Controller dispatch qua gRPC khi service ở `Real`, hoặc đọc fixture protobuf JSON trong `Nexus.Gateway/Seeds/` khi ở `Mock`. `Nexus.Gateway/Mocks/*.mock.json` là **declarative mock routes** riêng: phục vụ Mock, không tự tạo RPC hay route Real. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để thêm API.
 
----
+## Chạy và kiểm thử
 
-## 1. Cơ chế 2 Trạng thái Gateway (Gateway State: Standard vs Bypass)
+Từ thư mục `src/Services/ApiGateway`:
 
-Gateway hỗ trợ 2 trạng thái hoạt động chính giúp team vừa có thể kiểm tra quy trình xác thực chuẩn xác, vừa có thể phát triển giao diện nhanh với Mock độc lập:
-
-### a. Trạng thái Standard (`"Standard"` - Mặc định)
-- **Vẫn cần đăng nhập và kiểm tra quyền mọi thứ như thường**:
-  - Khi người dùng/FE gọi các API yêu cầu đăng nhập mà **chưa gửi token**: Gateway chặn lại với mã `401 Unauthorized`.
-  - Người dùng đăng nhập qua `POST /gateway/api/v1/auth/login` để nhận access token:
-    ```json
-    { "username": "buyer01", "password": "Passw0rd!" }
-    ```
-  - Gửi header `Authorization: Bearer <token>` ➔ Được xác thực thành công `200 OK`.
-  - Nếu token không đủ quyền (ví dụ token người mua gọi endpoint quản trị `/gateway/api/v1/admin/roles`) ➔ Bị chặn với mã `403 Forbidden`.
-
-### b. Trạng thái Mock Bypass (`"Bypass"`)
-- Khi chuyển Gateway sang trạng thái này:
-  - **Không kiểm tra auth**: Không bắt buộc phải đăng nhập, không yêu cầu token.
-  - **Các API mock chạy hoàn toàn độc lập**: Bạn có thể gọi bất kỳ API nào (kể cả `/users/me`, `/seller/inventory`, `/admin/roles`) mà không bị ràng buộc vào service user hay login.
-  - Phù hợp khi Frontend dev muốn code màn hình nhanh mà không muốn phải login đi login lại.
-
----
-
-## 2. Cách Chuyển đổi Trạng thái Gateway
-
-### Cách 1: Qua API Runtime (Frontend có thể gạt công tắc toggle trên web)
-- **Xem trạng thái hiện tại**:
-  ```http
-  GET /gateway/api/v1/gateway/modes
-  ```
-  Trả về:
-  ```json
-  {
-    "success": true,
-    "statusCode": 200,
-    "data": {
-      "gatewayMode": "Standard",
-      "services": {
-        "catalog": { "service": "catalog", "mode": "Mock" },
-        "commerce": { "service": "commerce", "mode": "Mock" },
-        "users": { "service": "users", "mode": "Mock" },
-        "auction": { "service": "auction", "mode": "Mock" },
-        "fulfillment": { "service": "fulfillment", "mode": "Mock" },
-        "notification": { "service": "notification", "mode": "Mock" },
-        "audit": { "service": "audit", "mode": "Mock" },
-        "wallet": { "service": "wallet", "mode": "Mock" }
-      }
-    }
-  }
-  ```
-
-- **Chuyển sang trạng thái Mock Bypass (Không check auth, API độc lập)**:
-  ```http
-  PUT /gateway/api/v1/gateway/mode
-  Content-Type: application/json
-
-  { "mode": "Bypass" }
-  ```
-
-- **Chuyển về trạng thái Standard (Yêu cầu đăng nhập như thường)**:
-  ```http
-  PUT /gateway/api/v1/gateway/mode
-  Content-Type: application/json
-
-  { "mode": "Standard" }
-  ```
-
-### Cách 2: Qua Request Header (Test tạm thời trên 1 request)
-- Gửi header `X-Gateway-Auth: Bypass` trên request để tạm thời bỏ qua kiểm tra auth cho riêng request đó.
-
-### Cách 3: Qua File cấu hình `gateway.runtime.json`
-Chỉ cần sửa giá trị `"AuthMode": "Standard"` thành `"AuthMode": "Bypass"` (áp dụng ngay mà không cần restart server).
-
----
-
-## 3. Declarative Mock Engine (Tạo Mock API Không Cần Code C#)
-
-Thành viên team chỉ cần tạo file `*.mock.json` trong thư mục `Nexus.Gateway/Mocks/`:
-```json
-{
-  "method": "POST",
-  "path": "/gateway/api/v1/catalog/search",
-  "description": "Tìm kiếm sản phẩm",
-  "policy": "public",
-  "statusCode": 200,
-  "responseType": "paged",
-  "request": {
-    "keyword": "bàn phím",
-    "minPrice": 500000
-  },
-  "response": {
-    "items": [
-      { "id": "22222222-2222-2222-2222-000000000001", "name": "Bàn phím cơ", "price": "1250000.00" }
-    ],
-    "total": 1
-  }
-}
-```
-
-- **Tự động nhận diện Service**: Đường dẫn `/gateway/api/v1/catalog/...` tự map vào service `catalog`.
-- **Tự động hiện trên Swagger UI**: Không cần sửa code C#, Swagger tự sinh tài liệu API đầy đủ.
-- **Hot-Reload tức thì**: Sửa file JSON là có hiệu lực ngay mà không cần restart server.
-
----
-
-## 4. Hướng dẫn Chạy & Kiểm thử
-
-```powershell
-# Chạy bộ test suite toàn diện (46/46 tests pass 100%)
+```bash
 dotnet test ApiGateway.sln -c Release
-
-# Khởi chạy Gateway
-$env:ASPNETCORE_ENVIRONMENT='Development'
-dotnet run --project Nexus.Gateway --no-launch-profile --urls http://127.0.0.1:5200
+./run-dev.sh # Unix; PowerShell dùng ./run-dev.ps1
 ```
-Mở trình duyệt truy cập: `http://localhost:5200/` (tự động chuyển hướng sang Swagger UI).
+
+Hoặc chạy `docker compose up -d` theo cấu hình Compose. Kiểm tra địa chỉ Gateway trong script/launch profile hoặc cấu hình đang dùng; Swagger (`/swagger`) chỉ bật ở Development. Không giả định backend Real sẵn sàng: phải triển khai RPC tương ứng và cấu hình địa chỉ trước khi gọi.
+
+## Service mode và auth mode là hai trục khác nhau
+
+Trong `Nexus.Gateway/gateway.runtime.json`, đặt `Gateway:Services:<service>:Mode` thành `Mock` hoặc `Real`, và `Gateway:AuthMode` thành `Enforce` (mặc định) hoặc `Bypass`. Có thể cập nhật qua control API `/api/v1/gateway/modes/{service}` và `/api/v1/gateway/mode` với **quyền Gateway admin**; endpoint control có `[DisableMockAuthorizationBypass]`. Override theo request header chỉ hoạt động ở Development khi cấu hình cho phép. File cấu hình đăng ký reload khi thay đổi, nhưng nên xác minh mode có hiệu lực bằng request thay vì giả định hot reload tức thì.
+
+`Enforce` giữ xác thực/phân quyền cho cả request Mock và Real. `Bypass` chỉ có hiệu lực trong **Development**, trên request Mock đủ điều kiện khi tùy chọn anonymous mock auth bật; không áp dụng vô điều kiện, không bỏ qua endpoint bị cấm bypass. Security và authorization được xử lý trước controller/mock response. Một declarative-only route khi service chuyển sang `Real` mà không có controller route tương ứng sẽ trả **404**, không tự forward sang backend.
+
+Response controller thành công là envelope `success`, `statusCode`, `data`, `traceId`, `timestamp` (có thể có `message`), HTTP **200** theo mặc định; dispatcher hỗ trợ HTTP **201** khi endpoint khai báo rõ. Lỗi dùng shape `type`, `title`, `status`, `errorCode`, `detail`, `traceId`, `timestamp` (có thể có `errors`), HTTP status tương ứng; Exception Handler trung tâm tự động map lỗi và trả về đúng status code mà không cần controller try-catch hay gọi .Error(...) thủ công. Declarative `raw` cố ý trả body nguyên bản. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để biết cách viết action siêu tinh gọn, phân trang, validation và phân biệt fixture/declarative mock.

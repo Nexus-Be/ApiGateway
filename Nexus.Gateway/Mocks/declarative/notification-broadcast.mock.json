@@ -2,7 +2,7 @@
   "id": "notification-admin-broadcast",
   "service": "notification",
   "method": "POST",
-  "path": "/gateway/api/v1/notifications/broadcast",
+  "path": "/api/v1/notifications/broadcast",
   "description": "Gửi thông báo toàn hệ thống (Chỉ Admin)",
   "policy": "admin",
   "statusCode": 201,

@@ -3,6 +3,7 @@ namespace Nexus.Gateway.Dispatching;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Nexus.Gateway.Services;
+using Nexus.Gateway.Security;
 
 public interface IModeEvaluator
 {
@@ -27,7 +28,9 @@ public sealed class ModeEvaluator : IModeEvaluator
     {
         var config = _options.CurrentValue.GetService(service);
         var configuredMode = config?.Mode ?? "Mock";
-        return _runtimeManager.ResolveEffectiveMode(context, service, configuredMode);
+        return GatewayRequestResolution.Get(context) is { } resolution
+            ? resolution.EffectiveMode(context, service, _options.CurrentValue, _runtimeManager)
+            : _runtimeManager.ResolveEffectiveMode(context, service, configuredMode);
     }
 
     public BackendOptions? GetServiceOptions(string service)

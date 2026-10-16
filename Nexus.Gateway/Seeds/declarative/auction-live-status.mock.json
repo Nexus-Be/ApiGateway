@@ -2,7 +2,7 @@
   "id": "auction-live-status",
   "service": "auction",
   "method": "GET",
-  "path": "/gateway/api/v1/auctions/{id}/live-status",
+  "path": "/api/v1/auctions/{id}/live-status",
   "description": "Lấy trạng thái thời gian thực và đồng hồ đếm ngược phiên đấu giá",
   "policy": "public",
   "statusCode": 200,

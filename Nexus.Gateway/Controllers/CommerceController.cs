@@ -12,6 +12,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
+[Route("api/v1")]
 [BackendTag("commerce")]
 [EnableRateLimiting("api")]
 public sealed class CommerceController : ControllerBase
@@ -27,7 +28,7 @@ public sealed class CommerceController : ControllerBase
 
     // ---------- Cart Endpoints ----------
 
-    [HttpGet("gateway/api/v1/commerce/cart")]
+    [HttpGet("commerce/cart")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<Cart>), StatusCodes.Status200OK)]
     public Task<IResult> GetCart()
@@ -42,15 +43,14 @@ public sealed class CommerceController : ControllerBase
         );
     }
 
-    [HttpPost("gateway/api/v1/commerce/cart/items")]
+    [HttpPost("commerce/cart/items")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<Cart>), StatusCodes.Status200OK)]
     public Task<IResult> AddCartItem([FromBody] AddCartItemRequestDto body)
     {
-        if (!Guid.TryParse(body.ProductId, out _))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "productId phải là UUID", field: "ProductId"));
+        ValidationHelpers.EnsureGuid(body.ProductId, "ProductId");
         if (body.Quantity < 1)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "quantity phải >= 1", field: "Quantity"));
+            throw new GatewayInputException("quantity phải >= 1", "Quantity");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -67,13 +67,13 @@ public sealed class CommerceController : ControllerBase
         );
     }
 
-    [HttpPatch("gateway/api/v1/commerce/cart/items/{productId:guid}")]
+    [HttpPatch("commerce/cart/items/{productId:guid}")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<Cart>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateCartItem([FromRoute] Guid productId, [FromBody] UpdateCartItemRequestDto body)
     {
         if (body.Quantity < 1)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "quantity phải >= 1", field: "Quantity"));
+            throw new GatewayInputException("quantity phải >= 1", "Quantity");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -90,7 +90,7 @@ public sealed class CommerceController : ControllerBase
         );
     }
 
-    [HttpDelete("gateway/api/v1/commerce/cart/items/{productId:guid}")]
+    [HttpDelete("commerce/cart/items/{productId:guid}")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<Cart>), StatusCodes.Status200OK)]
     public Task<IResult> RemoveCartItem([FromRoute] Guid productId)
@@ -109,7 +109,7 @@ public sealed class CommerceController : ControllerBase
         );
     }
 
-    [HttpDelete("gateway/api/v1/commerce/cart")]
+    [HttpDelete("commerce/cart")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<Cart>), StatusCodes.Status200OK)]
     public Task<IResult> ClearCart()
@@ -126,31 +126,30 @@ public sealed class CommerceController : ControllerBase
 
     // ---------- Orders Endpoints ----------
 
-    [HttpGet("gateway/api/v1/commerce/orders")]
+    [HttpGet("commerce/orders")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Order>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public Task<IResult> ListOrders([FromQuery] PaginationRequest pagination)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "commerce",
             "orders",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListOrdersAsync(new MyOrdersRequest
             {
                 UserId = HttpContext.ToUserRequest().UserId,
-                Page = page,
-                PageSize = pageSize
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
             }, o),
             OrderPage.Parser
         );
     }
 
-    [HttpGet("gateway/api/v1/commerce/orders/{id:guid}")]
+    [HttpGet("commerce/orders/{id:guid}")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<Order>), StatusCodes.Status200OK)]
     public Task<IResult> GetOrder([FromRoute] Guid id)
@@ -170,32 +169,31 @@ public sealed class CommerceController : ControllerBase
         );
     }
 
-    [HttpPost("gateway/api/v1/commerce/orders")]
+    [HttpPost("commerce/orders")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<Order>), StatusCodes.Status201Created)]
     public Task<IResult> CreateOrder([FromBody] CheckoutRequestDto body)
     {
         var key = HttpContext.Request.Headers["Idempotency-Key"].ToString();
         if (!Guid.TryParse(key, out _))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "Idempotency-Key phải là UUID", field: "Idempotency-Key"));
+            throw new GatewayInputException("Idempotency-Key phải là UUID", "Idempotency-Key");
 
         var lines = body.Items ?? Array.Empty<CheckoutLineDto>();
         if (lines.Count == 0)
         {
             if (!Guid.TryParse(body.CartId, out _))
-                return Task.FromResult(ValidationHelpers.Bad(HttpContext, "cần 'items' (mua ngay) hoặc 'cartId' (checkout cả giỏ)"));
+                throw new GatewayInputException("cần 'items' (mua ngay) hoặc 'cartId' (checkout cả giỏ)");
         }
         else
         {
             if (lines.Count > ValidationHelpers.MaxCheckoutLines)
-                return Task.FromResult(ValidationHelpers.Bad(HttpContext, $"tối đa {ValidationHelpers.MaxCheckoutLines} dòng hàng mỗi đơn"));
+                throw new GatewayInputException($"tối đa {ValidationHelpers.MaxCheckoutLines} dòng hàng mỗi đơn");
 
             foreach (var line in lines)
             {
-                if (!Guid.TryParse(line.ProductId, out _))
-                    return Task.FromResult(ValidationHelpers.Bad(HttpContext, "productId phải là UUID", field: "ProductId"));
+                ValidationHelpers.EnsureGuid(line.ProductId, "ProductId");
                 if (line.Quantity < 1 || line.Quantity > ValidationHelpers.MaxCheckoutQuantity)
-                    return Task.FromResult(ValidationHelpers.Bad(HttpContext, $"quantity phải trong khoảng 1..{ValidationHelpers.MaxCheckoutQuantity}", field: "Quantity"));
+                    throw new GatewayInputException($"quantity phải trong khoảng 1..{ValidationHelpers.MaxCheckoutQuantity}", "Quantity");
             }
         }
 
@@ -218,48 +216,46 @@ public sealed class CommerceController : ControllerBase
         );
     }
 
-    [HttpGet("gateway/api/v1/seller/orders")]
+    [HttpGet("seller/orders")]
     [Authorize("seller")]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Order>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListSellerOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public Task<IResult> ListSellerOrders([FromQuery] PaginationRequest pagination)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "commerce",
             "seller-orders",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListOrdersBySellerAsync(new SellerOrdersRequest
             {
                 SellerId = HttpContext.ToUserRequest().UserId,
-                Page = page,
-                PageSize = pageSize
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
             }, o),
             OrderPage.Parser
         );
     }
 
-    [HttpGet("gateway/api/v1/admin/orders")]
+    [HttpGet("admin/orders")]
     [Authorize("staff")]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Order>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListAdminOrders([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    public Task<IResult> ListAdminOrders([FromQuery] PaginationRequest pagination)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "commerce",
             "admin-orders",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListAllOrdersAsync(new PageRequest
             {
-                Page = page,
-                PageSize = pageSize
+                Page = pagination.Page,
+                PageSize = pagination.PageSize
             }, o),
             OrderPage.Parser
         );

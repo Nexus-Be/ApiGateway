@@ -11,6 +11,7 @@ using Nexus.Gateway.Security;
 using Nexus.Gateway.Services;
 
 [ApiController]
+[Route("api/v1")]
 [EnableRateLimiting("api")]
 [Authorize(GatewayPolicies.GatewayAdmin)]
 [DisableMockAuthorizationBypass]
@@ -30,7 +31,7 @@ public sealed class GatewayControlController : ControllerBase
         _engine = engine;
     }
 
-    [HttpGet("gateway/api/v1/gateway/modes")]
+    [HttpGet("gateway/modes")]
     [ProducesResponseType(typeof(ApiResponse<GatewayStateResponseDto>), StatusCodes.Status200OK)]
     public IResult GetModes()
     {
@@ -38,7 +39,7 @@ public sealed class GatewayControlController : ControllerBase
         return _factory.SuccessResult(HttpContext, state, "Gateway service modes retrieved.");
     }
 
-    [HttpPut("gateway/api/v1/gateway/mode")]
+    [HttpPut("gateway/mode")]
     public async Task<IResult> UpdateAuthMode([FromBody] AuthModeUpdateRequestDto body)
     {
         var success = await _manager.SetAuthModeAsync(body.Mode);
@@ -54,7 +55,7 @@ public sealed class GatewayControlController : ControllerBase
         return _factory.SuccessResult(HttpContext, new { authMode = _manager.GetAuthMode(HttpContext) }, $"Gateway auth mode updated to '{body.Mode}'.");
     }
 
-    [HttpPut("gateway/api/v1/gateway/modes/{service}")]
+    [HttpPut("gateway/modes/{service}")]
     public async Task<IResult> UpdateServiceMode([FromRoute] string service, [FromBody] ServiceModeUpdateRequestDto body)
     {
         var success = await _manager.SetServiceModeAsync(service, body.Mode);
@@ -70,11 +71,12 @@ public sealed class GatewayControlController : ControllerBase
         return _factory.SuccessResult(HttpContext, new { service, mode = body.Mode }, $"Service '{service}' mode updated to '{body.Mode}'.");
     }
 
-    [HttpPut("gateway/api/v1/gateway/modes")]
+    [HttpPut("gateway/modes")]
     public async Task<IResult> UpdateBulkModes([FromBody] BulkServiceModeUpdateRequestDto body)
     {
         var requestedAuthMode = body.AuthMode ?? body.GatewayMode;
-        if (!string.IsNullOrEmpty(requestedAuthMode) && !await _manager.SetAuthModeAsync(requestedAuthMode))
+        var result = await _manager.SetBulkModesAsync(requestedAuthMode, body.Services);
+        if (result == BulkModesUpdateResult.InvalidAuthMode)
         {
             return ApiResponseFactory.Failure(
                 HttpContext,
@@ -83,7 +85,7 @@ public sealed class GatewayControlController : ControllerBase
                 errorCode: "INVALID_AUTH_MODE"
             );
         }
-        if (body.Services != null && !await _manager.SetBulkServiceModesAsync(body.Services))
+        if (result == BulkModesUpdateResult.InvalidServiceMode)
         {
             return ApiResponseFactory.Failure(
                 HttpContext,
@@ -96,7 +98,7 @@ public sealed class GatewayControlController : ControllerBase
         return _factory.SuccessResult(HttpContext, state, "Gateway modes updated.");
     }
 
-    [HttpGet("gateway/api/v1/mock-engine/definitions")]
+    [HttpGet("mock-engine/definitions")]
     public IResult GetMockDefinitions()
     {
         var defs = _engine.GetDefinitions().Select(d => new
@@ -115,7 +117,7 @@ public sealed class GatewayControlController : ControllerBase
         return _factory.SuccessResult(HttpContext, defs, "Mock endpoint definitions retrieved.");
     }
 
-    [HttpPost("gateway/api/v1/mock-engine/reload")]
+    [HttpPost("mock-engine/reload")]
     public IResult ReloadMockDefinitions()
     {
         _engine.Reload();

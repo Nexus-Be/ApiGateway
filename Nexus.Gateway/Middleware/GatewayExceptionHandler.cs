@@ -2,6 +2,7 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Nexus.Gateway.Common;
 using Nexus.Gateway.Responses;
 
 namespace Nexus.Gateway.Middleware;
@@ -21,14 +22,21 @@ public sealed class GatewayExceptionHandler : IExceptionHandler
     {
         var (status, title, errorCode, detail) = MapException(context, exception);
 
-        _logger.LogWarning(exception, "Request failed with status {Status} ({ErrorCode}): {Message}. Trace: {TraceId}",
-            status, errorCode, exception.Message, context.TraceIdentifier);
+        if (exception is GatewayInputException)
+            _logger.LogInformation("Request validation failed ({ErrorCode}). Trace: {TraceId}", errorCode, context.TraceIdentifier);
+        else
+            _logger.LogWarning(exception, "Request failed with status {Status} ({ErrorCode}): {Message}. Trace: {TraceId}",
+                status, errorCode, exception.Message, context.TraceIdentifier);
 
+        IDictionary<string, string[]>? errors = exception is GatewayInputException input
+            ? new Dictionary<string, string[]> { [input.Field] = [input.Message] }
+            : null;
         var errorResponse = _responseFactory.CreateFailure(
             title: title,
             status: status,
             detail: detail,
             errorCode: errorCode,
+            errors: errors,
             traceId: ApiResponseFactory.ResolveTraceId(context)
         );
 
@@ -42,6 +50,9 @@ public sealed class GatewayExceptionHandler : IExceptionHandler
     {
         return exception switch
         {
+            GatewayInputException input =>
+                (400, "One or more validation errors occurred.", input.ErrorCode, input.Message),
+
             RpcException { StatusCode: StatusCode.Cancelled } when !context.RequestAborted.IsCancellationRequested =>
                 (504, "Gateway timeout", "GATEWAY_TIMEOUT", "Upstream operation timed out or was cancelled."),
 

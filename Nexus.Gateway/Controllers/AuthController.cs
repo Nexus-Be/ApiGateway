@@ -12,7 +12,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
-[Route("gateway/api/v1/auth")]
+[Route("api/v1/auth")]
 [BackendTag("users")]
 [EnableRateLimiting("api")]
 public sealed class AuthController : ControllerBase
@@ -32,7 +32,7 @@ public sealed class AuthController : ControllerBase
     public Task<IResult> Register([FromBody] RegisterRequestDto body)
     {
         if (string.IsNullOrWhiteSpace(body.Username) || !body.Email.Contains('@') || (body.Password?.Length ?? 0) < 8)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "username, email hợp lệ và password >= 8 ký tự là bắt buộc"));
+            throw new GatewayInputException("username, email hợp lệ và password >= 8 ký tự là bắt buộc");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -57,7 +57,7 @@ public sealed class AuthController : ControllerBase
     {
         Response.Headers.CacheControl = "no-store";
         if (string.IsNullOrWhiteSpace(body.Username) || string.IsNullOrEmpty(body.Password))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "username và password là bắt buộc"));
+            throw new GatewayInputException("username và password là bắt buộc");
 
         return _dispatcher.DispatchAsync(
             HttpContext,

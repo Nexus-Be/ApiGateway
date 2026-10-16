@@ -196,6 +196,54 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
         return true;
     }
 
+    public async Task<BulkModesUpdateResult> SetBulkModesAsync(
+        string? authMode, Dictionary<string, string>? services, CancellationToken cancellationToken = default)
+    {
+        string? normalizedAuthMode = null;
+        if (!string.IsNullOrEmpty(authMode))
+        {
+            if (!IsValidAuthMode(authMode, out var parsedAuthMode) ||
+                (parsedAuthMode == "Bypass" && !_environment.IsDevelopment()))
+                return BulkModesUpdateResult.InvalidAuthMode;
+
+            normalizedAuthMode = parsedAuthMode;
+        }
+
+        var validated = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (services != null)
+        {
+            foreach (var (service, mode) in services)
+            {
+                var knownService = GatewayOptions.CanonicalServices.Contains(service, StringComparer.OrdinalIgnoreCase) ||
+                                   service.Equals("user", StringComparison.OrdinalIgnoreCase);
+                if (!knownService || !IsValidMode(mode, out var normalizedMode) ||
+                    (normalizedMode == "Mock" && !_environment.IsDevelopment()))
+                    return BulkModesUpdateResult.InvalidServiceMode;
+
+                validated[service] = normalizedMode;
+            }
+
+            if (validated.Count == 0) return BulkModesUpdateResult.InvalidServiceMode;
+        }
+
+        // Persistence is best-effort, as for the individual setters. Write both groups in
+        // one file update so a failed write cannot leave only one group persisted.
+        if (normalizedAuthMode != null || validated.Count > 0)
+            await PersistToFileAsync(validated, cancellationToken, normalizedAuthMode);
+
+        if (normalizedAuthMode != null) _memoryGatewayMode = normalizedAuthMode;
+        foreach (var (service, mode) in validated)
+        {
+            _memoryOverrides[service] = mode;
+            if (service.Equals("user", StringComparison.OrdinalIgnoreCase))
+                _memoryOverrides["users"] = mode;
+            else if (service.Equals("users", StringComparison.OrdinalIgnoreCase))
+                _memoryOverrides["user"] = mode;
+        }
+
+        return BulkModesUpdateResult.Success;
+    }
+
     private static bool IsValidMode(string? input, out string normalized)
     {
         if (string.Equals(input, "Mock", StringComparison.OrdinalIgnoreCase))
@@ -262,7 +310,7 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
         }
     }
 
-    private async Task PersistToFileAsync(Dictionary<string, string> updates, CancellationToken cancellationToken)
+    private async Task PersistToFileAsync(Dictionary<string, string> updates, CancellationToken cancellationToken, string? authMode = null)
     {
         try
         {
@@ -276,20 +324,26 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
             if (gatewayNode == null) return;
 
             var servicesNode = gatewayNode["Services"] as JsonObject;
-            if (servicesNode == null) return;
+            if (updates.Count > 0 && servicesNode == null) return;
+
+            if (authMode != null)
+            {
+                gatewayNode["AuthMode"] = authMode;
+                gatewayNode.Remove("GatewayMode");
+            }
 
             foreach (var (svc, mode) in updates)
             {
                 var targetKey = svc;
-                if (!servicesNode.ContainsKey(targetKey))
+                if (!servicesNode!.ContainsKey(targetKey))
                 {
-                    if (svc.Equals("user", StringComparison.OrdinalIgnoreCase) && servicesNode.ContainsKey("users"))
+                    if (svc.Equals("user", StringComparison.OrdinalIgnoreCase) && servicesNode!.ContainsKey("users"))
                         targetKey = "users";
-                    else if (svc.Equals("users", StringComparison.OrdinalIgnoreCase) && servicesNode.ContainsKey("user"))
+                    else if (svc.Equals("users", StringComparison.OrdinalIgnoreCase) && servicesNode!.ContainsKey("user"))
                         targetKey = "user";
                 }
 
-                if (servicesNode.TryGetPropertyValue(targetKey, out var svcNode) && svcNode is JsonObject svcObj)
+                if (servicesNode!.TryGetPropertyValue(targetKey, out var svcNode) && svcNode is JsonObject svcObj)
                 {
                     svcObj["Mode"] = mode;
                 }

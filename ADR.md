@@ -13,28 +13,29 @@ Tài liệu này ghi nhận các quyết định kiến trúc cốt lõi định
 
 ## ADR 02: Mô Hình Giao Tiếp Ngoại Vi & Nội Bộ (Restful vs gRPC)
 - **Ngoại vi (Client $\rightarrow$ Gateway)**: Chuẩn **RESTful JSON** qua HTTP/1.1 và HTTP/2 với tiền tố đường dẫn thống nhất:
-  $$\mathbf{/gateway/api/v1/\{service\}/...}$$
+  $$\mathbf{/api/v1/\{service\}/...}$$
 - **Nội bộ (Gateway $\rightarrow$ Microservices)**: Chuẩn **gRPC trên nền Protobuf v3** (`Contracts/shop.proto`) an toàn kiểu dữ liệu, nhị phân nén, độ trễ cực thấp.
 
 ---
 
 ## ADR 03: Kiến Trúc 3 Khối Độc Lập Cho API Gateway (3-Tier Decoupling)
-- **Khối Đầu Vào (Input)**: 10 Controllers tiêu chuẩn `[ApiController] ControllerBase` trong `Controllers/`, nhóm theo 8 microservices. Nhận Request DTOs, kiểm tra input cơ bản, tuyệt đối không chứa logic `if Mock else Real`.
+- **Khối Đầu Vào (Input)**: 10 Controllers tiêu chuẩn `[ApiController] ControllerBase` trong `Controllers/`, nhóm theo 8 microservices. Nhận Request DTOs, tự động validate cơ bản thông qua ModelBinding/DataAnnotations và các helper `EnsureValid()`, `EnsureGuid()`, `EnsurePositive()`. Tuyệt đối không chứa logic `if Mock else Real` hay các khối `try-catch` / `.Error(...)` thủ công làm phình to action.
+- **Tuyến security trước dispatcher**: sau rewrite `/gateway/api/v1/...` sang `/api/v1/...` và routing, adapter/authentication/rate-limit/authorization nhận diện service và effective mode để quyết định quyền; declarative mock hoặc controller chỉ xử lý sau đó. `GatewayRequestResolution` ghi một snapshot per-request ngay sau routing và trước authentication: endpoint metadata có ưu tiên với auth/rate-limit, mock matcher được giữ lại cho declarative route; effective mode cho từng service được cache theo request. Auth mode là trục độc lập, không được suy từ snapshot service mode. Khi route controller và mock definition trùng nhưng khác service, security giữ service metadata của controller, mock engine dùng service của definition; cần giữ regression tests cho trường hợp chồng lấn.
 - **Khối Phần Giữa (Dispatching Core)**:
   - `ModeEvaluator`: Xác định trạng thái Mock hay Real theo service (hỗ trợ file runtime hot-reload và header override).
   - `MockDataMapper`: Đọc file Seed JSON trong `Seeds/{service}/{entity}.json`, kiểm định cú pháp qua Protobuf MessageParser.
   - `GrpcServiceCaller`: Tự động forward Metadata (JWT Bearer, Idempotency-Key, TraceId) và gọi gRPC typed client.
-  - `GatewayDispatcher`: Điều phối chung, kết hợp 3 khối và trả về kết quả chuẩn.
+  - `GatewayDispatcher`: Chọn fixture Mock hoặc gRPC Real và dùng response factory trả `IResult` với HTTP status đúng (200 mặc định, 201 khi action chỉ định).
 - **Khối Đầu Ra (Output)**:
-  - `ApiResponseFactory`: Universal factory đóng gói `ApiResponse<T>` hoặc `ApiResponse<PagedData<T>>`.
-  - `GatewayExceptionHandler`: Hứng mọi ngoại lệ tập trung, chuyển đổi lỗi gRPC sang RFC 9110 / RFC 6585.
+  - `ApiResponseFactory`: Universal factory đóng gói `ApiResponse<T>` hoặc `ApiResponse<PagedData<T>>`. Cung cấp các static helpers `Success<T>` và `Error<T>` trả về envelope thống nhất.
+  - `GatewayExceptionHandler`: Tự động bắt và map tập trung `GatewayInputException`, `RpcException`, timeout và lỗi hệ thống thành response lỗi chuẩn RFC 9110/ApiErrorResponse kèm `traceId` và HTTP status tương ứng (400, 401, 403, 404, 409, 422, 503, 504). Controller hoàn toàn không cần bọc lỗi thủ công.
 
 ---
 
 ## ADR 04: Bản Chất Dữ Liệu Mock/Seed Tại Gateway
 - **Quyết định**: Gateway **không ôm database in-memory hay tính toán stateful logic** của backend.
 - **Lý do**: Giữ Gateway mỏng (thin edge proxy), độ tin cậy cao, không bị phình to bộ nhớ.
-- **Triển khai**: Thư mục `Seeds/{service}/{entity}.json` đóng vai trò là contract stub fixtures, được Protobuf Parser kiểm tra tính toàn vẹn 100%.
+- **Triển khai**: Thư mục `Seeds/{service}/{entity}.json` đóng vai trò là contract stub fixtures, được Protobuf Parser kiểm tra kiểu/schema; cần test contract và backend để xác minh ý nghĩa nghiệp vụ.
 
 ---
 
@@ -67,3 +68,21 @@ Tài liệu này ghi nhận các quyết định kiến trúc cốt lõi định
 - **Event Bus & Messaging**: RabbitMQ kết hợp thư viện **MassTransit 8.4.1**.
 - **Tính toàn vẹn dữ liệu**: Outbox Pattern cho các thao tác bắn event và Inbox Pattern cho consumer tránh duplicate message.
 - **Giao dịch phân tán**: Saga State Machine Pattern điều phối các luồng nghiệp vụ phức tạp liên service (Checkout $\rightarrow$ Reserve Inventory $\rightarrow$ Deduct Wallet $\rightarrow$ Confirm Order).
+
+---
+
+## ADR 09: Chiến Lược Phòng Thủ Xác Thực Dữ Liệu 3 Tầng (3-Tier Validation Defense-in-Depth)
+- **Bối cảnh & Vấn đề**: Ranh giới xác thực dữ liệu cần được phân định rõ ràng giữa Gateway, Backend Service API/Application và Domain/Database để tránh Gateway bị phình to bởi logic nghiệp vụ của các service khác.
+- **Quyết định phân tầng xác thực**:
+  1. **Tầng 1 (Edge Gateway — Kiểm tra mức HTTP / Hạ tầng)**:
+     - Định dạng HTTP cơ bản, Content-Type (`application/json`), giới hạn body size (64KB), Rate Limiting.
+     - Xác thực JWT token cơ bản, chuyển tiếp danh tính xuống gRPC metadata.
+     - Các header hạ tầng bắt buộc: Header `Idempotency-Key` (UUID format), giới hạn phân trang query (`page >= 1`, `pageSize` 1..100).
+     - *Lưu ý trong Mock Mode*: Gateway chỉ thực hiện các validation cơ bản này làm "Mock Gatekeeper" để phục vụ các bài test giả lập khi backend chưa chạy, không can thiệp sâu vào nghiệp vụ riêng của từng domain.
+  2. **Tầng 2 (Service API & Application Layer — Validate DTOs & Use Case Input)**:
+     - Áp dụng `FluentValidation` hoặc `Data Annotations` tại tầng API/Application của từng microservice: `quantity > 0`, `price >= 0`, Email đúng định dạng regex, các trường bắt buộc không để trống, độ dài chuỗi tối đa/tối thiểu.
+     - Khi vi phạm: Ném lỗi gRPC `RpcException(StatusCode.InvalidArgument)` kèm từ điển lỗi chi tiết `errors: { Field: [Message] }`. GatewayExceptionHandler tại Gateway sẽ tự động bắt và map sang HTTP `400 Bad Request` chuẩn RFC 9110.
+  3. **Tầng 3 (Domain & Database — Bảo Vệ Bất Biến Nghiệp Vụ & Toàn Vẹn Dữ Liệu)**:
+     - **Domain Entities**: Đóng gói quy tắc nghiệp vụ bất biến (Business Invariants) ngay trong Entity methods (ví dụ: số lượng đơn hàng phải $> 0$, không cho phép chuyển trạng thái đơn hàng trái quy tắc, tồn kho không được âm khi trừ).
+     - **Database Constraints**: Đặt các ràng buộc `CHECK (available >= 0)`, `NOT NULL`, `UNIQUE`, `FOREIGN KEY` ở tầng DB PostgreSQL.
+     - **Đảm bảo độc lập**: Dù request đến từ Gateway, từ gRPC nội bộ giữa 2 service, hay từ RabbitMQ Consumer, tính toàn vẹn nghiệp vụ và dữ liệu luôn được bảo vệ 100%.

@@ -24,11 +24,11 @@ Gateway làm đầu mối duy nhất cho Frontend gọi vào ở cổng `8000`. 
 
 ## 2. Các Việc Đã Hoàn Thiện Tại Gateway
 
-Gateway hiện tại đã đầy đủ mọi nền tảng và đã pass 46/46 unit & integration tests:
+Gateway có các thành phần nền tảng sau; chạy lại `dotnet test ApiGateway.sln -c Release` để kiểm tra phiên bản hiện tại. Tests Gateway không chứng minh các backend đã triển khai/tích hợp đầy đủ:
 1. **REST sang gRPC Translation**: Khai báo 8 gRPC Clients typed an toàn theo contract `shop.proto`.
 2. **Mock Engine**: Hỗ trợ chạy Mock độc lập từng service mà không cần backend chạy thật.
 3. **Cô lập trạng thái Real vs Mock theo từng Service**: Bạn có thể bật 1 service bất kỳ sang `Real` (ví dụ `catalog: Real`) để code và test, trong khi 7 service còn lại vẫn chạy `Mock` bình thường.
-4. **Authentication & RBAC**: Kiểm tra JWT Token chặt chẽ (chặn mock token khi service ở chế độ Real). Tự động bypass role linh hoạt khi bật `AuthMode: Bypass` để test giao diện.
+4. **Authentication & RBAC**: Kiểm tra JWT Token chặt chẽ (chặn mock token khi service ở chế độ Real). `AuthMode: Bypass` chỉ dành cho Development, request Mock đủ điều kiện và không áp dụng cho control-plane.
 5. **IETF Standard Errors**: Trả mã lỗi Problem Details theo chuẩn quốc tế RFC 9110 & RFC 6585.
 6. **Observability**: Tích hợp sẵn OpenTelemetry 1.18.0 Tracing và Metrics (hỗ trợ đẩy OTLP ra Jaeger/Prometheus).
 
@@ -36,8 +36,8 @@ Gateway hiện tại đã đầy đủ mọi nền tảng và đã pass 46/46 un
 
 ## 3. Các Phần Còn Lại Cho Gateway (Nếu Muốn Mở Rộng Thêm Trong Tương Lai)
 
-Gateway hiện tại đã hoàn thiện đầy đủ cho việc kết nối backend và test mock. Nếu dự án mở rộng quy mô lớn hơn, có thể bổ sung:
-- **Output Caching**: Thêm cache Redis cho các endpoint đọc công khai ít thay đổi (ví dụ: `GET /gateway/api/v1/catalog/categories`).
+Cần hoàn thiện RPC, triển khai backend và test tích hợp cho từng service trước khi bật Real trong môi trường dùng chung. Những hướng mở rộng sau chưa được đảm bảo bởi Gateway hiện tại:
+- **Output Caching**: Thêm cache Redis cho các endpoint đọc công khai ít thay đổi (ví dụ: `GET /api/v1/catalog/categories`).
 - **Circuit Breaker / Retry Policy (Polly)**: Tự động ngắt mạch nếu một service backend gRPC bị sập liên tục quá nhiều lần.
 - **BFF (Backend for Frontend)**: Ghép dữ liệu đa nguồn nếu một màn hình mobile cần gộp thông tin từ cả Catalog, Commerce và Wallet.
 
@@ -112,7 +112,7 @@ builder.Services.AddMassTransit(x =>
 ### Bước 5: Thiết Lập Saga Điều Phối Thanh Toán (Checkout & Wallet Saga)
 Khi tách riêng Ví điện tử khỏi Commerce, luồng Saga thanh toán diễn ra như sau:
 ```
-1. Client gửi POST /gateway/api/v1/commerce/orders qua Gateway -> CommerceService tạo Order (Status = Pending).
+1. Client gửi POST /api/v1/commerce/orders qua Gateway -> CommerceService tạo Order (Status = Pending).
 2. CommerceService bắn event OrderSubmitted lên RabbitMQ.
 3. CatalogService lắng nghe -> Giữ kho ảo (ReserveStock). Bắn StockReservedEvent.
 4. WalletService lắng nghe -> Trừ tiền trong ví khách hàng (DeductBalance). Bắn PaymentCompletedEvent.
@@ -134,7 +134,7 @@ Khi tách riêng Ví điện tử khỏi Commerce, luồng Saga thanh toán di�
    ```
    *(Hoặc cấu hình mặc định trong `appsettings.Development.json`).*
 3. Bật Gateway (nếu chưa chạy: `./run-dev.sh` hoặc `dotnet run --project Nexus.Gateway`).
-4. Mở Swagger Gateway `http://localhost:8000/swagger`, gọi thử API `/gateway/api/v1/wallet/balance`:
+4. Mở Swagger Gateway `http://localhost:8000/swagger`, gọi thử API `/api/v1/wallet/balance`:
    - Gateway sẽ tự động chuyển tiếp cuộc gọi gRPC sang backend thật của bạn tại port `8008`.
    - Các API khác (Catalog, Users, Commerce...) vẫn được Gateway phục vụ bằng Seed mock data mượt mà từ thư mục `Seeds/`!
 

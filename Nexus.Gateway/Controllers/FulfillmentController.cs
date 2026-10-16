@@ -12,7 +12,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
-[Route("gateway/api/v1/fulfillment")]
+[Route("api/v1/fulfillment")]
 [BackendTag("fulfillment")]
 [EnableRateLimiting("api")]
 public sealed class FulfillmentController : ControllerBase

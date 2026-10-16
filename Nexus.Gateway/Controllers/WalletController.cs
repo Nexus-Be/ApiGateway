@@ -13,7 +13,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
-[Route("gateway/api/v1/wallet")]
+[Route("api/v1/wallet")]
 [BackendTag("wallet")]
 [EnableRateLimiting("api")]
 [Authorize("authenticated")]
@@ -46,8 +46,8 @@ public sealed class WalletController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<WalletTransaction>), StatusCodes.Status200OK)]
     public Task<IResult> Deposit([FromBody] WalletDepositRequestDto body)
     {
-        if (!decimal.TryParse(body.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amt) || amt <= 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "amount phải là số dương hợp lệ", field: "Amount"));
+        if (!MoneyPrecision.TryParsePositive(body.Amount, out var amt))
+            throw new GatewayInputException("amount phải là số dương hợp lệ", "Amount");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -69,10 +69,9 @@ public sealed class WalletController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<WalletTransaction>), StatusCodes.Status200OK)]
     public Task<IResult> Withdraw([FromBody] WalletWithdrawRequestDto body)
     {
-        if (!decimal.TryParse(body.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amt) || amt <= 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "amount phải là số dương hợp lệ", field: "Amount"));
-        if (string.IsNullOrWhiteSpace(body.BankAccount))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "bankAccount là bắt buộc", field: "BankAccount"));
+        if (!MoneyPrecision.TryParsePositive(body.Amount, out var amt))
+            throw new GatewayInputException("amount phải là số dương hợp lệ", "Amount");
+        ValidationHelpers.EnsureRequired(body.BankAccount, "BankAccount");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -95,13 +94,15 @@ public sealed class WalletController : ControllerBase
     public Task<IResult> Transfer([FromBody] WalletTransferRequestDto body)
     {
         if (!ValidationHelpers.GuidOk(body.RecipientUserId) || string.IsNullOrWhiteSpace(body.RecipientUserId))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "recipientUserId phải là UUID hợp lệ", field: "RecipientUserId"));
-        if (!decimal.TryParse(body.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amt) || amt <= 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "amount phải là số dương hợp lệ", field: "Amount"));
+            throw new GatewayInputException("recipientUserId phải là UUID hợp lệ", "RecipientUserId");
+        if (!MoneyPrecision.TryParsePositive(body.Amount, out var amt))
+            throw new GatewayInputException("amount phải là số dương hợp lệ", "Amount");
 
         var sender = HttpContext.ToUserRequest();
-        if (string.Equals(sender.UserId, body.RecipientUserId, StringComparison.OrdinalIgnoreCase))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "Không thể tự chuyển tiền cho chính mình", field: "RecipientUserId"));
+        if (Guid.TryParse(sender.UserId, out var senderId) &&
+            Guid.TryParse(body.RecipientUserId, out var recipientId) &&
+            senderId == recipientId)
+            throw new GatewayInputException("Không thể tự chuyển tiền cho chính mình", "RecipientUserId");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -121,22 +122,21 @@ public sealed class WalletController : ControllerBase
 
     [HttpGet("transactions")]
     [ProducesResponseType(typeof(ApiResponse<PagedData<WalletTransaction>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListTransactions([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? type = null)
+    public Task<IResult> ListTransactions([FromQuery] PaginationRequest pagination, [FromQuery] string? type = null)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "wallet",
             "wallet-transactions",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListTransactionsAsync(new WalletTransactionsRequest
             {
                 UserId = HttpContext.ToUserRequest().UserId,
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 Type = type ?? ""
             }, o),
             WalletTransactionPage.Parser

@@ -51,6 +51,11 @@ public static class MockRouteMatcher
         {
             return [];
         }
-        return cleanPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var segments = cleanPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length > 0 && string.Equals(segments[0], "gateway", StringComparison.OrdinalIgnoreCase))
+        {
+            return segments[1..];
+        }
+        return segments;
     }
 }

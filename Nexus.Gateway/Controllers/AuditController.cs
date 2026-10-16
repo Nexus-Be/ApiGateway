@@ -12,7 +12,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
-[Route("gateway/api/v1/audit")]
+[Route("api/v1/audit")]
 [BackendTag("audit")]
 [EnableRateLimiting("api")]
 public sealed class AuditController : ControllerBase
@@ -30,8 +30,7 @@ public sealed class AuditController : ControllerBase
     [Authorize("staff")]
     [ProducesResponseType(typeof(ApiResponse<PagedData<AuditLog>>), StatusCodes.Status200OK)]
     public Task<IResult> QueryAuditLogs(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] string? from = null,
         [FromQuery] string? to = null,
         [FromQuery] string? service = null,
@@ -41,21 +40,20 @@ public sealed class AuditController : ControllerBase
         [FromQuery] string? actorUserId = null,
         [FromQuery] string? correlationId = null)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
-        if (!ValidationHelpers.GuidOk(actorUserId) || !ValidationHelpers.GuidOk(correlationId))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "actorUserId/correlationId phải là UUID"));
+        pagination.EnsureValid();
+        ValidationHelpers.EnsureGuid(actorUserId, "actorUserId");
+        ValidationHelpers.EnsureGuid(correlationId, "correlationId");
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "audit",
             "audit-logs",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.QueryAuditLogsAsync(new QueryAuditLogsRequest
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 From = from ?? "",
                 To = to ?? "",
                 ServiceName = service ?? "",

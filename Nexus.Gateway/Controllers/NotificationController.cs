@@ -12,7 +12,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
-[Route("gateway/api/v1/notifications")]
+[Route("api/v1/notifications")]
 [BackendTag("notification")]
 [EnableRateLimiting("api")]
 [Authorize("authenticated")]

@@ -13,7 +13,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
-[Route("gateway/api/v1/auctions")]
+[Route("api/v1/auctions")]
 [BackendTag("auction")]
 [EnableRateLimiting("api")]
 public sealed class AuctionController : ControllerBase
@@ -31,24 +31,22 @@ public sealed class AuctionController : ControllerBase
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Auction>>), StatusCodes.Status200OK)]
     public Task<IResult> ListAuctions(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
+        [FromQuery] PaginationRequest pagination,
         [FromQuery] string? status = null,
         [FromQuery] string? sellerId = null)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "auction",
             "auctions",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListAuctionsAsync(new AuctionQuery
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 Status = status ?? "",
                 SellerId = sellerId ?? ""
             }, o),
@@ -76,14 +74,10 @@ public sealed class AuctionController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<Auction>), StatusCodes.Status201Created)]
     public Task<IResult> CreateAuction([FromBody] CreateAuctionRequestDto body)
     {
-        if (!Guid.TryParse(body.ProductId, out _))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "productId phải là UUID", field: "ProductId"));
-        if (string.IsNullOrWhiteSpace(body.Title))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "title là bắt buộc", field: "Title"));
-        if (!decimal.TryParse(body.StartingPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var sp) || sp <= 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "startingPrice phải là số > 0", field: "StartingPrice"));
-        if (!decimal.TryParse(body.StepPrice, NumberStyles.Number, CultureInfo.InvariantCulture, out var stp) || stp <= 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "stepPrice phải là số > 0", field: "StepPrice"));
+        ValidationHelpers.EnsureGuid(body.ProductId, "ProductId");
+        ValidationHelpers.EnsureRequired(body.Title, "Title");
+        var sp = MoneyPrecision.EnsurePositive(body.StartingPrice, "StartingPrice");
+        var stp = MoneyPrecision.EnsurePositive(body.StepPrice, "StepPrice");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -110,8 +104,7 @@ public sealed class AuctionController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<Bid>), StatusCodes.Status201Created)]
     public Task<IResult> PlaceBid([FromRoute] Guid id, [FromBody] PlaceBidRequestDto body)
     {
-        if (!decimal.TryParse(body.Amount, NumberStyles.Number, CultureInfo.InvariantCulture, out var amount) || amount <= 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "amount phải là số > 0", field: "Amount"));
+        var amount = MoneyPrecision.EnsurePositive(body.Amount, "Amount");
 
         return _dispatcher.DispatchAsync(
             HttpContext,

@@ -9,6 +9,9 @@ public static class GatewaySecurityHelper
 {
     public static string DetectServiceForRequest(HttpContext context, IMockEngine? mockEngine = null)
     {
+        if (GatewayRequestResolution.Get(context) is { } resolution)
+            return resolution.Service;
+
         // 1. From Endpoint Metadata BackendTag
         var backendTag = context.GetEndpoint()?.Metadata.GetMetadata<BackendTag>()?.Name
             ?? context.GetEndpoint()?.Metadata.GetMetadata<BackendTagAttribute>()?.Name;
@@ -71,7 +74,9 @@ public static class GatewaySecurityHelper
         var service = DetectServiceForRequest(context, mockEngine);
         var config = options.GetService(service);
         var configuredMode = config?.Mode ?? "Mock";
-        var effectiveMode = runtimeManager.ResolveEffectiveMode(context, service, configuredMode);
+        var effectiveMode = GatewayRequestResolution.Get(context) is { } resolution
+            ? resolution.EffectiveMode(context, service, options, runtimeManager)
+            : runtimeManager.ResolveEffectiveMode(context, service, configuredMode);
 
         return string.Equals(effectiveMode, "Mock", StringComparison.OrdinalIgnoreCase);
     }

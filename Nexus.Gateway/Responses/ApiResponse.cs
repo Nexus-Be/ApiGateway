@@ -2,6 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace Nexus.Gateway.Responses;
 
+public sealed record ApiError(string Message, string? Field = null, string? Code = null);
+
 public class ApiResponse<T>
 {
     [JsonPropertyName("success")]
@@ -16,6 +18,10 @@ public class ApiResponse<T>
 
     [JsonPropertyName("data")]
     public T? Data { get; init; }
+
+    [JsonPropertyName("errors")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public ApiError[]? Errors { get; init; }
 
     [JsonPropertyName("traceId")]
     public string TraceId { get; init; } = "";

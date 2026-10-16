@@ -4,6 +4,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Timeouts;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,6 +28,29 @@ public static class CoreServicesExtension
 
         services.AddHttpContextAccessor();
         services.AddControllers();
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = actionContext =>
+            {
+                var errors = actionContext.ModelState
+                    .Where(entry => entry.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        entry => entry.Key,
+                        entry => entry.Value!.Errors
+                            .Select(error => error.ErrorMessage.Length > 0 ? error.ErrorMessage : "Invalid value.")
+                            .ToArray());
+                var context = actionContext.HttpContext;
+                var factory = context.RequestServices.GetRequiredService<IApiResponseFactory>();
+                var response = factory.CreateFailure(
+                    title: "One or more validation errors occurred.",
+                    status: StatusCodes.Status400BadRequest,
+                    detail: "The request contains invalid input.",
+                    errorCode: "VAL_INVALID_INPUT",
+                    errors: errors,
+                    traceId: ApiResponseFactory.ResolveTraceId(context));
+                return new BadRequestObjectResult(response);
+            };
+        });
         services.AddSingleton<IApiResponseFactory, ApiResponseFactory>();
         services.AddSingleton<IGatewayRuntimeManager, GatewayRuntimeManager>();
         services.AddSingleton<IMockEngine, MockEngine>();

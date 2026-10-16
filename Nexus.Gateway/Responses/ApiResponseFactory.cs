@@ -14,8 +14,10 @@ public sealed class ApiResponseFactory : IApiResponseFactory
 
     public static string ResolveTraceId(HttpContext? context)
     {
-        return Activity.Current?.Id 
-            ?? context?.TraceIdentifier 
+        // The request ID must remain stable even when dispatching creates a child Activity.
+        // Otherwise the response header, response body and outbound gRPC metadata disagree.
+        return context?.TraceIdentifier
+            ?? Activity.Current?.Id
             ?? Guid.NewGuid().ToString("N");
     }
 
@@ -115,6 +117,41 @@ public sealed class ApiResponseFactory : IApiResponseFactory
     }
 
     // Static convenience helpers
+    public static ApiResponse<T> Success<T>(
+        T data,
+        string? message = null,
+        string? traceId = null)
+    {
+        return new ApiResponse<T>
+        {
+            Success = true,
+            StatusCode = 200,
+            Message = message,
+            Data = data,
+            Errors = null,
+            TraceId = traceId ?? ResolveTraceId(null),
+            Timestamp = GetCurrentTimestamp()
+        };
+    }
+
+    public static ApiResponse<T> Error<T>(
+        string message,
+        IEnumerable<ApiError>? errors = null,
+        string? traceId = null,
+        int statusCode = 400)
+    {
+        return new ApiResponse<T>
+        {
+            Success = false,
+            StatusCode = statusCode,
+            Message = message,
+            Data = default,
+            Errors = errors?.ToArray(),
+            TraceId = traceId ?? ResolveTraceId(null),
+            Timestamp = GetCurrentTimestamp()
+        };
+    }
+
     public static IResult Success<T>(HttpContext context, T data, string? message = null, int statusCode = 200)
     {
         var traceId = ResolveTraceId(context);

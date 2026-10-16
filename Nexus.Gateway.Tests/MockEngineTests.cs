@@ -168,13 +168,13 @@ public sealed class MockEngineTests
         var paths = doc.RootElement.GetProperty("paths");
 
         // Verify that declarative paths are present in Swagger!
-        Assert.True(paths.TryGetProperty("/gateway/api/v1/catalog/search", out var searchPath), "Missing /api/v1/catalog/search in Swagger");
+        Assert.True(paths.TryGetProperty("/api/v1/catalog/search", out var searchPath), "Missing /api/v1/catalog/search in Swagger");
         Assert.True(searchPath.TryGetProperty("post", out _), "Missing POST for /api/v1/catalog/search in Swagger");
 
-        Assert.True(paths.TryGetProperty("/gateway/api/v1/auctions/{id}/live-status", out var auctionLivePath), "Missing /api/v1/auctions/{id}/live-status in Swagger");
+        Assert.True(paths.TryGetProperty("/api/v1/auctions/{id}/live-status", out var auctionLivePath), "Missing /api/v1/auctions/{id}/live-status in Swagger");
         Assert.True(auctionLivePath.TryGetProperty("get", out _), "Missing GET for /api/v1/auctions/{id}/live-status in Swagger");
 
-        Assert.True(paths.TryGetProperty("/gateway/api/v1/notifications/broadcast", out var broadcastPath), "Missing /api/v1/notifications/broadcast in Swagger");
+        Assert.True(paths.TryGetProperty("/api/v1/notifications/broadcast", out var broadcastPath), "Missing /api/v1/notifications/broadcast in Swagger");
         Assert.True(broadcastPath.TryGetProperty("post", out _), "Missing POST for /api/v1/notifications/broadcast in Swagger");
     }
 

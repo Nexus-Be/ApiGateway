@@ -12,6 +12,7 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
+[Route("api/v1")]
 [BackendTag("users")]
 [EnableRateLimiting("api")]
 public sealed class UsersController : ControllerBase
@@ -25,7 +26,7 @@ public sealed class UsersController : ControllerBase
         _client = client;
     }
 
-    [HttpGet("gateway/api/v1/users/me")]
+    [HttpGet("users/me")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> GetMe()
@@ -40,7 +41,7 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpPut("gateway/api/v1/users/me")]
+    [HttpPut("users/me")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateMe([FromBody] UpdateProfileRequestDto body)
@@ -65,7 +66,7 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpPost("gateway/api/v1/users/me/seller-upgrade")]
+    [HttpPost("users/me/seller-upgrade")]
     [Authorize("authenticated")]
     [ProducesResponseType(typeof(ApiResponse<SellerRegistrationInfo>), StatusCodes.Status200OK)]
     public Task<IResult> RequestSellerUpgrade([FromBody] SellerUpgradeRequestDto body)
@@ -93,24 +94,23 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpGet("gateway/api/v1/admin/users")]
+    [HttpGet("admin/users")]
     [Authorize("staff")]
     [ProducesResponseType(typeof(ApiResponse<PagedData<UserProfile>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? q = null, [FromQuery] string? role = null)
+    public Task<IResult> ListUsers([FromQuery] PaginationRequest pagination, [FromQuery] string? q = null, [FromQuery] string? role = null)
     {
-        if (!ValidationHelpers.PageOk(page, pageSize))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, ValidationHelpers.PageMessage, field: "Pagination"));
+        pagination.EnsureValid();
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
             "users",
             "users",
-            page,
-            pageSize,
+            pagination.Page,
+            pagination.PageSize,
             o => _client.ListUsersAsync(new ListUsersRequest
             {
-                Page = page,
-                PageSize = pageSize,
+                Page = pagination.Page,
+                PageSize = pagination.PageSize,
                 Q = q ?? "",
                 Role = role ?? ""
             }, o),
@@ -118,13 +118,13 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpPost("gateway/api/v1/admin/sellers/{id:guid}/approve")]
+    [HttpPost("admin/sellers/{id:guid}/approve")]
     [Authorize("staff")]
     [ProducesResponseType(typeof(ApiResponse<SellerRegistrationInfo>), StatusCodes.Status200OK)]
     public Task<IResult> ApproveSeller([FromRoute] Guid id, [FromBody] ApproveSellerRequestDto body)
     {
         if (!body.Approve && string.IsNullOrWhiteSpace(body.Reason))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "từ chối đơn đăng ký phải kèm reason", field: "Reason"));
+            throw new GatewayInputException("từ chối đơn đăng ký phải kèm reason", "Reason");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -141,16 +141,16 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpPost("gateway/api/v1/admin/users")]
+    [HttpPost("admin/users")]
     [Authorize("admin")]
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status201Created)]
     public Task<IResult> CreateUser([FromBody] CreateUserRequestDto body)
     {
         var roles = body.Roles ?? Array.Empty<string>();
         if (string.IsNullOrWhiteSpace(body.Username) || !body.Email.Contains('@') || (body.Password?.Length ?? 0) < 8)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "username, email hợp lệ và password >= 8 ký tự là bắt buộc"));
+            throw new GatewayInputException("username, email hợp lệ và password >= 8 ký tự là bắt buộc");
         if (roles.Any(r => !ValidationHelpers.KnownRoles.Contains(r.Trim().ToLowerInvariant())))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "roles chỉ được chứa buyer|seller|staff|admin", field: "Roles"));
+            throw new GatewayInputException("roles chỉ được chứa buyer|seller|staff|admin", "Roles");
 
         var req = new CreateUserRequest
         {
@@ -172,16 +172,16 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpPost("gateway/api/v1/admin/users/{id:guid}/roles")]
+    [HttpPost("admin/users/{id:guid}/roles")]
     [Authorize("admin")]
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> AssignRoles([FromRoute] Guid id, [FromBody] AssignRolesRequestDto body)
     {
         var roles = body.Roles ?? Array.Empty<string>();
         if (roles.Length == 0)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "ít nhất một role là bắt buộc", field: "Roles"));
+            throw new GatewayInputException("ít nhất một role là bắt buộc", "Roles");
         if (roles.Any(r => !ValidationHelpers.KnownRoles.Contains(r.Trim().ToLowerInvariant())))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "roles chỉ được chứa buyer|seller|staff|admin", field: "Roles"));
+            throw new GatewayInputException("roles chỉ được chứa buyer|seller|staff|admin", "Roles");
 
         var req = new AssignRolesRequest { UserId = id.ToString() };
         req.Roles.AddRange(roles.Select(r => r.Trim().ToLowerInvariant()));
@@ -196,7 +196,7 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpGet("gateway/api/v1/admin/roles")]
+    [HttpGet("admin/roles")]
     [Authorize("admin")]
     [ProducesResponseType(typeof(ApiResponse<RoleList>), StatusCodes.Status200OK)]
     public Task<IResult> ListRoles()
@@ -211,7 +211,7 @@ public sealed class UsersController : ControllerBase
         );
     }
 
-    [HttpGet("gateway/api/v1/admin/permissions")]
+    [HttpGet("admin/permissions")]
     [Authorize("admin")]
     [ProducesResponseType(typeof(ApiResponse<PermissionList>), StatusCodes.Status200OK)]
     public Task<IResult> ListPermissions()

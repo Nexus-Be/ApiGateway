@@ -24,7 +24,7 @@ var app = builder.Build();
 // 4. Middleware Pipeline
 app.UseGatewayPipeline(app.Environment);
 
-// 5. Standard Controllers (/gateway/api/v1/{service}/...)
+// 5. Standard Controllers (/api/v1/{service}/...)
 app.MapControllers();
 
 app.Run();

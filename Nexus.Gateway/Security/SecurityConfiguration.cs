@@ -89,7 +89,7 @@ public static class SecurityConfiguration
                                 ? authHeader["Bearer ".Length..].Trim()
                                 : authHeader.Trim();
 
-                            var hasMockHeader = context.Request.Headers.ContainsKey("X-Mock-Role") || 
+                            var hasMockHeader = context.Request.Headers.ContainsKey("X-Mock-Role") ||
                                                 context.Request.Headers.ContainsKey("X-Mock-User-Id");
 
                             // If token is a mock token (e.g. from mock login, or "admin", "seller", "buyer") or mock header provided:
