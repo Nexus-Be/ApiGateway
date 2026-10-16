@@ -10,6 +10,13 @@ namespace Nexus.Gateway.Security;
 
 public sealed record BackendTag(string Name);
 
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+public sealed class BackendTagAttribute : Attribute
+{
+    public string Name { get; }
+    public BackendTagAttribute(string name) => Name = name;
+}
+
 public static class EdgeMiddlewareConfiguration
 {
     public static IServiceCollection AddGatewayCors(this IServiceCollection services, GatewayOptions gateway)

@@ -1,0 +1,29 @@
+{
+  "id": "catalog-search-filter",
+  "service": "catalog",
+  "method": "POST",
+  "path": "/gateway/api/v1/catalog/search",
+  "description": "Tìm kiếm nâng cao sản phẩm theo bộ lọc",
+  "policy": "public",
+  "statusCode": 200,
+  "responseType": "paged",
+  "message": "Tìm kiếm sản phẩm thành công.",
+  "request": {
+    "keyword": "bàn phím cơ",
+    "minPrice": 500000,
+    "maxPrice": 2000000,
+    "categoryId": "33333333-3333-3333-3333-000000000001"
+  },
+  "response": {
+    "items": [
+      {
+        "id": "22222222-2222-2222-2222-000000000001",
+        "name": "Bàn phím cơ RGB Custom",
+        "price": "1250000.00",
+        "currency": "VND",
+        "available": 95
+      }
+    ],
+    "total": 1
+  }
+}

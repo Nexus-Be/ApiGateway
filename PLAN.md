@@ -9,13 +9,13 @@ Tài liệu này ghi nhận kế hoạch tổng thể, các kế hoạch con (su
 1. **Trạng thái Mặc định (`GatewayMode: "Standard"`)**:
    - Vẫn cần đăng nhập và kiểm tra quyền mọi thứ như thường.
    - Chưa đăng nhập (không gửi token) ➔ Bị chặn với mã `401 Unauthorized`.
-   - Đăng nhập (`POST /api/v1/auth/login`) lấy token ➔ Gửi token vào request để truy cập `200 OK`.
+   - Đăng nhập (`POST /gateway/api/v1/auth/login`) lấy token ➔ Gửi token vào request để truy cập `200 OK`.
    - Sai vai trò/quyền (ví dụ buyer gọi endpoint admin) ➔ Bị chặn với mã `403 Forbidden`.
 2. **Trạng thái Mock (`GatewayMode: "Bypass"`)**:
    - Bật khi team muốn phát triển giao diện nhanh hoặc test độc lập.
    - **KHÔNG CHECK AUTH**: Không bắt buộc đăng nhập, tự động cấp quyền tương ứng cho các API.
    - **CÁC API ĐỘC LẬP**: Các API mock chạy hoàn toàn độc lập mà không bị ràng buộc vào login hay service user.
-   - Dễ dàng bật/tắt qua file cấu hình `gateway.runtime.json` hoặc gọi API `PUT /api/v1/gateway/mode`.
+   - Dễ dàng bật/tắt qua file cấu hình `gateway.runtime.json` hoặc gọi API `PUT /gateway/api/v1/gateway/mode`.
 
 ---
 
@@ -32,13 +32,13 @@ Tài liệu này ghi nhận kế hoạch tổng thể, các kế hoạch con (su
   - *Checkpoint*: Build thành công.
 
 - **Plan 3: Nâng cấp API Gateway Modes**
-  - [x] `GET /api/v1/gateway/modes`: Trả về cả `gatewayMode` và danh sách `services`.
-  - [x] `PUT /api/v1/gateway/mode`: Cho phép bật/tắt runtime giữa `Standard` và `Bypass` (`{"mode": "Bypass"}`).
-  - [x] `PUT /api/v1/gateway/modes`: Hỗ trợ cập nhật đồng thời nhiều service và gateway mode.
+  - [x] `GET /gateway/api/v1/gateway/modes`: Trả về cả `gatewayMode` và danh sách `services`.
+  - [x] `PUT /gateway/api/v1/gateway/mode`: Cho phép bật/tắt runtime giữa `Standard` và `Bypass` (`{"mode": "Bypass"}`).
+  - [x] `PUT /gateway/api/v1/gateway/modes`: Hỗ trợ cập nhật đồng thời nhiều service và gateway mode.
   - *Checkpoint*: Build thành công.
 
 - **Plan 4: Nâng cấp Mock Login sinh token theo tài khoản**
-  - [x] `POST /api/v1/auth/login` trả về token hợp lệ cho mock flow.
+  - [x] `POST /gateway/api/v1/auth/login` trả về token hợp lệ cho mock flow.
   - *Checkpoint*: Build thành công.
 
 - **Plan 5: Viết Test Suite tự động kiểm chứng cả 2 trạng thái**
@@ -51,3 +51,14 @@ Tài liệu này ghi nhận kế hoạch tổng thể, các kế hoạch con (su
     - Luồng Standard: Gọi không token ➔ 401; Đăng nhập lấy token ➔ 200 OK.
     - Luồng Bypass: Đổi mode sang `Bypass` ➔ Gọi `/users/me`, `/seller/inventory`, `/admin/roles` không cần token đều đạt 200 OK độc lập.
     - Reset về Standard: Gọi lại không token ➔ Lập tức bị chặn 401 như thường.
+
+- **Plan 7: Tái cấu trúc 3 Khối Độc Lập (3-Tier Decoupling: Input → Middle → Output)**
+  - [x] **Tầng Common & Responses**: Chuẩn hóa `ApiResponseFactory`, `ValidationHelpers`, `HttpContextUserExtensions`, attributes.
+  - [x] **Khối Phần Giữa (Dispatching Core)**: Xây dựng `ModeEvaluator`, `MockDataMapper`, `GrpcServiceCaller`, `GatewayDispatcher`, `BackendDispatcher`.
+  - [x] **Dữ Liệu Seed (`Seeds/`)**: Tổ chức `Seeds/{service}/{entity}.json`, bảo đảm Gateway không giữ stateful DB in-memory, thẩm định contract qua Protobuf MessageParser.
+  - [x] **Tách biệt DTOs (`Dtos/`)**: Chuyển từ Models sang DTOs, tách thành `*Requests.cs` và `*Responses.cs` cho toàn bộ 10 domains.
+  - [x] **Khối Đầu Vào (Controllers)**: Xây dựng 10 Controllers tiêu chuẩn `[ApiController] ControllerBase` trong `Controllers/`, loại bỏ hoàn toàn thư mục `Endpoints/` cũ.
+  - [x] **Tích hợp DI & Route**: Cấu hình `services.AddControllers()` và `app.MapControllers()`, Program.cs siêu tinh gọn (< 35 dòng).
+  - [x] **Kiểm thử tự động**: Chạy toàn bộ test suite `dotnet test ApiGateway.sln` đạt 46/46 tests PASS 100%.
+  - [x] **Đồng bộ tài liệu**: Cập nhật `dac_ta.md`, `DEV_GUIDE.md`, `README.md`, `PLAN.md`.
+

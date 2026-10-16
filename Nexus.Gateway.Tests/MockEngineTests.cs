@@ -15,25 +15,25 @@ public sealed class MockEngineTests
         var literalDef = new MockEndpointDefinition
         {
             Method = "POST",
-            Path = "/api/v1/catalog/search"
+            Path = "/gateway/api/v1/catalog/search"
         };
 
-        var match1 = MockRouteMatcher.Match(literalDef, "POST", "/api/v1/catalog/search");
+        var match1 = MockRouteMatcher.Match(literalDef, "POST", "/gateway/api/v1/catalog/search");
         Assert.True(match1.IsMatch);
 
-        var matchWrongMethod = MockRouteMatcher.Match(literalDef, "GET", "/api/v1/catalog/search");
+        var matchWrongMethod = MockRouteMatcher.Match(literalDef, "GET", "/gateway/api/v1/catalog/search");
         Assert.False(matchWrongMethod.IsMatch);
 
-        var matchWrongPath = MockRouteMatcher.Match(literalDef, "POST", "/api/v1/catalog/other");
+        var matchWrongPath = MockRouteMatcher.Match(literalDef, "POST", "/gateway/api/v1/catalog/other");
         Assert.False(matchWrongPath.IsMatch);
 
         var paramDef = new MockEndpointDefinition
         {
             Method = "GET",
-            Path = "/api/v1/auctions/{id}/live-status"
+            Path = "/gateway/api/v1/auctions/{id}/live-status"
         };
 
-        var matchParam = MockRouteMatcher.Match(paramDef, "GET", "/api/v1/auctions/auc-9981/live-status");
+        var matchParam = MockRouteMatcher.Match(paramDef, "GET", "/gateway/api/v1/auctions/auc-9981/live-status");
         Assert.True(matchParam.IsMatch);
         Assert.Equal("auc-9981", matchParam.RouteValues["id"]);
     }
@@ -45,7 +45,7 @@ public sealed class MockEngineTests
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("gateway-admin", "admin"));
 
-        var resp = await client.GetAsync("/api/v1/mock-engine/definitions");
+        var resp = await client.GetAsync("/gateway/api/v1/mock-engine/definitions");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         var content = await resp.Content.ReadAsStringAsync();
@@ -56,7 +56,7 @@ public sealed class MockEngineTests
         Assert.True(items.GetArrayLength() >= 4, "Expected at least 4 declarative mock endpoints loaded.");
 
         // Reload API works
-        var reloadResp = await client.PostAsync("/api/v1/mock-engine/reload", null);
+        var reloadResp = await client.PostAsync("/gateway/api/v1/mock-engine/reload", null);
         Assert.Equal(HttpStatusCode.OK, reloadResp.StatusCode);
     }
 
@@ -72,7 +72,7 @@ public sealed class MockEngineTests
             minPrice = 500000
         };
 
-        var resp = await client.PostAsJsonAsync("/api/v1/catalog/search?page=1&pageSize=10", searchBody);
+        var resp = await client.PostAsJsonAsync("/gateway/api/v1/catalog/search?page=1&pageSize=10", searchBody);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Equal("Mock", resp.Headers.GetValues("X-Gateway-Mode").Single());
 
@@ -93,7 +93,7 @@ public sealed class MockEngineTests
         using var app = new Factory();
         using var client = app.CreateClient();
 
-        var resp = await client.GetAsync("/api/v1/auctions/44444444-4444-4444-4444-000000000001/live-status");
+        var resp = await client.GetAsync("/gateway/api/v1/auctions/44444444-4444-4444-4444-000000000001/live-status");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         var content = await resp.Content.ReadAsStringAsync();
@@ -116,17 +116,17 @@ public sealed class MockEngineTests
         };
 
         // 1. Anonymous => 401
-        var unauth = await client.PostAsJsonAsync("/api/v1/notifications/broadcast", broadcastBody);
+        var unauth = await client.PostAsJsonAsync("/gateway/api/v1/notifications/broadcast", broadcastBody);
         Assert.Equal(HttpStatusCode.Unauthorized, unauth.StatusCode);
 
         // 2. Buyer => 403
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "buyer");
-        var forbidden = await client.PostAsJsonAsync("/api/v1/notifications/broadcast", broadcastBody);
+        var forbidden = await client.PostAsJsonAsync("/gateway/api/v1/notifications/broadcast", broadcastBody);
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
 
         // 3. Admin => 201 Created
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "admin");
-        var created = await client.PostAsJsonAsync("/api/v1/notifications/broadcast", broadcastBody);
+        var created = await client.PostAsJsonAsync("/gateway/api/v1/notifications/broadcast", broadcastBody);
         Assert.Equal(HttpStatusCode.Created, created.StatusCode);
 
         var content = await created.Content.ReadAsStringAsync();
@@ -144,7 +144,7 @@ public sealed class MockEngineTests
         };
         using var client = app.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/api/v1/notifications/broadcast", new
+        var response = await client.PostAsJsonAsync("/gateway/api/v1/notifications/broadcast", new
         {
             title = "Bảo trì",
             content = "Hệ thống..."
@@ -168,13 +168,13 @@ public sealed class MockEngineTests
         var paths = doc.RootElement.GetProperty("paths");
 
         // Verify that declarative paths are present in Swagger!
-        Assert.True(paths.TryGetProperty("/api/v1/catalog/search", out var searchPath), "Missing /api/v1/catalog/search in Swagger");
+        Assert.True(paths.TryGetProperty("/gateway/api/v1/catalog/search", out var searchPath), "Missing /api/v1/catalog/search in Swagger");
         Assert.True(searchPath.TryGetProperty("post", out _), "Missing POST for /api/v1/catalog/search in Swagger");
 
-        Assert.True(paths.TryGetProperty("/api/v1/auctions/{id}/live-status", out var auctionLivePath), "Missing /api/v1/auctions/{id}/live-status in Swagger");
+        Assert.True(paths.TryGetProperty("/gateway/api/v1/auctions/{id}/live-status", out var auctionLivePath), "Missing /api/v1/auctions/{id}/live-status in Swagger");
         Assert.True(auctionLivePath.TryGetProperty("get", out _), "Missing GET for /api/v1/auctions/{id}/live-status in Swagger");
 
-        Assert.True(paths.TryGetProperty("/api/v1/notifications/broadcast", out var broadcastPath), "Missing /api/v1/notifications/broadcast in Swagger");
+        Assert.True(paths.TryGetProperty("/gateway/api/v1/notifications/broadcast", out var broadcastPath), "Missing /api/v1/notifications/broadcast in Swagger");
         Assert.True(broadcastPath.TryGetProperty("post", out _), "Missing POST for /api/v1/notifications/broadcast in Swagger");
     }
 
@@ -194,7 +194,7 @@ public sealed class MockEngineTests
 
         // 1. With mock token "admin" on Real service -> MUST return 401 Unauthorized (not 503!)
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "admin");
-        var resp = await client.PostAsJsonAsync("/api/v1/catalog/categories", new { name = "Bàn phím" });
+        var resp = await client.PostAsJsonAsync("/gateway/api/v1/catalog/categories", new { name = "Bàn phím" });
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
 
         var content = await resp.Content.ReadAsStringAsync();
@@ -204,7 +204,7 @@ public sealed class MockEngineTests
         // 2. With real signed JWT token on Real service -> Authenticated!
         // Reaches backend gRPC (which gives 503 because 127.0.0.1:59999 is not running)
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("root", "admin"));
-        var respRealToken = await client.PostAsJsonAsync("/api/v1/catalog/categories", new { name = "Bàn phím" });
+        var respRealToken = await client.PostAsJsonAsync("/gateway/api/v1/catalog/categories", new { name = "Bàn phím" });
         Assert.Equal(HttpStatusCode.ServiceUnavailable, respRealToken.StatusCode);
     }
 
@@ -223,7 +223,7 @@ public sealed class MockEngineTests
 
         // On Mock service, mock token "admin" is accepted and returns mock data!
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "admin");
-        var resp = await client.PostAsJsonAsync("/api/v1/catalog/categories", new { name = "Bàn phím" });
+        var resp = await client.PostAsJsonAsync("/gateway/api/v1/catalog/categories", new { name = "Bàn phím" });
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Equal("Mock", resp.Headers.GetValues("X-Gateway-Mode").Single());
     }
@@ -234,21 +234,21 @@ public sealed class MockEngineTests
         var paramDef = new MockEndpointDefinition
         {
             Method = "GET",
-            Path = "/api/v1/items/{id}"
+            Path = "/gateway/api/v1/items/{id}"
         };
 
         var literalDef = new MockEndpointDefinition
         {
             Method = "GET",
-            Path = "/api/v1/items/summary"
+            Path = "/gateway/api/v1/items/summary"
         };
 
         // When testing RouteMatcher directly
-        var matchLiteral = MockRouteMatcher.Match(literalDef, "GET", "/api/v1/items/summary");
+        var matchLiteral = MockRouteMatcher.Match(literalDef, "GET", "/gateway/api/v1/items/summary");
         Assert.True(matchLiteral.IsMatch);
         Assert.Empty(matchLiteral.RouteValues);
 
-        var matchParam = MockRouteMatcher.Match(paramDef, "GET", "/api/v1/items/summary");
+        var matchParam = MockRouteMatcher.Match(paramDef, "GET", "/gateway/api/v1/items/summary");
         Assert.True(matchParam.IsMatch);
         Assert.Equal("summary", matchParam.RouteValues["id"]);
     }

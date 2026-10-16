@@ -166,4 +166,24 @@ public sealed class ApiResponseFactory : IApiResponseFactory
         };
         return Results.Json(resp, statusCode: status);
     }
+
+    public static bool PageOk(int page, int size) => page > 0 && size is >= 1 and <= 100;
+    public static bool GuidOk(string? value) => string.IsNullOrEmpty(value) || Guid.TryParse(value, out _);
+
+    public static IResult BadRequest(HttpContext context, string message, string field = "General", string errorCode = "VAL_INVALID_INPUT")
+    {
+        var errors = new Dictionary<string, string[]>
+        {
+            [field] = [message]
+        };
+        return Failure(
+            context,
+            title: "One or more validation errors occurred.",
+            status: StatusCodes.Status400BadRequest,
+            detail: message,
+            errorCode: errorCode,
+            type: "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+            errors: errors
+        );
+    }
 }

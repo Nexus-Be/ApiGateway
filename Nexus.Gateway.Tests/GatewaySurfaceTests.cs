@@ -21,50 +21,50 @@ public sealed class GatewaySurfaceTests
     private static readonly Endpoint[] Surface =
     [
         // auth (public)
-        new("POST", "/api/v1/auth/register", """{"username":"newbie","email":"newbie@mcs.local","password":"Passw0rd!"}""", null, "users", "register"),
-        new("POST", "/api/v1/auth/login", """{"username":"buyer01","password":"Passw0rd!"}""", null, "users", "login"),
+        new("POST", "/gateway/api/v1/auth/register", """{"username":"newbie","email":"newbie@mcs.local","password":"Passw0rd!"}""", null, "users", "register"),
+        new("POST", "/gateway/api/v1/auth/login", """{"username":"buyer01","password":"Passw0rd!"}""", null, "users", "login"),
         // users
-        new("GET", "/api/v1/users/me", null, "buyer", "users", "profile"),
-        new("PUT", "/api/v1/users/me", """{"displayName":"Tên mới"}""", "buyer", "users", "profile-update"),
-        new("POST", "/api/v1/users/me/seller-upgrade", """{"shopName":"Shop A"}""", "buyer", "users", "seller-upgrade"),
+        new("GET", "/gateway/api/v1/users/me", null, "buyer", "users", "profile"),
+        new("PUT", "/gateway/api/v1/users/me", """{"displayName":"Tên mới"}""", "buyer", "users", "profile-update"),
+        new("POST", "/gateway/api/v1/users/me/seller-upgrade", """{"shopName":"Shop A"}""", "buyer", "users", "seller-upgrade"),
         // catalog đọc công khai
-        new("GET", "/api/v1/catalog/categories", null, null, "catalog", "categories"),
-        new("GET", "/api/v1/catalog/products?page=1&pageSize=20", null, null, "catalog", "products"),
-        new("GET", "/api/v1/catalog/products/11111111-1111-1111-1111-111111111111", null, null, "catalog", "product"),
+        new("GET", "/gateway/api/v1/catalog/categories", null, null, "catalog", "categories"),
+        new("GET", "/gateway/api/v1/catalog/products?page=1&pageSize=20", null, null, "catalog", "products"),
+        new("GET", "/gateway/api/v1/catalog/products/11111111-1111-1111-1111-111111111111", null, null, "catalog", "product"),
         // catalog quản trị (admin)
-        new("POST", "/api/v1/catalog/categories", """{"name":"Phụ kiện"}""", "admin", "catalog", "category-create"),
-        new("PUT", "/api/v1/catalog/categories/33333333-3333-3333-3333-000000000001", """{"name":"Thiết bị"}""", "admin", "catalog", "category-update"),
-        new("DELETE", "/api/v1/catalog/categories/33333333-3333-3333-3333-000000000001", null, "admin", "catalog", "category-delete"),
+        new("POST", "/gateway/api/v1/catalog/categories", """{"name":"Phụ kiện"}""", "admin", "catalog", "category-create"),
+        new("PUT", "/gateway/api/v1/catalog/categories/33333333-3333-3333-3333-000000000001", """{"name":"Thiết bị"}""", "admin", "catalog", "category-update"),
+        new("DELETE", "/gateway/api/v1/catalog/categories/33333333-3333-3333-3333-000000000001", null, "admin", "catalog", "category-delete"),
         // catalog của seller
-        new("GET", "/api/v1/seller/products", null, "seller", "catalog", "seller-products"),
-        new("POST", "/api/v1/seller/products", """{"name":"Bàn phím","price":"1250000.00","available":10}""", "seller", "catalog", "product-create"),
-        new("PUT", "/api/v1/seller/products/22222222-2222-2222-2222-000000000001", """{"name":"Bàn phím v2","price":"1350000.00"}""", "seller", "catalog", "product-update"),
-        new("DELETE", "/api/v1/seller/products/22222222-2222-2222-2222-000000000001", null, "seller", "catalog", "product-delete"),
-        new("GET", "/api/v1/seller/inventory", null, "seller", "catalog", "inventory"),
-        new("PUT", "/api/v1/seller/inventory/22222222-2222-2222-2222-000000000001", """{"available":100,"reason":"kiểm kê"}""", "seller", "catalog", "inventory-adjust"),
+        new("GET", "/gateway/api/v1/seller/products", null, "seller", "catalog", "seller-products"),
+        new("POST", "/gateway/api/v1/seller/products", """{"name":"Bàn phím","price":"1250000.00","available":10}""", "seller", "catalog", "product-create"),
+        new("PUT", "/gateway/api/v1/seller/products/22222222-2222-2222-2222-000000000001", """{"name":"Bàn phím v2","price":"1350000.00"}""", "seller", "catalog", "product-update"),
+        new("DELETE", "/gateway/api/v1/seller/products/22222222-2222-2222-2222-000000000001", null, "seller", "catalog", "product-delete"),
+        new("GET", "/gateway/api/v1/seller/inventory", null, "seller", "catalog", "inventory"),
+        new("PUT", "/gateway/api/v1/seller/inventory/22222222-2222-2222-2222-000000000001", """{"available":100,"reason":"kiểm kê"}""", "seller", "catalog", "inventory-adjust"),
         // commerce
-        new("GET", "/api/v1/commerce/cart", null, "buyer", "commerce", "cart"),
-        new("POST", "/api/v1/commerce/cart/items", """{"productId":"22222222-2222-2222-2222-000000000001","quantity":2}""", "buyer", "commerce", "cart-item-add"),
-        new("PATCH", "/api/v1/commerce/cart/items/22222222-2222-2222-2222-000000000001", """{"quantity":3}""", "buyer", "commerce", "cart-item-update"),
-        new("DELETE", "/api/v1/commerce/cart/items/22222222-2222-2222-2222-000000000001", null, "buyer", "commerce", "cart-item-remove"),
-        new("DELETE", "/api/v1/commerce/cart", null, "buyer", "commerce", "cart-clear"),
-        new("GET", "/api/v1/commerce/orders?page=1&pageSize=20", null, "buyer", "commerce", "orders"),
-        new("GET", "/api/v1/commerce/orders/88888888-8888-8888-8888-000000000001", null, "buyer", "commerce", "order"),
-        new("POST", "/api/v1/commerce/orders", """{"cartId":"77777777-7777-7777-7777-000000000001"}""", "buyer", "commerce", "order-created"),
-        new("GET", "/api/v1/seller/orders", null, "seller", "commerce", "seller-orders"),
-        new("GET", "/api/v1/admin/orders", null, "staff", "commerce", "admin-orders"),
+        new("GET", "/gateway/api/v1/commerce/cart", null, "buyer", "commerce", "cart"),
+        new("POST", "/gateway/api/v1/commerce/cart/items", """{"productId":"22222222-2222-2222-2222-000000000001","quantity":2}""", "buyer", "commerce", "cart-item-add"),
+        new("PATCH", "/gateway/api/v1/commerce/cart/items/22222222-2222-2222-2222-000000000001", """{"quantity":3}""", "buyer", "commerce", "cart-item-update"),
+        new("DELETE", "/gateway/api/v1/commerce/cart/items/22222222-2222-2222-2222-000000000001", null, "buyer", "commerce", "cart-item-remove"),
+        new("DELETE", "/gateway/api/v1/commerce/cart", null, "buyer", "commerce", "cart-clear"),
+        new("GET", "/gateway/api/v1/commerce/orders?page=1&pageSize=20", null, "buyer", "commerce", "orders"),
+        new("GET", "/gateway/api/v1/commerce/orders/88888888-8888-8888-8888-000000000001", null, "buyer", "commerce", "order"),
+        new("POST", "/gateway/api/v1/commerce/orders", """{"cartId":"77777777-7777-7777-7777-000000000001"}""", "buyer", "commerce", "order-created"),
+        new("GET", "/gateway/api/v1/seller/orders", null, "seller", "commerce", "seller-orders"),
+        new("GET", "/gateway/api/v1/admin/orders", null, "staff", "commerce", "admin-orders"),
         // admin
-        new("GET", "/api/v1/admin/users", null, "staff", "users", "users"),
-        new("POST", "/api/v1/admin/users", """{"username":"nhanvien1","email":"nhanvien1@mcs.local","password":"Passw0rd!","roles":["staff"]}""", "admin", "users", "user-create"),
-        new("POST", "/api/v1/admin/users/11111111-1111-1111-1111-000000000004/roles", """{"roles":["buyer","seller"]}""", "admin", "users", "user-roles"),
-        new("POST", "/api/v1/admin/sellers/55555555-5555-5555-5555-000000000001/approve", """{"approve":true}""", "staff", "users", "seller-approve"),
-        new("GET", "/api/v1/admin/roles", null, "admin", "users", "roles"),
-        new("GET", "/api/v1/admin/permissions", null, "admin", "users", "permissions"),
+        new("GET", "/gateway/api/v1/admin/users", null, "staff", "users", "users"),
+        new("POST", "/gateway/api/v1/admin/users", """{"username":"nhanvien1","email":"nhanvien1@mcs.local","password":"Passw0rd!","roles":["staff"]}""", "admin", "users", "user-create"),
+        new("POST", "/gateway/api/v1/admin/users/11111111-1111-1111-1111-000000000004/roles", """{"roles":["buyer","seller"]}""", "admin", "users", "user-roles"),
+        new("POST", "/gateway/api/v1/admin/sellers/55555555-5555-5555-5555-000000000001/approve", """{"approve":true}""", "staff", "users", "seller-approve"),
+        new("GET", "/gateway/api/v1/admin/roles", null, "admin", "users", "roles"),
+        new("GET", "/gateway/api/v1/admin/permissions", null, "admin", "users", "permissions"),
         // audit (staff đọc; admin bật/tắt từ điển)
-        new("GET", "/api/v1/audit/logs?page=1&pageSize=20", null, "staff", "audit", "audit-logs"),
-        new("GET", "/api/v1/audit/logs/99999999-9999-9999-9999-000000000001", null, "staff", "audit", "audit-log"),
-        new("GET", "/api/v1/audit/event-types", null, "staff", "audit", "audit-event-types"),
-        new("PUT", "/api/v1/audit/event-types/ProductCreated", """{"enabled":false}""", "admin", "audit", "audit-event-type-toggle"),
+        new("GET", "/gateway/api/v1/audit/logs?page=1&pageSize=20", null, "staff", "audit", "audit-logs"),
+        new("GET", "/gateway/api/v1/audit/logs/99999999-9999-9999-9999-000000000001", null, "staff", "audit", "audit-log"),
+        new("GET", "/gateway/api/v1/audit/event-types", null, "staff", "audit", "audit-event-types"),
+        new("PUT", "/gateway/api/v1/audit/event-types/ProductCreated", """{"enabled":false}""", "admin", "audit", "audit-event-type-toggle"),
     ];
 
     private static HttpRequestMessage Request(Endpoint endpoint, string? token)
@@ -92,8 +92,8 @@ public sealed class GatewaySurfaceTests
             using var response = await client.SendAsync(Request(endpoint, token));
             var body = await response.Content.ReadAsStringAsync();
 
-            var expectedStatus = (endpoint.Path == "/api/v1/commerce/orders" && endpoint.Method == "POST") ||
-                                 (endpoint.Path == "/api/v1/admin/users" && endpoint.Method == "POST")
+            var expectedStatus = (endpoint.Path == "/gateway/api/v1/commerce/orders" && endpoint.Method == "POST") ||
+                                 (endpoint.Path == "/gateway/api/v1/admin/users" && endpoint.Method == "POST")
                                  ? HttpStatusCode.Created
                                  : HttpStatusCode.OK;
 
@@ -144,19 +144,19 @@ public sealed class GatewaySurfaceTests
             }
 
             using var allowed = await client.SendAsync(Request(endpoint, Factory.TokenFor("real-user", endpoint.Role!)));
-            var expectedStatus = (endpoint.Path == "/api/v1/commerce/orders" && endpoint.Method == "POST") ||
-                                 (endpoint.Path == "/api/v1/admin/users" && endpoint.Method == "POST")
+            var expectedStatus = (endpoint.Path == "/gateway/api/v1/commerce/orders" && endpoint.Method == "POST") ||
+                                 (endpoint.Path == "/gateway/api/v1/admin/users" && endpoint.Method == "POST")
                                  ? HttpStatusCode.Created
                                  : HttpStatusCode.OK;
             Assert.Equal(expectedStatus, allowed.StatusCode);
         }
 
         // Admin can access seller
-        using var adminOnSeller = await client.SendAsync(Request(Surface.Single(x => x.Path == "/api/v1/seller/inventory"), Factory.TokenFor("root", "admin")));
+        using var adminOnSeller = await client.SendAsync(Request(Surface.Single(x => x.Path == "/gateway/api/v1/seller/inventory"), Factory.TokenFor("root", "admin")));
         Assert.Equal(HttpStatusCode.OK, adminOnSeller.StatusCode);
 
         // Staff cannot access admin-only
-        using var staffOnAdminOnly = await client.SendAsync(Request(Surface.Single(x => x.Path == "/api/v1/admin/roles"), Factory.TokenFor("ops", "staff")));
+        using var staffOnAdminOnly = await client.SendAsync(Request(Surface.Single(x => x.Path == "/gateway/api/v1/admin/roles"), Factory.TokenFor("ops", "staff")));
         Assert.Equal(HttpStatusCode.Forbidden, staffOnAdminOnly.StatusCode);
     }
 
@@ -168,7 +168,7 @@ public sealed class GatewaySurfaceTests
 
         foreach (var method in new[] { "PUT", "PATCH", "DELETE" })
         {
-            using var request = new HttpRequestMessage(HttpMethod.Options, "/api/v1/commerce/cart/items/22222222-2222-2222-2222-000000000001");
+            using var request = new HttpRequestMessage(HttpMethod.Options, "/gateway/api/v1/commerce/cart/items/22222222-2222-2222-2222-000000000001");
             request.Headers.Add("Origin", "http://localhost:3000");
             request.Headers.Add("Access-Control-Request-Method", method);
             request.Headers.Add("Access-Control-Request-Headers", "authorization,content-type");
@@ -187,12 +187,12 @@ public sealed class GatewaySurfaceTests
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("real-user", "seller"));
 
         // price not number > 0
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/seller/products", new { name = "x", price = "abc", available = 1 })).StatusCode);
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/seller/products", new { name = "x", price = "-5", available = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/gateway/api/v1/seller/products", new { name = "x", price = "abc", available = 1 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/gateway/api/v1/seller/products", new { name = "x", price = "-5", available = 1 })).StatusCode);
         // quantity < 1
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/commerce/cart/items", new { productId = Guid.NewGuid().ToString(), quantity = 0 })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/gateway/api/v1/commerce/cart/items", new { productId = Guid.NewGuid().ToString(), quantity = 0 })).StatusCode);
         // page < 1
-        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/api/v1/seller/products?page=0")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.GetAsync("/gateway/api/v1/seller/products?page=0")).StatusCode);
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public sealed class GatewaySurfaceTests
             using var client = app.CreateClient();
 
             // Login
-            var login = await client.PostAsJsonAsync("/api/v1/auth/login", new { username = "buyer01", password = "Passw0rd!" });
+            var login = await client.PostAsJsonAsync("/gateway/api/v1/auth/login", new { username = "buyer01", password = "Passw0rd!" });
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             Assert.Equal("Real", login.Headers.GetValues("X-Gateway-Mode").Single());
 
@@ -232,7 +232,7 @@ public sealed class GatewaySurfaceTests
             client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("buyer-user", "buyer"));
 
             // Catalog products
-            var products = await client.GetAsync("/api/v1/catalog/products?q=keyboard");
+            var products = await client.GetAsync("/gateway/api/v1/catalog/products?q=keyboard");
             Assert.Equal(HttpStatusCode.OK, products.StatusCode);
             Assert.Equal("Real", products.Headers.GetValues("X-Gateway-Mode").Single());
             var productsBody = await products.Content.ReadAsStringAsync();
@@ -242,12 +242,12 @@ public sealed class GatewaySurfaceTests
             Assert.True(products.Headers.Contains("X-Trace-Id"));
 
             // Add cart item
-            var add = await client.PostAsJsonAsync("/api/v1/commerce/cart/items", new { productId = Guid.NewGuid().ToString(), quantity = 2 });
+            var add = await client.PostAsJsonAsync("/gateway/api/v1/commerce/cart/items", new { productId = Guid.NewGuid().ToString(), quantity = 2 });
             Assert.Equal("Real", add.Headers.GetValues("X-Gateway-Mode").Single());
             Assert.Equal(HttpStatusCode.OK, add.StatusCode);
 
             // Checkout order
-            using var checkout = new HttpRequestMessage(HttpMethod.Post, "/api/v1/commerce/orders")
+            using var checkout = new HttpRequestMessage(HttpMethod.Post, "/gateway/api/v1/commerce/orders")
             {
                 Content = JsonContent.Create(new { cartId = Guid.NewGuid().ToString() })
             };
@@ -267,7 +267,7 @@ public sealed class GatewaySurfaceTests
             Assert.False(string.IsNullOrEmpty(Stub.LastIdempotencyKey));
 
             // Error mapping from backend
-            var missing = await client.GetAsync("/api/v1/commerce/orders/88888888-8888-8888-8888-000000000009");
+            var missing = await client.GetAsync("/gateway/api/v1/commerce/orders/88888888-8888-8888-8888-000000000009");
             Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
             var missingBody = await missing.Content.ReadAsStringAsync();
             Assert.DoesNotContain("private backend message", missingBody);

@@ -1,0 +1,12 @@
+{
+  "id": "tx-66666666-0003",
+  "walletId": "66666666-6666-6666-6666-000000000001",
+  "userId": "11111111-1111-1111-1111-000000000004",
+  "type": "TRANSFER",
+  "amount": "200000.00",
+  "currency": "VND",
+  "balanceAfter": "4800000.00",
+  "status": "COMPLETED",
+  "note": "Chuyển tiền mua hàng",
+  "createdAt": "2026-10-15T11:15:00Z"
+}

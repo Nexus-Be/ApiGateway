@@ -26,8 +26,12 @@ public static class GatewayPolicies
 // Bypass mode is only for business APIs backed by Mock services.
 public sealed class DisableMockAuthorizationBypass;
 
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+public sealed class DisableMockAuthorizationBypassAttribute : Attribute;
+
 public static class GatewayAuthorizationExtensions
 {
     public static bool AllowsMockAuthorizationBypass(this HttpContext context) =>
-        context.GetEndpoint()?.Metadata.GetMetadata<DisableMockAuthorizationBypass>() is null;
+        context.GetEndpoint()?.Metadata.GetMetadata<DisableMockAuthorizationBypass>() is null &&
+        context.GetEndpoint()?.Metadata.GetMetadata<DisableMockAuthorizationBypassAttribute>() is null;
 }

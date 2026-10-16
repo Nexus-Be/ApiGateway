@@ -10,7 +10,8 @@ public static class GatewaySecurityHelper
     public static string DetectServiceForRequest(HttpContext context, IMockEngine? mockEngine = null)
     {
         // 1. From Endpoint Metadata BackendTag
-        var backendTag = context.GetEndpoint()?.Metadata.GetMetadata<BackendTag>()?.Name;
+        var backendTag = context.GetEndpoint()?.Metadata.GetMetadata<BackendTag>()?.Name
+            ?? context.GetEndpoint()?.Metadata.GetMetadata<BackendTagAttribute>()?.Name;
         if (!string.IsNullOrEmpty(backendTag))
         {
             return backendTag.ToLowerInvariant();
@@ -36,17 +37,23 @@ public static class GatewaySecurityHelper
         var clean = path.Trim('/').ToLowerInvariant();
         var segments = clean.Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-        if (segments.Length >= 3 && segments[0] == "api" && segments[1] == "v1")
+        var offset = 0;
+        if (segments.Length >= 1 && segments[0] == "gateway")
         {
-            var section = segments[2];
+            offset = 1;
+        }
+
+        if (segments.Length >= offset + 3 && segments[offset] == "api" && segments[offset + 1] == "v1")
+        {
+            var section = segments[offset + 2];
             if (section is "seller")
             {
-                if (segments.Length >= 4 && segments[3] == "orders") return "commerce";
+                if (segments.Length >= offset + 4 && segments[offset + 3] == "orders") return "commerce";
                 return "catalog";
             }
             if (section is "admin")
             {
-                if (segments.Length >= 4 && segments[3] == "orders") return "commerce";
+                if (segments.Length >= offset + 4 && segments[offset + 3] == "orders") return "commerce";
                 return "users";
             }
             return GatewayOptions.ResolveCanonicalName(section);

@@ -29,7 +29,7 @@ public sealed class RedisRateLimitMiddleware
         IMockEngine mockEngine,
         IApiResponseFactory responseFactory)
     {
-        if (!context.Request.Path.StartsWithSegments("/api"))
+        if (!context.Request.Path.StartsWithSegments("/gateway/api") && !context.Request.Path.StartsWithSegments("/api"))
         {
             await _next(context);
             return;

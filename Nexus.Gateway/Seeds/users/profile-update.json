@@ -1,0 +1,9 @@
+{
+  "id": "11111111-1111-1111-1111-000000000004",
+  "displayName": "Người mua 01 (đã sửa)",
+  "email": "buyer01@mcs.local",
+  "roles": [
+    "buyer"
+  ],
+  "status": "Active"
+}

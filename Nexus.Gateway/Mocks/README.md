@@ -18,7 +18,7 @@ Gateway sẽ tự động bọc response vào vỏ chuẩn: `{ success: true, st
   "id": "get-product-detail",
   "service": "catalog",
   "method": "GET",
-  "path": "/api/v1/catalog/products/{id}",
+  "path": "/gateway/api/v1/catalog/products/{id}",
   "description": "Lấy chi tiết một sản phẩm",
   "policy": "public",
   "statusCode": 200,",
@@ -44,7 +44,7 @@ Hỗ trợ tự động bọc dữ liệu phân trang và nhận query `?page=1&
   "id": "search-products-paged",
   "service": "catalog",
   "method": "POST",
-  "path": "/api/v1/catalog/search",
+  "path": "/gateway/api/v1/catalog/search",
   "description": "Tìm kiếm sản phẩm theo từ khóa",
   "policy": "public",
   "statusCode": 200,
@@ -76,7 +76,7 @@ Gateway tự động trả về Problem Details chuẩn RFC 7807:
   "id": "product-out-of-stock",
   "service": "catalog",
   "method": "POST",
-  "path": "/api/v1/catalog/orders/quick-buy",
+  "path": "/gateway/api/v1/catalog/orders/quick-buy",
   "description": "Giả lập lỗi hết hàng trong kho",
   "policy": "authenticated",
   "statusCode": 422,
@@ -95,7 +95,7 @@ Gateway tự động trả về Problem Details chuẩn RFC 7807:
   "id": "raw-config-endpoint",
   "service": "catalog",
   "method": "GET",
-  "path": "/api/v1/catalog/app-config",
+  "path": "/gateway/api/v1/catalog/app-config",
   "description": "Trả JSON thô không qua bọc ApiResponse",
   "policy": "public",
   "statusCode": 200,
@@ -118,7 +118,7 @@ Một file `.mock.json` có thể chứa 1 mảng `[ ... ]` các định nghĩa:
     "id": "catalog-brands",
     "service": "catalog",
     "method": "GET",
-    "path": "/api/v1/catalog/brands",
+    "path": "/gateway/api/v1/catalog/brands",
     "policy": "public",
     "responseType": "single",
     "response": ["Keychron", "Akko", "Logitech"]
@@ -127,7 +127,7 @@ Một file `.mock.json` có thể chứa 1 mảng `[ ... ]` các định nghĩa:
     "id": "catalog-tags",
     "service": "catalog",
     "method": "GET",
-    "path": "/api/v1/catalog/tags",
+    "path": "/gateway/api/v1/catalog/tags",
     "policy": "public",
     "responseType": "single",
     "response": ["gaming", "office", "wireless"]
@@ -145,7 +145,7 @@ Khi dữ liệu mock dài, có thể tách sang file riêng cùng thư mục:
   "id": "heavy-catalog-data",
   "service": "catalog",
   "method": "GET",
-  "path": "/api/v1/catalog/large-inventory",
+  "path": "/gateway/api/v1/catalog/large-inventory",
   "policy": "seller",
   "responseType": "single",
   "responseFile": "inventory-data.json"
@@ -161,7 +161,7 @@ Khi dữ liệu mock dài, có thể tách sang file riêng cùng thư mục:
 | `id` | Có | Chuỗi không dấu, ví dụ: `"catalog-filter"` | Định danh duy nhất |
 | `service` | Không | `"catalog"`, `"commerce"`, `"users"`, `"auction"`, `"fulfillment"`, `"notification"`, `"audit"` | Nếu bỏ trống, Gateway tự đoán qua URL |
 | `method` | Có | `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"` | Không phân biệt hoa/thường |
-| `path` | Có | `"/api/v1/service/..."` | Hỗ trợ tham số: `{id}`, `{slug}`, `{id:guid}` |
+| `path` | Có | `"/gateway/api/v1/service/..."` | Hỗ trợ tham số: `{id}`, `{slug}`, `{id:guid}` |
 | `policy` | Không | `"public"`, `"authenticated"`, `"buyer"`, `"seller"`, `"staff"`, `"admin"` | Mặc định: `"public"` |
 | `statusCode` | Không | Số nguyên, ví dụ: `200`, `201`, `400`, `404`, `422` | Mặc định: `200` |
 | `responseType` | Không | `"single"`, `"paged"`, `"raw"`, `"error"` | Mặc định: `"single"` |

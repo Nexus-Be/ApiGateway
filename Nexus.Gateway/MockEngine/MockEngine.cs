@@ -161,14 +161,20 @@ public sealed class MockEngine : IMockEngine, IDisposable
     public static string InferServiceFromPath(string path)
     {
         var segments = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
-        // Standard MCS path: api / v1 / {service} / ...
-        if (segments.Length >= 3 && segments[0].Equals("api", StringComparison.OrdinalIgnoreCase))
+        var offset = 0;
+        if (segments.Length >= 1 && segments[0].Equals("gateway", StringComparison.OrdinalIgnoreCase))
         {
-            return GatewayOptions.ResolveCanonicalName(segments[2]);
+            offset = 1;
         }
-        if (segments.Length >= 1)
+
+        // Standard MCS path: [gateway] / api / v1 / {service} / ...
+        if (segments.Length >= offset + 3 && segments[offset].Equals("api", StringComparison.OrdinalIgnoreCase))
         {
-            return GatewayOptions.ResolveCanonicalName(segments[0]);
+            return GatewayOptions.ResolveCanonicalName(segments[offset + 2]);
+        }
+        if (segments.Length >= offset + 1)
+        {
+            return GatewayOptions.ResolveCanonicalName(segments[offset]);
         }
         return "default";
     }

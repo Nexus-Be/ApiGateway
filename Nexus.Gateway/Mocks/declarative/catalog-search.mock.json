@@ -2,7 +2,7 @@
   "id": "catalog-search-filter",
   "service": "catalog",
   "method": "POST",
-  "path": "/api/v1/catalog/search",
+  "path": "/gateway/api/v1/catalog/search",
   "description": "Tìm kiếm nâng cao sản phẩm theo bộ lọc",
   "policy": "public",
   "statusCode": 200,

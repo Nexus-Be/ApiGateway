@@ -226,7 +226,7 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
             string.Equals(input, "Normal", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(input, "Strict", StringComparison.OrdinalIgnoreCase))
         {
-            normalized = "Enforce";
+            normalized = "Standard";
             return true;
         }
         normalized = "";
@@ -234,7 +234,7 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
     }
 
     private static string NormalizeConfiguredAuthMode(string configuredMode) =>
-        IsValidAuthMode(configuredMode, out var normalized) ? normalized : "Enforce";
+        IsValidAuthMode(configuredMode, out var normalized) ? normalized : "Standard";
 
     private async Task PersistGatewayModeToFileAsync(string mode, CancellationToken cancellationToken)
     {

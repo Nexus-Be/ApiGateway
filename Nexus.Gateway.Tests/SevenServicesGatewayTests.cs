@@ -16,7 +16,7 @@ public sealed class SevenServicesGatewayTests
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("gateway-admin", "admin"));
 
         // 1. Get all modes
-        var getResp = await client.GetAsync("/api/v1/gateway/modes");
+        var getResp = await client.GetAsync("/gateway/api/v1/gateway/modes");
         Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
         var getContent = await getResp.Content.ReadAsStringAsync();
         using var getDoc = JsonDocument.Parse(getContent);
@@ -35,17 +35,17 @@ public sealed class SevenServicesGatewayTests
         }
 
         // 2. Update auction mode to Real
-        var updateResp = await client.PutAsJsonAsync("/api/v1/gateway/modes/auction", new { mode = "Real" });
+        var updateResp = await client.PutAsJsonAsync("/gateway/api/v1/gateway/modes/auction", new { mode = "Real" });
         Assert.Equal(HttpStatusCode.OK, updateResp.StatusCode);
 
         // 3. Verify auction mode is now Real
-        var checkResp = await client.GetAsync("/api/v1/gateway/modes");
+        var checkResp = await client.GetAsync("/gateway/api/v1/gateway/modes");
         var checkContent = await checkResp.Content.ReadAsStringAsync();
         using var checkDoc = JsonDocument.Parse(checkContent);
         Assert.Equal("Real", checkDoc.RootElement.GetProperty("data").GetProperty("services").GetProperty("auction").GetProperty("mode").GetString());
 
         // 4. Reset auction back to Mock
-        var resetResp = await client.PutAsJsonAsync("/api/v1/gateway/modes/auction", new { mode = "Mock" });
+        var resetResp = await client.PutAsJsonAsync("/gateway/api/v1/gateway/modes/auction", new { mode = "Mock" });
         Assert.Equal(HttpStatusCode.OK, resetResp.StatusCode);
     }
 
@@ -58,13 +58,13 @@ public sealed class SevenServicesGatewayTests
         };
         using var client = app.CreateClient();
 
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/gateway/modes")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/gateway/api/v1/gateway/modes")).StatusCode);
 
         client.DefaultRequestHeaders.Authorization = new("Bearer", "admin");
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/v1/gateway/modes")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/gateway/api/v1/gateway/modes")).StatusCode);
 
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("gateway-admin", "admin"));
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/v1/gateway/modes")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/gateway/api/v1/gateway/modes")).StatusCode);
     }
 
     [Fact]
@@ -74,19 +74,19 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // Default mock response has X-Gateway-Mode: Mock
-        var defaultResp = await client.GetAsync("/api/v1/catalog/products");
+        var defaultResp = await client.GetAsync("/gateway/api/v1/catalog/products");
         Assert.Equal(HttpStatusCode.OK, defaultResp.StatusCode);
         Assert.Equal("Mock", defaultResp.Headers.GetValues("X-Gateway-Mode").Single());
 
         // With header X-Mock-Mode: Real -> Gateway executes Real flow (fails with ServiceUnavailable since no real gRPC is running)
-        using var realReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/catalog/products");
+        using var realReq = new HttpRequestMessage(HttpMethod.Get, "/gateway/api/v1/catalog/products");
         realReq.Headers.Add("X-Mock-Mode", "Real");
         var realResp = await client.SendAsync(realReq);
         Assert.Equal("Real", realResp.Headers.GetValues("X-Gateway-Mode").Single());
         Assert.Contains(realResp.StatusCode, new[] { HttpStatusCode.ServiceUnavailable, HttpStatusCode.BadGateway });
 
         // With X-Service-Modes: catalog=Mock;auction=Real
-        using var mixedReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/catalog/products");
+        using var mixedReq = new HttpRequestMessage(HttpMethod.Get, "/gateway/api/v1/catalog/products");
         mixedReq.Headers.Add("X-Service-Modes", "catalog=Mock;auction=Real");
         var mixedResp = await client.SendAsync(mixedReq);
         Assert.Equal("Mock", mixedResp.Headers.GetValues("X-Gateway-Mode").Single());
@@ -100,7 +100,7 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. List auctions (Public)
-        var listResp = await client.GetAsync("/api/v1/auctions?page=1&pageSize=10");
+        var listResp = await client.GetAsync("/gateway/api/v1/auctions?page=1&pageSize=10");
         Assert.Equal(HttpStatusCode.OK, listResp.StatusCode);
         var listContent = await listResp.Content.ReadAsStringAsync();
         using var listDoc = JsonDocument.Parse(listContent);
@@ -108,7 +108,7 @@ public sealed class SevenServicesGatewayTests
         Assert.True(listDoc.RootElement.GetProperty("data").GetProperty("items").GetArrayLength() > 0);
 
         // 2. Get single auction (Public)
-        var getResp = await client.GetAsync("/api/v1/auctions/44444444-4444-4444-4444-000000000001");
+        var getResp = await client.GetAsync("/gateway/api/v1/auctions/44444444-4444-4444-4444-000000000001");
         Assert.Equal(HttpStatusCode.OK, getResp.StatusCode);
 
         // 3. Create auction (Seller policy required)
@@ -122,17 +122,17 @@ public sealed class SevenServicesGatewayTests
             title = "Bàn phím cơ hiếm"
         };
         // Anonymous => 401
-        var unauthCreate = await client.PostAsJsonAsync("/api/v1/auctions", createBody);
+        var unauthCreate = await client.PostAsJsonAsync("/gateway/api/v1/auctions", createBody);
         Assert.Equal(HttpStatusCode.Unauthorized, unauthCreate.StatusCode);
 
         // Buyer => 403
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("buyer-1", "buyer"));
-        var forbiddenCreate = await client.PostAsJsonAsync("/api/v1/auctions", createBody);
+        var forbiddenCreate = await client.PostAsJsonAsync("/gateway/api/v1/auctions", createBody);
         Assert.Equal(HttpStatusCode.Forbidden, forbiddenCreate.StatusCode);
 
         // Seller => 201 Created
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("seller-1", "seller"));
-        var successCreate = await client.PostAsJsonAsync("/api/v1/auctions", createBody);
+        var successCreate = await client.PostAsJsonAsync("/gateway/api/v1/auctions", createBody);
         Assert.Equal(HttpStatusCode.Created, successCreate.StatusCode);
         var createContent = await successCreate.Content.ReadAsStringAsync();
         using var createDoc = JsonDocument.Parse(createContent);
@@ -141,12 +141,12 @@ public sealed class SevenServicesGatewayTests
         // 4. Place bid (Authenticated buyer)
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("buyer-1", "buyer"));
         var bidBody = new { amount = "1550000.00" };
-        var bidResp = await client.PostAsJsonAsync("/api/v1/auctions/44444444-4444-4444-4444-000000000001/bids", bidBody);
+        var bidResp = await client.PostAsJsonAsync("/gateway/api/v1/auctions/44444444-4444-4444-4444-000000000001/bids", bidBody);
         Assert.Equal(HttpStatusCode.Created, bidResp.StatusCode);
 
         // 5. List bids (Public)
         client.DefaultRequestHeaders.Authorization = null;
-        var bidsResp = await client.GetAsync("/api/v1/auctions/44444444-4444-4444-4444-000000000001/bids");
+        var bidsResp = await client.GetAsync("/gateway/api/v1/auctions/44444444-4444-4444-4444-000000000001/bids");
         Assert.Equal(HttpStatusCode.OK, bidsResp.StatusCode);
     }
 
@@ -157,7 +157,7 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. Inventory by SKU
-        var invResp = await client.GetAsync("/api/v1/fulfillment/inventory/SKU-KEYBOARD-RGB-001");
+        var invResp = await client.GetAsync("/gateway/api/v1/fulfillment/inventory/SKU-KEYBOARD-RGB-001");
         Assert.Equal(HttpStatusCode.OK, invResp.StatusCode);
         var invContent = await invResp.Content.ReadAsStringAsync();
         using var invDoc = JsonDocument.Parse(invContent);
@@ -170,14 +170,14 @@ public sealed class SevenServicesGatewayTests
             buyerAddress = "Quận Cầu Giấy, Hà Nội",
             weightGrams = 1200
         };
-        var quoteResp = await client.PostAsJsonAsync("/api/v1/fulfillment/shipping/quote", quoteBody);
+        var quoteResp = await client.PostAsJsonAsync("/gateway/api/v1/fulfillment/shipping/quote", quoteBody);
         Assert.Equal(HttpStatusCode.OK, quoteResp.StatusCode);
         var quoteContent = await quoteResp.Content.ReadAsStringAsync();
         using var quoteDoc = JsonDocument.Parse(quoteContent);
         Assert.Equal("GHN", quoteDoc.RootElement.GetProperty("data").GetProperty("carrier").GetString());
 
         // 3. Shipment tracking
-        var trackResp = await client.GetAsync("/api/v1/fulfillment/shipments/GHN-VN-987654321");
+        var trackResp = await client.GetAsync("/gateway/api/v1/fulfillment/shipments/GHN-VN-987654321");
         Assert.Equal(HttpStatusCode.OK, trackResp.StatusCode);
         var trackContent = await trackResp.Content.ReadAsStringAsync();
         using var trackDoc = JsonDocument.Parse(trackContent);
@@ -191,13 +191,13 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. Unauthorized access
-        var unauth = await client.GetAsync("/api/v1/notifications");
+        var unauth = await client.GetAsync("/gateway/api/v1/notifications");
         Assert.Equal(HttpStatusCode.Unauthorized, unauth.StatusCode);
 
         // 2. Authenticated user access
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("user-1", "buyer"));
 
-        var notiResp = await client.GetAsync("/api/v1/notifications");
+        var notiResp = await client.GetAsync("/gateway/api/v1/notifications");
         Assert.Equal(HttpStatusCode.OK, notiResp.StatusCode);
         var notiContent = await notiResp.Content.ReadAsStringAsync();
         using var notiDoc = JsonDocument.Parse(notiContent);
@@ -205,14 +205,14 @@ public sealed class SevenServicesGatewayTests
         Assert.True(notiDoc.RootElement.GetProperty("data").GetProperty("items").GetArrayLength() > 0);
 
         // 3. Mark read
-        var readResp = await client.PutAsync("/api/v1/notifications/66666666-6666-6666-6666-000000000001/read", null);
+        var readResp = await client.PutAsync("/gateway/api/v1/notifications/66666666-6666-6666-6666-000000000001/read", null);
         Assert.Equal(HttpStatusCode.OK, readResp.StatusCode);
         var readContent = await readResp.Content.ReadAsStringAsync();
         using var readDoc = JsonDocument.Parse(readContent);
         Assert.True(readDoc.RootElement.GetProperty("data").GetProperty("isRead").GetBoolean());
 
         // 4. Get preferences
-        var prefResp = await client.GetAsync("/api/v1/notifications/preferences");
+        var prefResp = await client.GetAsync("/gateway/api/v1/notifications/preferences");
         Assert.Equal(HttpStatusCode.OK, prefResp.StatusCode);
 
         // 5. Update preferences
@@ -223,7 +223,7 @@ public sealed class SevenServicesGatewayTests
             orderUpdates = true,
             auctionAlerts = false
         };
-        var updatePrefResp = await client.PutAsJsonAsync("/api/v1/notifications/preferences", updatePrefBody);
+        var updatePrefResp = await client.PutAsJsonAsync("/gateway/api/v1/notifications/preferences", updatePrefBody);
         Assert.Equal(HttpStatusCode.OK, updatePrefResp.StatusCode);
     }
     [Fact]
@@ -239,7 +239,7 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // Calling /users/me without any token in Swagger mock dev mode -> returns 200 OK!
-        var resp = await client.GetAsync("/api/v1/users/me");
+        var resp = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         var content = await resp.Content.ReadAsStringAsync();
@@ -256,17 +256,17 @@ public sealed class SevenServicesGatewayTests
 
         // 1. Authorize as "seller" by typing "seller" in Swagger
         client.DefaultRequestHeaders.Authorization = new("Bearer", "seller");
-        var sellerResp = await client.GetAsync("/api/v1/seller/inventory");
+        var sellerResp = await client.GetAsync("/gateway/api/v1/seller/inventory");
         Assert.Equal(HttpStatusCode.OK, sellerResp.StatusCode);
 
         // 2. Authorize as "admin" by typing "admin" in Swagger
         client.DefaultRequestHeaders.Authorization = new("Bearer", "admin");
-        var adminResp = await client.GetAsync("/api/v1/admin/roles");
+        var adminResp = await client.GetAsync("/gateway/api/v1/admin/roles");
         Assert.Equal(HttpStatusCode.OK, adminResp.StatusCode);
 
         // 3. Passing mock login token also works
         client.DefaultRequestHeaders.Authorization = new("Bearer", "eyJhbGciOiJIUzI1NiJ9.mock-token-for-development-only");
-        var meResp = await client.GetAsync("/api/v1/users/me");
+        var meResp = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, meResp.StatusCode);
     }
 
@@ -290,12 +290,12 @@ public sealed class SevenServicesGatewayTests
             using var client = app.CreateClient();
 
             // 1. Service catalog chay Real: goi ra du lieu that tu stub
-            var prodResp = await client.GetAsync("/api/v1/catalog/products");
+            var prodResp = await client.GetAsync("/gateway/api/v1/catalog/products");
             Assert.Equal(HttpStatusCode.OK, prodResp.StatusCode);
             Assert.Equal("Real", prodResp.Headers.GetValues("X-Gateway-Mode").Single());
 
             // 2. Service users chay Mock: goi /users/me ma khong can server users/identity chay
-            var meResp = await client.GetAsync("/api/v1/users/me");
+            var meResp = await client.GetAsync("/gateway/api/v1/users/me");
             Assert.Equal(HttpStatusCode.OK, meResp.StatusCode);
             Assert.Equal("Mock", meResp.Headers.GetValues("X-Gateway-Mode").Single());
         }
@@ -317,15 +317,15 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. Endpoint requiring 'authenticated': /users/me without token -> 200 OK
-        var r1 = await client.GetAsync("/api/v1/users/me");
+        var r1 = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, r1.StatusCode);
 
         // 2. Endpoint requiring 'seller': /seller/inventory without token -> 200 OK
-        var r2 = await client.GetAsync("/api/v1/seller/inventory");
+        var r2 = await client.GetAsync("/gateway/api/v1/seller/inventory");
         Assert.Equal(HttpStatusCode.OK, r2.StatusCode);
 
         // 3. Endpoint requiring 'admin': /admin/roles without token -> 200 OK
-        var r3 = await client.GetAsync("/api/v1/admin/roles");
+        var r3 = await client.GetAsync("/gateway/api/v1/admin/roles");
         Assert.Equal(HttpStatusCode.OK, r3.StatusCode);
     }
 
@@ -342,13 +342,13 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. Without token + X-Mock-Enforce-Auth: true -> 401 Unauthorized
-        using var unauthReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/seller/inventory");
+        using var unauthReq = new HttpRequestMessage(HttpMethod.Get, "/gateway/api/v1/seller/inventory");
         unauthReq.Headers.Add("X-Mock-Enforce-Auth", "true");
         var unauthResp = await client.SendAsync(unauthReq);
         Assert.Equal(HttpStatusCode.Unauthorized, unauthResp.StatusCode);
 
         // 2. With wrong role (buyer on seller endpoint) + X-Mock-Enforce-Auth: true -> 403 Forbidden
-        using var forbiddenReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/seller/inventory");
+        using var forbiddenReq = new HttpRequestMessage(HttpMethod.Get, "/gateway/api/v1/seller/inventory");
         forbiddenReq.Headers.Add("X-Mock-Enforce-Auth", "true");
         forbiddenReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("real-user", "buyer"));
         var forbiddenResp = await client.SendAsync(forbiddenReq);
@@ -361,16 +361,16 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. In Standard mode (default), calling without token returns 401 Unauthorized!
-        var unauthResp = await client.GetAsync("/api/v1/users/me");
+        var unauthResp = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.Unauthorized, unauthResp.StatusCode);
 
         // 2. Calling with valid mock/login token returns 200 OK!
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "eyJhbGciOiJIUzI1NiJ9.mock-token-for-development-only");
-        var authResp = await client.GetAsync("/api/v1/users/me");
+        var authResp = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, authResp.StatusCode);
 
         // 3. Calling admin endpoint with buyer role returns 403 Forbidden!
-        var forbiddenResp = await client.GetAsync("/api/v1/admin/roles");
+        var forbiddenResp = await client.GetAsync("/gateway/api/v1/admin/roles");
         Assert.Equal(HttpStatusCode.Forbidden, forbiddenResp.StatusCode);
     }
 
@@ -381,27 +381,27 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. In Standard mode (no token) -> 401 Unauthorized
-        var strictCheck = await client.GetAsync("/api/v1/users/me");
+        var strictCheck = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.Unauthorized, strictCheck.StatusCode);
 
         // 2. With X-Gateway-Auth: Bypass -> ALL endpoints run independently and DO NOT check auth!
         client.DefaultRequestHeaders.Add("X-Gateway-Auth", "Bypass");
 
         // /users/me without token -> 200 OK!
-        var r1 = await client.GetAsync("/api/v1/users/me");
+        var r1 = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, r1.StatusCode);
 
         // /seller/inventory without token -> 200 OK!
-        var r2 = await client.GetAsync("/api/v1/seller/inventory");
+        var r2 = await client.GetAsync("/gateway/api/v1/seller/inventory");
         Assert.Equal(HttpStatusCode.OK, r2.StatusCode);
 
         // /admin/roles without token -> 200 OK!
-        var r3 = await client.GetAsync("/api/v1/admin/roles");
+        var r3 = await client.GetAsync("/gateway/api/v1/admin/roles");
         Assert.Equal(HttpStatusCode.OK, r3.StatusCode);
 
         // 3. Remove header -> returns to Standard mode
         client.DefaultRequestHeaders.Remove("X-Gateway-Auth");
-        var backToStrict = await client.GetAsync("/api/v1/users/me");
+        var backToStrict = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.Unauthorized, backToStrict.StatusCode);
     }
     [Fact]
@@ -411,12 +411,12 @@ public sealed class SevenServicesGatewayTests
         using var client = app.CreateClient();
 
         // 1. Calling /api/v1/wallet/balance without token -> 401 Unauthorized
-        var unauth = await client.GetAsync("/api/v1/wallet/balance");
+        var unauth = await client.GetAsync("/gateway/api/v1/wallet/balance");
         Assert.Equal(HttpStatusCode.Unauthorized, unauth.StatusCode);
 
         // 2. Calling with authenticated token -> 200 OK with wallet balance
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("user-1", "buyer"));
-        var balResp = await client.GetAsync("/api/v1/wallet/balance");
+        var balResp = await client.GetAsync("/gateway/api/v1/wallet/balance");
         Assert.Equal(HttpStatusCode.OK, balResp.StatusCode);
         Assert.Equal("Mock", balResp.Headers.GetValues("X-Gateway-Mode").Single());
 
@@ -432,7 +432,7 @@ public sealed class SevenServicesGatewayTests
             currency = "VND",
             paymentMethod = "BANK_TRANSFER"
         };
-        var depResp = await client.PostAsJsonAsync("/api/v1/wallet/deposit", depositBody);
+        var depResp = await client.PostAsJsonAsync("/gateway/api/v1/wallet/deposit", depositBody);
         Assert.Equal(HttpStatusCode.OK, depResp.StatusCode);
 
         var depContent = await depResp.Content.ReadAsStringAsync();
@@ -446,7 +446,7 @@ public sealed class SevenServicesGatewayTests
             currency = "VND",
             bankAccount = "0123456789 (Vietcombank)"
         };
-        var witResp = await client.PostAsJsonAsync("/api/v1/wallet/withdraw", withdrawBody);
+        var witResp = await client.PostAsJsonAsync("/gateway/api/v1/wallet/withdraw", withdrawBody);
         Assert.Equal(HttpStatusCode.OK, witResp.StatusCode);
 
         var witContent = await witResp.Content.ReadAsStringAsync();
@@ -460,18 +460,18 @@ public sealed class SevenServicesGatewayTests
             amount = "200000.00",
             note = "Chuyển tiền mua bàn phím"
         };
-        var trfResp = await client.PostAsJsonAsync("/api/v1/wallet/transfer", transferBody);
+        var trfResp = await client.PostAsJsonAsync("/gateway/api/v1/wallet/transfer", transferBody);
         Assert.Equal(HttpStatusCode.OK, trfResp.StatusCode);
 
         // 6. List wallet transactions
-        var txResp = await client.GetAsync("/api/v1/wallet/transactions?page=1&pageSize=10");
+        var txResp = await client.GetAsync("/gateway/api/v1/wallet/transactions?page=1&pageSize=10");
         Assert.Equal(HttpStatusCode.OK, txResp.StatusCode);
         var txContent = await txResp.Content.ReadAsStringAsync();
         using var txDoc = JsonDocument.Parse(txContent);
         Assert.True(txDoc.RootElement.GetProperty("data").GetProperty("items").GetArrayLength() > 0);
 
         // 7. Declarative mock endpoint: /api/v1/wallet/quick-summary
-        var summaryResp = await client.GetAsync("/api/v1/wallet/quick-summary");
+        var summaryResp = await client.GetAsync("/gateway/api/v1/wallet/quick-summary");
         Assert.Equal(HttpStatusCode.OK, summaryResp.StatusCode);
         var summaryContent = await summaryResp.Content.ReadAsStringAsync();
         using var summaryDoc = JsonDocument.Parse(summaryContent);

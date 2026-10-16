@@ -37,7 +37,7 @@ Gateway hiện tại đã đầy đủ mọi nền tảng và đã pass 46/46 un
 ## 3. Các Phần Còn Lại Cho Gateway (Nếu Muốn Mở Rộng Thêm Trong Tương Lai)
 
 Gateway hiện tại đã hoàn thiện đầy đủ cho việc kết nối backend và test mock. Nếu dự án mở rộng quy mô lớn hơn, có thể bổ sung:
-- **Output Caching**: Thêm cache Redis cho các endpoint đọc công khai ít thay đổi (ví dụ: `GET /api/v1/catalog/categories`).
+- **Output Caching**: Thêm cache Redis cho các endpoint đọc công khai ít thay đổi (ví dụ: `GET /gateway/api/v1/catalog/categories`).
 - **Circuit Breaker / Retry Policy (Polly)**: Tự động ngắt mạch nếu một service backend gRPC bị sập liên tục quá nhiều lần.
 - **BFF (Backend for Frontend)**: Ghép dữ liệu đa nguồn nếu một màn hình mobile cần gộp thông tin từ cả Catalog, Commerce và Wallet.
 
@@ -112,7 +112,7 @@ builder.Services.AddMassTransit(x =>
 ### Bước 5: Thiết Lập Saga Điều Phối Thanh Toán (Checkout & Wallet Saga)
 Khi tách riêng Ví điện tử khỏi Commerce, luồng Saga thanh toán diễn ra như sau:
 ```
-1. Client gửi POST /api/v1/commerce/orders qua Gateway -> CommerceService tạo Order (Status = Pending).
+1. Client gửi POST /gateway/api/v1/commerce/orders qua Gateway -> CommerceService tạo Order (Status = Pending).
 2. CommerceService bắn event OrderSubmitted lên RabbitMQ.
 3. CatalogService lắng nghe -> Giữ kho ảo (ReserveStock). Bắn StockReservedEvent.
 4. WalletService lắng nghe -> Trừ tiền trong ví khách hàng (DeductBalance). Bắn PaymentCompletedEvent.
@@ -125,17 +125,18 @@ Khi tách riêng Ví điện tử khỏi Commerce, luồng Saga thanh toán di�
 ## 5. Quy Trình Test Khi Bạn Code Xong Một Service
 
 1. Khởi động Service của bạn tại port tương ứng (ví dụ Wallet Service tại port `8008`).
-2. Mở file `Nexus.Gateway/appsettings.Development.json`, chuyển service đó sang `Real`:
+2. Mở file `Nexus.Gateway/gateway.runtime.json` (hỗ trợ Hot-Reload tức thì, không cần khởi động lại Gateway):
    ```json
    "wallet": {
      "Mode": "Real",
      "Address": "http://localhost:8008"
    }
    ```
-3. Bật Gateway (`dotnet run --project Nexus.Gateway`).
-4. Mở Swagger Gateway `http://localhost:8000/swagger`, gọi thử API `/api/v1/wallet/balance`:
+   *(Hoặc cấu hình mặc định trong `appsettings.Development.json`).*
+3. Bật Gateway (nếu chưa chạy: `./run-dev.sh` hoặc `dotnet run --project Nexus.Gateway`).
+4. Mở Swagger Gateway `http://localhost:8000/swagger`, gọi thử API `/gateway/api/v1/wallet/balance`:
    - Gateway sẽ tự động chuyển tiếp cuộc gọi gRPC sang backend thật của bạn tại port `8008`.
-   - Các API khác (Catalog, Users, Commerce...) vẫn được Gateway phục vụ bằng Mock mượt mà!
+   - Các API khác (Catalog, Users, Commerce...) vẫn được Gateway phục vụ bằng Seed mock data mượt mà từ thư mục `Seeds/`!
 
 ---
 

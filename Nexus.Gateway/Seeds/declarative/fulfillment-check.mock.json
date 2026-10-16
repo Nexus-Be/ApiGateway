@@ -1,0 +1,22 @@
+{
+  "id": "fulfillment-check-delivery",
+  "service": "fulfillment",
+  "method": "POST",
+  "path": "/gateway/api/v1/fulfillment/check-delivery",
+  "description": "Kiểm tra tính khả dụng giao hàng theo địa chỉ",
+  "policy": "public",
+  "statusCode": 200,
+  "responseType": "single",
+  "message": "Kiểm tra tuyến giao hàng thành công.",
+  "request": {
+    "postalCode": "700000",
+    "province": "Hồ Chí Minh",
+    "district": "Quận 1"
+  },
+  "response": {
+    "isDeliverable": true,
+    "estimatedDays": 2,
+    "supportedCarriers": ["GHN"],
+    "standardFee": "30000.00"
+  }
+}

@@ -11,12 +11,12 @@ Gateway hỗ trợ 2 trạng thái hoạt động chính giúp team vừa có th
 ### a. Trạng thái Standard (`"Standard"` - Mặc định)
 - **Vẫn cần đăng nhập và kiểm tra quyền mọi thứ như thường**:
   - Khi người dùng/FE gọi các API yêu cầu đăng nhập mà **chưa gửi token**: Gateway chặn lại với mã `401 Unauthorized`.
-  - Người dùng đăng nhập qua `POST /api/v1/auth/login` để nhận access token:
+  - Người dùng đăng nhập qua `POST /gateway/api/v1/auth/login` để nhận access token:
     ```json
     { "username": "buyer01", "password": "Passw0rd!" }
     ```
   - Gửi header `Authorization: Bearer <token>` ➔ Được xác thực thành công `200 OK`.
-  - Nếu token không đủ quyền (ví dụ token người mua gọi endpoint quản trị `/api/v1/admin/roles`) ➔ Bị chặn với mã `403 Forbidden`.
+  - Nếu token không đủ quyền (ví dụ token người mua gọi endpoint quản trị `/gateway/api/v1/admin/roles`) ➔ Bị chặn với mã `403 Forbidden`.
 
 ### b. Trạng thái Mock Bypass (`"Bypass"`)
 - Khi chuyển Gateway sang trạng thái này:
@@ -31,7 +31,7 @@ Gateway hỗ trợ 2 trạng thái hoạt động chính giúp team vừa có th
 ### Cách 1: Qua API Runtime (Frontend có thể gạt công tắc toggle trên web)
 - **Xem trạng thái hiện tại**:
   ```http
-  GET /api/v1/gateway/modes
+  GET /gateway/api/v1/gateway/modes
   ```
   Trả về:
   ```json
@@ -47,7 +47,8 @@ Gateway hỗ trợ 2 trạng thái hoạt động chính giúp team vừa có th
         "auction": { "service": "auction", "mode": "Mock" },
         "fulfillment": { "service": "fulfillment", "mode": "Mock" },
         "notification": { "service": "notification", "mode": "Mock" },
-        "audit": { "service": "audit", "mode": "Mock" }
+        "audit": { "service": "audit", "mode": "Mock" },
+        "wallet": { "service": "wallet", "mode": "Mock" }
       }
     }
   }
@@ -55,7 +56,7 @@ Gateway hỗ trợ 2 trạng thái hoạt động chính giúp team vừa có th
 
 - **Chuyển sang trạng thái Mock Bypass (Không check auth, API độc lập)**:
   ```http
-  PUT /api/v1/gateway/mode
+  PUT /gateway/api/v1/gateway/mode
   Content-Type: application/json
 
   { "mode": "Bypass" }
@@ -63,7 +64,7 @@ Gateway hỗ trợ 2 trạng thái hoạt động chính giúp team vừa có th
 
 - **Chuyển về trạng thái Standard (Yêu cầu đăng nhập như thường)**:
   ```http
-  PUT /api/v1/gateway/mode
+  PUT /gateway/api/v1/gateway/mode
   Content-Type: application/json
 
   { "mode": "Standard" }
@@ -73,7 +74,7 @@ Gateway hỗ trợ 2 trạng thái hoạt động chính giúp team vừa có th
 - Gửi header `X-Gateway-Auth: Bypass` trên request để tạm thời bỏ qua kiểm tra auth cho riêng request đó.
 
 ### Cách 3: Qua File cấu hình `gateway.runtime.json`
-Chỉ cần sửa giá trị `"GatewayMode": "Standard"` thành `"GatewayMode": "Bypass"` (áp dụng ngay mà không cần restart server).
+Chỉ cần sửa giá trị `"AuthMode": "Standard"` thành `"AuthMode": "Bypass"` (áp dụng ngay mà không cần restart server).
 
 ---
 
@@ -83,7 +84,7 @@ Thành viên team chỉ cần tạo file `*.mock.json` trong thư mục `Nexus.G
 ```json
 {
   "method": "POST",
-  "path": "/api/v1/catalog/search",
+  "path": "/gateway/api/v1/catalog/search",
   "description": "Tìm kiếm sản phẩm",
   "policy": "public",
   "statusCode": 200,
@@ -101,7 +102,7 @@ Thành viên team chỉ cần tạo file `*.mock.json` trong thư mục `Nexus.G
 }
 ```
 
-- **Tự động nhận diện Service**: Đường dẫn `/api/v1/catalog/...` tự map vào service `catalog`.
+- **Tự động nhận diện Service**: Đường dẫn `/gateway/api/v1/catalog/...` tự map vào service `catalog`.
 - **Tự động hiện trên Swagger UI**: Không cần sửa code C#, Swagger tự sinh tài liệu API đầy đủ.
 - **Hot-Reload tức thì**: Sửa file JSON là có hiệu lực ngay mà không cần restart server.
 

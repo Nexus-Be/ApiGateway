@@ -1,0 +1,21 @@
+{
+  "id": "notification-admin-broadcast",
+  "service": "notification",
+  "method": "POST",
+  "path": "/gateway/api/v1/notifications/broadcast",
+  "description": "Gửi thông báo toàn hệ thống (Chỉ Admin)",
+  "policy": "admin",
+  "statusCode": 201,
+  "responseType": "single",
+  "message": "Thông báo toàn hệ thống đã được gửi.",
+  "request": {
+    "title": "Bảo trì định kỳ",
+    "content": "Hệ thống sẽ bảo trì nâng cấp vào lúc 00:00 ngày mai.",
+    "targetRole": "all"
+  },
+  "response": {
+    "broadcastId": "77777777-7777-7777-7777-000000000001",
+    "sentCount": 1500,
+    "scheduledAt": "2026-10-13T12:00:00Z"
+  }
+}
