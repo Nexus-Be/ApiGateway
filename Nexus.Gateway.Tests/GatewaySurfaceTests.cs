@@ -60,11 +60,11 @@ public sealed class GatewaySurfaceTests
         new("POST", "/gateway/api/v1/admin/sellers/55555555-5555-5555-5555-000000000001/approve", """{"approve":true}""", "staff", "users", "seller-approve"),
         new("GET", "/gateway/api/v1/admin/roles", null, "admin", "users", "roles"),
         new("GET", "/gateway/api/v1/admin/permissions", null, "admin", "users", "permissions"),
-        // audit (staff đọc; admin bật/tắt từ điển)
-        new("GET", "/gateway/api/v1/audit/logs?page=1&pageSize=20", null, "staff", "audit", "audit-logs"),
-        new("GET", "/gateway/api/v1/audit/logs/99999999-9999-9999-9999-000000000001", null, "staff", "audit", "audit-log"),
-        new("GET", "/gateway/api/v1/audit/event-types", null, "staff", "audit", "audit-event-types"),
-        new("PUT", "/gateway/api/v1/audit/event-types/ProductCreated", """{"enabled":false}""", "admin", "audit", "audit-event-type-toggle"),
+        // log (staff đọc; admin bật/tắt từ điển)
+        new("GET", "/gateway/api/v1/log/logs?page=1&pageSize=20", null, "staff", "log", "logs"),
+        new("GET", "/gateway/api/v1/log/logs/99999999-9999-9999-9999-000000000001", null, "staff", "log", "log-entry"),
+        new("GET", "/gateway/api/v1/log/event-types", null, "staff", "log", "log-event-types"),
+        new("PUT", "/gateway/api/v1/log/event-types/ProductCreated", """{"enabled":false}""", "admin", "log", "log-event-type-toggle"),
     ];
 
     private static HttpRequestMessage Request(Endpoint endpoint, string? token)

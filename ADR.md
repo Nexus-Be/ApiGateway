@@ -86,3 +86,27 @@ Tài liệu này ghi nhận các quyết định kiến trúc cốt lõi định
      - **Domain Entities**: Đóng gói quy tắc nghiệp vụ bất biến (Business Invariants) ngay trong Entity methods (ví dụ: số lượng đơn hàng phải $> 0$, không cho phép chuyển trạng thái đơn hàng trái quy tắc, tồn kho không được âm khi trừ).
      - **Database Constraints**: Đặt các ràng buộc `CHECK (available >= 0)`, `NOT NULL`, `UNIQUE`, `FOREIGN KEY` ở tầng DB PostgreSQL.
      - **Đảm bảo độc lập**: Dù request đến từ Gateway, từ gRPC nội bộ giữa 2 service, hay từ RabbitMQ Consumer, tính toàn vẹn nghiệp vụ và dữ liệu luôn được bảo vệ 100%.
+---
+
+## ADR 10: Chuẩn Hóa Distributed Tracing (OpenTelemetry & Grafana Tempo) & Ranh Giới Hạ Tầng
+- **Bối cảnh & Vấn đề**:
+  Hệ thống gồm API Gateway và 8 Microservices giao tiếp qua REST JSON, gRPC HTTP/2, và RabbitMQ (MassTransit). Khi có lỗi phân tán hoặc suy giảm hiệu năng liên service, việc đọc log rời rạc từng container là không khả thi. Cần một giải pháp Distributed Tracing toàn diện theo chuẩn quốc tế nhưng **tuyệt đối không làm phức tạp hóa code nghiệp vụ của developer**.
+- **Quyết định kiến trúc**:
+  1. **Chuẩn ngữ cảnh W3C Trace Context**: Sử dụng tiêu chuẩn công nghiệp W3C Trace Context (`traceparent`). gRPC Client/Server và HTTP Instrumentation tự động đính kèm và lan truyền mã vết này xuyên suốt qua các tầng mạng.
+  2. **OpenTelemetry .NET SDK với Auto-Instrumentation (Zero-Touch cho Dev)**:
+     - Mọi service (Gateway và 8 Microservices con) đều tích hợp OpenTelemetry SDK.
+     - Sử dụng cơ chế tự động bắt vết ngầm: HTTP In/Out, gRPC Calls, Entity Framework Core SQL queries, Redis cache, và MassTransit RabbitMQ messages.
+     - **Nguyên lý Zero-Touch**: Developer viết nghiệp vụ (Controller, gRPC Service, Domain logic, Event Consumer) **không cần viết bất kỳ dòng code tracing nào**. Tracing được kích hoạt tự động chỉ với 1 dòng khai báo duy nhất tại `Program.cs`.
+  3. **Backend Lưu Trữ & Trực Quan Hóa (Observability Stack)**:
+     - **Grafana Tempo**: Đóng vai trò là OTLP Trace Backend tập trung (lắng nghe cổng gRPC `4317` và HTTP `4318`). Tempo cực nhẹ, không yêu cầu Elasticsearch/Cassandra nặng nề, phù hợp cả local dev lẫn production.
+     - **Grafana Dashboard**: Mở giao diện tại cổng `3000`, tích hợp sẵn datasource Tempo để tra cứu Trace theo mã `traceId` hoặc trực quan hóa cây luồng thời gian thực (Flame Graph).
+  4. **Phân định rõ ranh giới hạ tầng nền tảng (Infrastructure Separation)**:
+     - **SSL/TLS Termination**: Không cấu hình bên trong C# Gateway. Đây là trách nhiệm của lớp Ingress Proxy biên mạng (Cloudflare, AWS ALB, Nginx). Gateway chỉ chạy HTTP nội bộ tại cổng `8000`.
+     - **Identity Provider (IdP) & Context Propagation**: Gateway đảm nhiệm xác thực JWT Bearer token ở cổng vào. Khi gọi gRPC xuống các microservices, Gateway tự động giải mã và gắn thông tin định danh vào gRPC Metadata:
+       - `x-user-id`: User ID định danh (`sub` claim).
+       - `x-user-roles`: Danh sách vai trò (`role` claims), cách nhau bởi dấu phẩy.
+       - `x-user-email`: Email người dùng.
+       - `x-trace-id`: Trace ID nhất quán của request.
+     - **Lợi ích**: Các microservices con **không cần giải mã lại JWT**, giảm thiểu tính toán CPU lặp lại và chỉ cần lấy thông tin user trực tiếp từ `ServerCallContext.RequestHeaders`.
+  5. **Quy tắc bắt buộc khi tạo Microservice mới**:
+     - Mọi microservice mới khi đưa vào hệ sinh thái Nexus **bắt buộc** phải gọi `builder.Services.AddServiceObservability(builder.Configuration, "Tên_Service");` ngay trong `Program.cs` theo hướng dẫn trong [SETUP_GUIDE_SERVICES.md](SETUP_GUIDE_SERVICES.md).

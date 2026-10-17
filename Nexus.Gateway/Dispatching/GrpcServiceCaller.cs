@@ -67,6 +67,29 @@ public sealed class GrpcServiceCaller : IGrpcServiceCaller
         var traceId = ApiResponseFactory.ResolveTraceId(context);
         headers.Add("x-trace-id", traceId);
 
+        // Propagate authenticated user identity to downstream microservices
+        if (context.User.Identity?.IsAuthenticated == true)
+        {
+            var userId = context.User.FindFirst("sub")?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                headers.Add("x-user-id", userId);
+            }
+
+            var roles = context.User.FindAll("role").Select(r => r.Value).ToArray();
+            if (roles.Length > 0)
+            {
+                headers.Add("x-user-roles", string.Join(",", roles));
+            }
+
+            var email = context.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                ?? context.User.FindFirst("email")?.Value;
+            if (!string.IsNullOrEmpty(email))
+            {
+                headers.Add("x-user-email", email);
+            }
+        }
+
         return new CallOptions(
             headers,
             deadline: DateTime.UtcNow.AddSeconds(config.TimeoutSeconds),

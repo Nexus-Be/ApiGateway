@@ -51,7 +51,7 @@
         "MockDelayMs": 0,
         "MockStatus": 200
       },
-      "audit": {
+      "log": {
         "Mode": "Real",
         "Address": "http://localhost:8004",
         "TimeoutSeconds": 5,

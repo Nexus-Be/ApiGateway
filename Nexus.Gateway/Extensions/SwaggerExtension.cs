@@ -16,7 +16,7 @@ public static class SwaggerExtension
                 Title = "Nexus API Gateway",
                 Version = "v1",
                 Description = """
-                    API Gateway cho 8 microservices (catalog, commerce, fulfillment, users, auction, notification, audit, wallet).
+                    API Gateway cho 8 microservices (catalog, commerce, fulfillment, users, auction, notification, log, wallet).
 
                     Hướng dẫn test độc lập trên Swagger UI:
                     - Tiền tố API chuẩn: /api/v1/{service}/... (đường dẫn cũ /gateway/api/v1/... vẫn được hỗ trợ tương thích).

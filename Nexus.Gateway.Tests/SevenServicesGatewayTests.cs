@@ -28,7 +28,7 @@ public sealed class SevenServicesGatewayTests
         var services = data.GetProperty("services");
 
         // Verify all 8 services exist (including wallet)
-        foreach (var svc in new[] { "catalog", "commerce", "fulfillment", "users", "auction", "notification", "audit", "wallet" })
+        foreach (var svc in new[] { "catalog", "commerce", "fulfillment", "users", "auction", "notification", "log", "wallet" })
         {
             Assert.True(services.TryGetProperty(svc, out var svcObj), $"Missing service in modes: {svc}");
             Assert.Equal("Mock", svcObj.GetProperty("mode").GetString());

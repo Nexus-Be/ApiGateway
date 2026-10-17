@@ -21,6 +21,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - Gateway__RedisConnectionString=redis:6379
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4317
     depends_on:
       redis:
         condition: service_healthy

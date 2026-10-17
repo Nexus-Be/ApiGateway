@@ -43,7 +43,7 @@ Trong kiến trúc Microservices của hệ sinh thái Nexus, **ApiGateway** đ�
                        ▼
    ┌───────────────┬─┴─────────────┬───────────────┬───────────────┐
    ▼               ▼               ▼               ▼               ▼
-UsersService    CatalogService  CommerceService  AuditService   AuctionService ... (+ Fulfillment, Notification, Wallet)
+UsersService    CatalogService  CommerceService  LogService     AuctionService ... (+ Fulfillment, Notification, Wallet)
 (Cổng 8001)     (Cổng 8002)     (Cổng 8003)      (Cổng 8004)    (Cổng 8005)        (Cổng 8006, 8007, 8008)
 ```
 
@@ -524,7 +524,7 @@ src/Services/ApiGateway/
 │   │   ├── AuctionController.cs          # Routes: /api/v1/auctions/... (auctions, bids)
 │   │   ├── FulfillmentController.cs      # Routes: /api/v1/fulfillment/... (shipping, inventory, tracking)
 │   │   ├── NotificationController.cs     # Routes: /api/v1/notifications/... (list, read, preferences)
-│   │   ├── AuditController.cs            # Routes: /api/v1/audit/... (logs, event types)
+│   │   ├── LogController.cs              # Routes: /api/v1/log/... (logs, event types)
 │   │   ├── WalletController.cs           # Routes: /api/v1/wallet/... (balance, deposit, withdraw, transfer)
 │   │   └── GatewayControlController.cs   # Routes: /api/v1/gateway/..., /mock-engine/... (control plane)
 │   │
@@ -536,7 +536,7 @@ src/Services/ApiGateway/
 │   │   ├── Auction/                      # AuctionRequests.cs, AuctionResponses.cs
 │   │   ├── Fulfillment/                  # FulfillmentRequests.cs, FulfillmentResponses.cs
 │   │   ├── Notification/                 # NotificationRequests.cs, NotificationResponses.cs
-│   │   ├── Audit/                        # AuditRequests.cs, AuditResponses.cs
+│   │   ├── Log/                          # LogRequests.cs, LogResponses.cs
 │   │   ├── Wallet/                       # WalletRequests.cs, WalletResponses.cs
 │   │   └── GatewayControl/               # GatewayControlRequests.cs, GatewayControlResponses.cs
 │   │
@@ -571,7 +571,7 @@ src/Services/ApiGateway/
 │   │   ├── users/                        # Fixtures JSON cho UserService (login, register, profile, roles...)
 │   │   ├── catalog/                      # Fixtures JSON cho CatalogService (products, categories, inventory...)
 │   │   ├── commerce/                     # Fixtures JSON cho CommerceService (cart, orders, checkout...)
-│   │   ├── audit/                        # Fixtures JSON cho AuditService (audit logs, event types...)
+│   │   ├── log/                          # Fixtures JSON cho LogService (system logs, event types...)
 │   │   ├── auction/                      # Fixtures JSON cho AuctionService (auctions, bids...)
 │   │   ├── fulfillment/                  # Fixtures JSON cho FulfillmentService (inventory, shipping quotes...)
 │   │   ├── notification/                 # Fixtures JSON cho NotificationService (notifications, preferences...)
@@ -625,7 +625,7 @@ $$\mathbf{/api/v1/...}$$
 | 7 | `CommerceController` | `Controllers/CommerceController.cs` | `/api/v1/seller/orders` | Seller | Xem danh sách đơn hàng thuộc quyền quản lý của shop. | `commerce` |
 | 8 | `CommerceController` | `Controllers/CommerceController.cs` | `/api/v1/admin/orders` | Staff / Admin | Xem toàn bộ đơn hàng của toàn sàn thương mại điện tử. | `commerce` |
 | 9 | `UsersController` | `Controllers/UsersController.cs` | `/api/v1/admin` | Staff / Admin | Xem danh sách người dùng (`/users`), duyệt hồ sơ seller (`/sellers/{id}/approve`), gán role, xem roles/permissions. | `users` |
-| 10 | `AuditController` | `Controllers/AuditController.cs` | `/api/v1/audit` | Staff / Admin | Tra cứu nhật ký kiểm toán hệ thống (`/logs`), xem chi tiết log, xem danh mục sự kiện kiểm toán (`/event-types`), bật/tắt event type. | `audit` |
+| 10 | `LogController` | `Controllers/LogController.cs` | `/api/v1/log` | Staff / Admin | Tra cứu nhật ký hệ thống (`/logs`), xem chi tiết log, xem danh mục sự kiện log (`/event-types`), bật/tắt event type. | `log` |
 | 11 | `AuctionController` | `Controllers/AuctionController.cs` | `/api/v1/auctions` | Public / Seller / Auth | Xem danh sách đấu giá (`/`), xem chi tiết, seller tạo phiên đấu giá mới, người mua đặt giá trả (`/bids`), xem lịch sử giá bid. | `auction` |
 | 12 | `FulfillmentController` | `Controllers/FulfillmentController.cs`| `/api/v1/fulfillment` | Anonymous / Public | Tra cứu tồn kho kho bãi vật lý (`/inventory/{skuId}`), tính phí giao hàng (`/shipping/quote`), tra cứu mã vận đơn (`/shipments/{code}`). | `fulfillment` |
 | 13 | `NotificationController`| `Controllers/NotificationController.cs`| `/api/v1/notifications`| Authenticated | Xem danh sách thông báo cá nhân (`/`), đánh dấu đã đọc (`/read`), xem/cập nhật tùy chọn nhận thông báo (`/preferences`). | `notification` |

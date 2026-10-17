@@ -159,7 +159,7 @@ Khi dữ liệu mock dài, có thể tách sang file riêng cùng thư mục:
 | Thuộc tính | Bắt buộc | Giá trị hợp lệ | Ghi chú |
 |---|---|---|---|
 | `id` | Có | Chuỗi không dấu, ví dụ: `"catalog-filter"` | Định danh duy nhất |
-| `service` | Không | `"catalog"`, `"commerce"`, `"users"`, `"auction"`, `"fulfillment"`, `"notification"`, `"audit"` | Nếu bỏ trống, Gateway tự đoán qua URL |
+| `service` | Không | `"catalog"`, `"commerce"`, `"users"`, `"auction"`, `"fulfillment"`, `"notification"`, `"log"`, `"wallet"` | Nếu bỏ trống, Gateway tự đoán qua URL |
 | `method` | Có | `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"` | Không phân biệt hoa/thường |
 | `path` | Có | `"/gateway/api/v1/service/..."` | Hỗ trợ tham số: `{id}`, `{slug}`, `{id:guid}` |
 | `policy` | Không | `"public"`, `"authenticated"`, `"buyer"`, `"seller"`, `"staff"`, `"admin"` | Mặc định: `"public"` |

@@ -287,7 +287,7 @@ public sealed class GatewayTests
         builder.Services.AddGrpc();
         await using var backend = builder.Build();
         backend.MapGrpcService<TestCatalog>();
-        backend.MapGrpcService<TestAudit>();
+        backend.MapGrpcService<TestLog>();
         await backend.StartAsync();
         var address = backend.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
 
@@ -298,8 +298,8 @@ public sealed class GatewayTests
                 o.Services["catalog"].Mode = "Real";
                 o.Services["catalog"].Address = address;
                 o.Services["catalog"].TimeoutSeconds = 1;
-                o.Services["audit"].Mode = "Real";
-                o.Services["audit"].Address = address;
+                o.Services["log"].Mode = "Real";
+                o.Services["log"].Address = address;
             }
         };
         using var client = app.CreateClient();
@@ -320,20 +320,20 @@ public sealed class GatewayTests
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token());
         Assert.Equal("Mock", (await client.GetAsync("/gateway/api/v1/commerce/cart")).Headers.GetValues("X-Gateway-Mode").Single());
 
-        // Audit real gRPC
+        // Log real gRPC
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("ops", "staff"));
-        var audit = await client.GetAsync("/gateway/api/v1/audit/logs");
-        Assert.Equal(HttpStatusCode.OK, audit.StatusCode);
-        Assert.Equal("Real", audit.Headers.GetValues("X-Gateway-Mode").Single());
+        var log = await client.GetAsync("/gateway/api/v1/log/logs");
+        Assert.Equal(HttpStatusCode.OK, log.StatusCode);
+        Assert.Equal("Real", log.Headers.GetValues("X-Gateway-Mode").Single());
 
-        var auditJson = await audit.Content.ReadAsStringAsync();
-        using var auditDoc = JsonDocument.Parse(auditJson);
-        Assert.Equal("real-product-created", auditDoc.RootElement.GetProperty("data").GetProperty("items")[0].GetProperty("eventType").GetString());
+        var logJson = await log.Content.ReadAsStringAsync();
+        using var logDoc = JsonDocument.Parse(logJson);
+        Assert.Equal("real-product-created", logDoc.RootElement.GetProperty("data").GetProperty("items")[0].GetProperty("eventType").GetString());
 
         Assert.Equal(HttpStatusCode.NotFound,
-            (await client.GetAsync($"/gateway/api/v1/audit/logs/{Guid.NewGuid()}")).StatusCode);
+            (await client.GetAsync($"/gateway/api/v1/log/logs/{Guid.NewGuid()}")).StatusCode);
 
-        var eventTypes = await client.GetAsync("/gateway/api/v1/audit/event-types");
+        var eventTypes = await client.GetAsync("/gateway/api/v1/log/event-types");
         var eventTypesJson = await eventTypes.Content.ReadAsStringAsync();
         using var etDoc = JsonDocument.Parse(eventTypesJson);
         Assert.Equal("ProductCreated", etDoc.RootElement.GetProperty("data").GetProperty("items")[0].GetProperty("code").GetString());
@@ -382,25 +382,25 @@ public sealed class TestCatalog : CatalogApi.CatalogApiBase
         throw new RpcException(new Status(StatusCode.NotFound, "private backend message"));
 }
 
-public sealed class TestAudit : AuditApi.AuditApiBase
+public sealed class TestLog : LogApi.LogApiBase
 {
-    public override Task<AuditLogPage> QueryAuditLogs(QueryAuditLogsRequest request, ServerCallContext context) =>
-        Task.FromResult(new AuditLogPage
+    public override Task<LogPage> QueryLogs(QueryLogsRequest request, ServerCallContext context) =>
+        Task.FromResult(new LogPage
         {
-            Items = { new AuditLog { Id = Guid.NewGuid().ToString(), EventType = "real-product-created", ServiceName = "catalog" } },
+            Items = { new LogEntry { Id = Guid.NewGuid().ToString(), EventType = "real-product-created", ServiceName = "catalog" } },
             Total = 1,
         });
 
-    public override Task<AuditLog> GetAuditLog(IdRequest request, ServerCallContext context) =>
+    public override Task<LogEntry> GetLog(IdRequest request, ServerCallContext context) =>
         throw new RpcException(new Status(StatusCode.NotFound, "private backend message"));
 
-    public override Task<AuditEventTypeList> ListAuditEventTypes(Empty request, ServerCallContext context) =>
-        Task.FromResult(new AuditEventTypeList
+    public override Task<LogEventTypeList> ListLogEventTypes(Empty request, ServerCallContext context) =>
+        Task.FromResult(new LogEventTypeList
         {
-            Items = { new AuditEventType { Code = "ProductCreated", IsEnabled = true } },
+            Items = { new LogEventType { Code = "ProductCreated", IsEnabled = true } },
             Total = 1
         });
 
-    public override Task<AuditEventType> SetAuditEventTypeEnabled(SetAuditEventTypeEnabledRequest request, ServerCallContext context) =>
-        Task.FromResult(new AuditEventType { Code = request.Code, IsEnabled = request.Enabled });
+    public override Task<LogEventType> SetLogEventTypeEnabled(SetLogEventTypeEnabledRequest request, ServerCallContext context) =>
+        Task.FromResult(new LogEventType { Code = request.Code, IsEnabled = request.Enabled });
 }

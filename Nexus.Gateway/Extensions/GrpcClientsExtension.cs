@@ -11,7 +11,7 @@ public static class GrpcClientsExtension
         services.AddNamedGrpcClient<CatalogApi.CatalogApiClient>("catalog");
         services.AddNamedGrpcClient<CommerceApi.CommerceApiClient>("commerce");
         services.AddNamedGrpcClient<UsersApi.UsersApiClient>("users");
-        services.AddNamedGrpcClient<AuditApi.AuditApiClient>("audit");
+        services.AddNamedGrpcClient<LogApi.LogApiClient>("log");
         services.AddNamedGrpcClient<AuctionApi.AuctionApiClient>("auction");
         services.AddNamedGrpcClient<FulfillmentApi.FulfillmentApiClient>("fulfillment");
         services.AddNamedGrpcClient<NotificationApi.NotificationApiClient>("notification");

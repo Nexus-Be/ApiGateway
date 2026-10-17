@@ -87,14 +87,14 @@ $$\mathbf{/api/v1/\{service\}/...}$$
   - `GET /preferences` $\rightarrow$ Lấy cài đặt nhận thông báo.
   - `PUT /preferences` $\rightarrow$ Cập nhật cài đặt (`UpdatePreferencesRequestDto`).
 
-### 8. `AuditController` (`Controllers/AuditController.cs`)
-- Route Prefix: `/api/v1/audit` | Service: `audit`
-- Attributes: `[ApiController]`, `[BackendTag("audit")]`, `[EnableRateLimiting("api")]`
+### 8. `LogController` (`Controllers/LogController.cs`)
+- Route Prefix: `/api/v1/log` | Service: `log`
+- Attributes: `[ApiController]`, `[BackendTag("log")]`, `[EnableRateLimiting("api")]`
 - Actions:
-  - `GET /logs` [Authorize("staff")] $\rightarrow$ Tra cứu nhật ký kiểm toán hệ thống.
+  - `GET /logs` [Authorize("staff")] $\rightarrow$ Tra cứu nhật ký hệ thống.
   - `GET /logs/{id}` [Authorize("staff")] $\rightarrow$ Chi tiết 1 bản ghi log.
-  - `GET /event-types` [Authorize("staff")] $\rightarrow$ Danh mục các loại sự kiện audit.
-  - `PUT /event-types/{code}` [Authorize("admin")] $\rightarrow$ Bật/tắt loại sự kiện (`AuditEventTypeToggleRequestDto`).
+  - `GET /event-types` [Authorize("staff")] $\rightarrow$ Danh mục các loại sự kiện log.
+  - `PUT /event-types/{code}` [Authorize("admin")] $\rightarrow$ Bật/tắt loại sự kiện (`LogEventTypeToggleRequestDto`).
 
 ### 9. `WalletController` (`Controllers/WalletController.cs`)
 - Route Prefix: `/api/v1/wallet` | Service: `wallet`

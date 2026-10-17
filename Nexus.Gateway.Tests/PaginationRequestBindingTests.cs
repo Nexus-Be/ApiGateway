@@ -10,7 +10,7 @@ public sealed class PaginationRequestBindingTests
     [InlineData("/api/v1/catalog/categories", null)]
     [InlineData("/api/v1/catalog/products", null)]
     [InlineData("/api/v1/auctions", null)]
-    [InlineData("/api/v1/audit/logs", "staff")]
+    [InlineData("/api/v1/log/logs", "staff")]
     [InlineData("/api/v1/commerce/orders", "buyer")]
     [InlineData("/api/v1/seller/products", "seller")]
     [InlineData("/api/v1/seller/orders", "seller")]

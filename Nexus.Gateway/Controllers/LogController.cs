@@ -6,21 +6,21 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Nexus.Gateway.Common;
 using Nexus.Gateway.Dispatching;
-using Nexus.Gateway.Dtos.Audit;
+using Nexus.Gateway.Dtos.Log;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 [ApiController]
-[Route("api/v1/audit")]
-[BackendTag("audit")]
+[Route("api/v1/log")]
+[BackendTag("log")]
 [EnableRateLimiting("api")]
-public sealed class AuditController : ControllerBase
+public sealed class LogController : ControllerBase
 {
     private readonly IGatewayDispatcher _dispatcher;
-    private readonly AuditApi.AuditApiClient _client;
+    private readonly LogApi.LogApiClient _client;
 
-    public AuditController(IGatewayDispatcher dispatcher, AuditApi.AuditApiClient client)
+    public LogController(IGatewayDispatcher dispatcher, LogApi.LogApiClient client)
     {
         _dispatcher = dispatcher;
         _client = client;
@@ -28,8 +28,8 @@ public sealed class AuditController : ControllerBase
 
     [HttpGet("logs")]
     [Authorize("staff")]
-    [ProducesResponseType(typeof(ApiResponse<PagedData<AuditLog>>), StatusCodes.Status200OK)]
-    public Task<IResult> QueryAuditLogs(
+    [ProducesResponseType(typeof(ApiResponse<PagedData<LogEntry>>), StatusCodes.Status200OK)]
+    public Task<IResult> QueryLogs(
         [FromQuery] PaginationRequest pagination,
         [FromQuery] string? from = null,
         [FromQuery] string? to = null,
@@ -38,7 +38,8 @@ public sealed class AuditController : ControllerBase
         [FromQuery] string? entityName = null,
         [FromQuery] string? entityId = null,
         [FromQuery] string? actorUserId = null,
-        [FromQuery] string? correlationId = null)
+        [FromQuery] string? correlationId = null,
+        [FromQuery] string? logLevel = null)
     {
         pagination.EnsureValid();
         ValidationHelpers.EnsureGuid(actorUserId, "actorUserId");
@@ -46,11 +47,11 @@ public sealed class AuditController : ControllerBase
 
         return _dispatcher.DispatchPagedAsync(
             HttpContext,
-            "audit",
-            "audit-logs",
+            "log",
+            "logs",
             pagination.Page,
             pagination.PageSize,
-            o => _client.QueryAuditLogsAsync(new QueryAuditLogsRequest
+            o => _client.QueryLogsAsync(new QueryLogsRequest
             {
                 Page = pagination.Page,
                 PageSize = pagination.PageSize,
@@ -61,58 +62,59 @@ public sealed class AuditController : ControllerBase
                 EntityName = entityName ?? "",
                 EntityId = entityId ?? "",
                 ActorUserId = actorUserId ?? "",
-                CorrelationId = correlationId ?? ""
+                CorrelationId = correlationId ?? "",
+                LogLevel = logLevel ?? ""
             }, o),
-            AuditLogPage.Parser
+            LogPage.Parser
         );
     }
 
     [HttpGet("logs/{id:guid}")]
     [Authorize("staff")]
-    [ProducesResponseType(typeof(ApiResponse<AuditLog>), StatusCodes.Status200OK)]
-    public Task<IResult> GetAuditLog([FromRoute] Guid id)
+    [ProducesResponseType(typeof(ApiResponse<LogEntry>), StatusCodes.Status200OK)]
+    public Task<IResult> GetLog([FromRoute] Guid id)
     {
         return _dispatcher.DispatchAsync(
             HttpContext,
-            "audit",
-            "audit-log",
-            o => _client.GetAuditLogAsync(new IdRequest { Id = id.ToString() }, o),
-            AuditLog.Parser,
-            successMessage: "Audit log retrieved successfully."
+            "log",
+            "log-entry",
+            o => _client.GetLogAsync(new IdRequest { Id = id.ToString() }, o),
+            LogEntry.Parser,
+            successMessage: "Log entry retrieved successfully."
         );
     }
 
     [HttpGet("event-types")]
     [Authorize("staff")]
-    [ProducesResponseType(typeof(ApiResponse<AuditEventTypeList>), StatusCodes.Status200OK)]
-    public Task<IResult> ListAuditEventTypes()
+    [ProducesResponseType(typeof(ApiResponse<LogEventTypeList>), StatusCodes.Status200OK)]
+    public Task<IResult> ListLogEventTypes()
     {
         return _dispatcher.DispatchAsync(
             HttpContext,
-            "audit",
-            "audit-event-types",
-            o => _client.ListAuditEventTypesAsync(new Empty(), o),
-            AuditEventTypeList.Parser,
-            successMessage: "Audit event types retrieved successfully."
+            "log",
+            "log-event-types",
+            o => _client.ListLogEventTypesAsync(new Empty(), o),
+            LogEventTypeList.Parser,
+            successMessage: "Log event types retrieved successfully."
         );
     }
 
     [HttpPut("event-types/{code}")]
     [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<AuditEventType>), StatusCodes.Status200OK)]
-    public Task<IResult> SetAuditEventTypeEnabled([FromRoute] string code, [FromBody] AuditEventTypeToggleRequestDto body)
+    [ProducesResponseType(typeof(ApiResponse<LogEventType>), StatusCodes.Status200OK)]
+    public Task<IResult> SetLogEventTypeEnabled([FromRoute] string code, [FromBody] LogEventTypeToggleRequestDto body)
     {
         return _dispatcher.DispatchAsync(
             HttpContext,
-            "audit",
-            "audit-event-type-toggle",
-            o => _client.SetAuditEventTypeEnabledAsync(new SetAuditEventTypeEnabledRequest
+            "log",
+            "log-event-type-toggle",
+            o => _client.SetLogEventTypeEnabledAsync(new SetLogEventTypeEnabledRequest
             {
                 Code = code,
                 Enabled = body.Enabled
             }, o),
-            AuditEventType.Parser,
-            successMessage: "Audit event type toggled successfully."
+            LogEventType.Parser,
+            successMessage: "Log event type toggled successfully."
         );
     }
 }

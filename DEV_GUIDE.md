@@ -1,6 +1,6 @@
 # Hướng dẫn phát triển API Gateway
 
-Gateway .NET 8 có **10 controller** (`Nexus.Gateway/Controllers/`) cho HTTP API và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `audit`, `auction`, `fulfillment`, `notification`, `wallet`. `GatewayControlController` quản lý mode và mock engine, không phải backend thứ chín. 
+Gateway .NET 8 có **10 controller** (`Nexus.Gateway/Controllers/`) cho HTTP API và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`. `GatewayControlController` quản lý mode và mock engine, không phải backend thứ chín. 
 
 Toàn bộ hạ tầng phức tạp (Routing, Service Detection, Mode Evaluation, Security/Auth Bypass, Distributed Rate Limiting, Centralized Exception Handling) đã được dựng sẵn một lần duy nhất tại Gateway Pipeline. Khi phát triển API mới, developer chỉ cần viết controller siêu tinh gọn theo hướng dẫn dưới đây. Xem [README.md](README.md) để bắt đầu chạy.
 
@@ -110,4 +110,29 @@ Khi chạy local:
 ```bash
 ./run-dev.sh # Unix; PowerShell dùng ./run-dev.ps1
 ```
-Swagger UI sẵn sàng tại `http://localhost:5000/swagger` (ở môi trường Development).
+Swagger UI sẵn sàng tại `http://localhost:8000/swagger` (ở môi trường Development).
+---
+
+## 4. Hướng Dẫn Giám Sát Distributed Tracing (Grafana Tempo)
+
+Gateway và toàn bộ hệ sinh thái Microservices được tích hợp sẵn hệ thống Distributed Tracing theo chuẩn OpenTelemetry & Grafana Tempo.
+
+### Khởi Động Hạ Tầng Tracing
+Chạy lệnh Docker Compose từ thư mục `src/Services/ApiGateway`:
+```bash
+docker compose up -d
+```
+Lệnh này khởi động 4 dịch vụ:
+- `nexus-gateway-redis`: Cache và Distributed Rate Limiting (port 6379).
+- `nexus-tempo`: OTLP Trace Backend (port 4317 gRPC, 4318 HTTP, 3200 API).
+- `nexus-grafana`: Giao diện trực quan hóa Dashboard & Flame Graph (port 3000).
+- `nexus-apigateway`: Ứng dụng API Gateway (port 8000).
+
+### Tra Cứu Luồng Request Trên Grafana
+1. Mở trình duyệt truy cập: `http://localhost:3000/explore`.
+2. Datasource mặc định đã được cấu hình sẵn là **Tempo**.
+3. Lấy mã `traceId` từ HTTP response header `X-Trace-Id` hoặc trường `traceId` trong JSON response của Gateway, dán vào ô **TraceQL** hoặc ô tìm kiếm.
+4. Bạn sẽ thấy biểu đồ cây vết (Flame Graph / Waterfall):
+   - Thời gian Gateway tiếp nhận request.
+   - Thời gian gọi gRPC sang backend microservice.
+   - Chi tiết thời gian thực thi câu lệnh SQL / Redis / RabbitMQ bên trong backend microservice.

@@ -1,6 +1,6 @@
 # Nexus API Gateway (.NET 8)
 
-HTTP gateway gồm **10 controller** và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `audit`, `auction`, `fulfillment`, `notification`, `wallet`. Controller dispatch qua gRPC khi service ở `Real`, hoặc đọc fixture protobuf JSON trong `Nexus.Gateway/Seeds/` khi ở `Mock`. `Nexus.Gateway/Mocks/*.mock.json` là **declarative mock routes** riêng: phục vụ Mock, không tự tạo RPC hay route Real. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để thêm API.
+HTTP gateway gồm **10 controller** và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`. Controller dispatch qua gRPC khi service ở `Real`, hoặc đọc fixture protobuf JSON trong `Nexus.Gateway/Seeds/` khi ở `Mock`. `Nexus.Gateway/Mocks/*.mock.json` là **declarative mock routes** riêng: phục vụ Mock, không tự tạo RPC hay route Real. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để thêm API.
 
 ## Chạy và kiểm thử
 
@@ -11,7 +11,7 @@ dotnet test ApiGateway.sln -c Release
 ./run-dev.sh # Unix; PowerShell dùng ./run-dev.ps1
 ```
 
-Hoặc chạy `docker compose up -d` theo cấu hình Compose. Kiểm tra địa chỉ Gateway trong script/launch profile hoặc cấu hình đang dùng; Swagger (`/swagger`) chỉ bật ở Development. Không giả định backend Real sẵn sàng: phải triển khai RPC tương ứng và cấu hình địa chỉ trước khi gọi.
+Hoặc chạy `docker compose up -d` theo cấu hình Compose để khởi chạy trọn bộ hạ tầng: Gateway (port 8000), Redis (port 6379), Grafana Tempo (port 4317/3200) và Grafana Dashboard (port 3000 tại `http://localhost:3000/explore`). Kiểm tra địa chỉ Gateway trong script/launch profile hoặc cấu hình đang dùng; Swagger (`/swagger`) chỉ bật ở Development. Không giả định backend Real sẵn sàng: phải triển khai RPC tương ứng và cấu hình địa chỉ trước khi gọi.
 
 ## Service mode và auth mode là hai trục khác nhau
 

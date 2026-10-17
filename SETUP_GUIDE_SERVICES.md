@@ -14,7 +14,7 @@ Gateway làm đầu mối duy nhất cho Frontend gọi vào ở cổng `8000`. 
 | **1** | **Users Service** | **8001** | `usermanagement_db` (5432) | Đăng ký, đăng nhập, phát hành JWT, User Profile, RBAC, Duyệt Seller | Sẵn sàng kết nối |
 | **2** | **Catalog Service** | **8002** | `category_db` (5433) | Quản lý danh mục, sản phẩm, tồn kho kho ảo của Seller | Sẵn sàng kết nối |
 | **3** | **Commerce Service** | **8003** | `commerce_db` (5434) | Giỏ hàng, tạo đơn hàng, quản lý đơn hàng Seller/Admin, Điều phối Checkout Saga | Sẵn sàng kết nối |
-| **4** | **Audit Service** | **8004** | `audit_db` (5435) | Lưu vết audit logs kiểm toán qua RabbitMQ event consumer | Sẵn sàng kết nối |
+| **4** | **Log Service** | **8004** | `log_db` (5435) | Lưu vết nhật ký tập trung và sự kiện qua RabbitMQ event consumer | Sẵn sàng kết nối |
 | **5** | **Auction Service** | **8005** | `auction_db` (5436) | Phiên đấu giá, trả giá (bid), đồng hồ đếm ngược | Sẵn sàng kết nối |
 | **6** | **Fulfillment Service**| **8006** | `fulfillment_db` (5437) | Tồn kho vật lý kho bãi, tính phí vận chuyển, tra cứu mã vận đơn | Sẵn sàng kết nối |
 | **7** | **Notification Service**| **8007** | `notification_db` (5438)| Gửi thông báo, lịch sử thông báo, cài đặt thông báo người dùng | Sẵn sàng kết nối |
@@ -119,6 +119,80 @@ Khi tách riêng Ví điện tử khỏi Commerce, luồng Saga thanh toán di�
 5. CommerceService nhận PaymentCompletedEvent -> Cập nhật Order (Status = Confirmed / Paid).
 6. [BÙ TRỪ NẾU LỖI]: Nếu WalletService trừ tiền thất bại (không đủ tiền) -> Bắn PaymentFailedEvent -> CatalogService nhả kho (ReleaseStock) và CommerceService hủy đơn (OrderCancelled).
 ```
+### Bước 6: Thiết Lập Distributed Tracing (OpenTelemetry) — Đúng 1 Dòng Code (Zero-Touch)
+Để toàn bộ luồng gọi từ Gateway xuyên qua service của bạn được vẽ cây vết (Flame Graph) tự động trên Grafana Tempo:
+
+1. **Thêm các Package NuGet sau vào file `.csproj` của service con**:
+   ```xml
+   <ItemGroup>
+     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
+     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
+     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
+     <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
+     <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.11" /> <!-- Nếu dùng EF Core -->
+   </ItemGroup>
+   ```
+
+2. **Tạo file Extension dùng chung `ObservabilityExtensions.cs` trong service của bạn**:
+   ```csharp
+   using OpenTelemetry.Resources;
+   using OpenTelemetry.Trace;
+
+   namespace Common.Observability;
+
+   public static class ObservabilityExtensions
+   {
+       public static IServiceCollection AddServiceObservability(this IServiceCollection services, IConfiguration configuration, string serviceName)
+       {
+           var otlpEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? configuration["Otel:Endpoint"] ?? "http://localhost:4317";
+
+           services.AddOpenTelemetry()
+               .ConfigureResource(r => r.AddService(serviceName))
+               .WithTracing(t =>
+               {
+                   t.AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddSource("Grpc.Net.Client")
+                    .AddSource("MassTransit"); // Tự động bắt event RabbitMQ
+
+                   if (!string.IsNullOrEmpty(otlpEndpoint))
+                   {
+                       t.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
+                   }
+               });
+
+           return services;
+       }
+   }
+   ```
+
+3. **Gọi đúng 1 dòng trong `Program.cs` của service con**:
+   ```csharp
+   var builder = WebApplication.CreateBuilder(args);
+
+   // ĐĂNG KÝ 1 DÒNG NÀY (Dev nghiệp vụ không cần viết code tracing gì thêm):
+   builder.Services.AddServiceObservability(builder.Configuration, "Catalog.Api");
+
+   // Tiếp tục code DI, gRPC và DB bình thường...
+   ```
+
+### Bước 7: Nhận Thông Tin Định Danh Người Dùng từ Gateway (x-user-id & x-user-roles)
+Gateway đã đảm nhiệm toàn bộ việc giải mã và xác thực JWT Bearer Token. Khi gọi gRPC xuống service con, Gateway tự động gắn các headers sau vào gRPC Metadata:
+- `x-user-id`: Mã UUID định danh của người dùng (`sub` claim).
+- `x-user-roles`: Danh sách vai trò (`admin,seller,buyer`...)
+- `x-user-email`: Email người dùng.
+- `x-trace-id`: Trace ID nhất quán.
+
+**Service backend KHÔNG CẦN phân giải lại JWT token**, chỉ cần lấy trực tiếp:
+```csharp
+public override async Task<UserProfile> GetProfile(UserRequest request, ServerCallContext context)
+{
+    var userId = context.RequestHeaders.Get("x-user-id")?.Value ?? request.UserId;
+    var roles = context.RequestHeaders.Get("x-user-roles")?.Value;
+    // Thực thi nghiệp vụ ngay với userId đã được xác thực an toàn!
+}
+```
+
 
 ---
 

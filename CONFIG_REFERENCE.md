@@ -86,7 +86,7 @@ Mỗi service được cấu hình với 5 thuộc tính:
 - **`users`**: `http://localhost:8001` (User, Auth, Profile, RBAC)
 - **`catalog`**: `http://localhost:8002` (Danh mục, Sản phẩm, Tồn kho ảo)
 - **`commerce`**: `http://localhost:8003` (Giỏ hàng, Đơn hàng, Checkout)
-- **`audit`**: `http://localhost:8004` (Nhật ký kiểm toán, Event Types)
+- **`log`**: `http://localhost:8004` (Nhật ký hệ thống tập trung, Event Types)
 - **`auction`**: `http://localhost:8005` (Phòng đấu giá, Đặt giá bid)
 - **`fulfillment`**: `http://localhost:8006` (Kho bãi vật lý, Tính phí ship, Vận đơn)
 - **`notification`**: `http://localhost:8007` (Thông báo, Cài đặt thông báo)
@@ -102,7 +102,7 @@ Mỗi service được cấu hình với 5 thuộc tính:
 | `RequestTimeout` | `CoreServicesExtension.cs` | `65` (giây) | Tự động ngắt kết nối và trả về 504 nếu request bị treo quá 65 giây. |
 | `ASPNETCORE_ENVIRONMENT` | `.env` / `launchSettings.json` | `Development` / `Production` | Xác định môi trường chạy của Gateway. |
 | `ASPNETCORE_URLS` | `.env` / `Dockerfile` | `http://+:8000` | Cổng HTTP mà Gateway lắng nghe (Port `8000`). |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`| `.env` (Tùy chọn) | `http://localhost:4317` | Địa chỉ nhận dữ liệu OpenTelemetry Traces & Metrics (Jaeger / OTLP Collector). |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`| `.env` / Environment | `http://localhost:4317` | Địa chỉ nhận dữ liệu OpenTelemetry Traces & Metrics (Grafana Tempo / OTLP Collector). Hỗ trợ alias `Otel:Endpoint` trong appsettings. |
 
 ---
 

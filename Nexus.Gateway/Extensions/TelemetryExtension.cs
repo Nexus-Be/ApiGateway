@@ -10,6 +10,8 @@ public static class TelemetryExtension
 {
     public static IServiceCollection AddGatewayTelemetry(this IServiceCollection services, IConfiguration configuration)
     {
+        var otlpEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? configuration["Otel:Endpoint"];
+
         services.AddOpenTelemetry()
             .ConfigureResource(r => r.AddService("nexus-gateway"))
             .WithTracing(t =>
@@ -19,9 +21,9 @@ public static class TelemetryExtension
                  .AddSource(BackendDispatcher.ActivityName)
                  .AddSource("Grpc.Net.Client");
 
-                if (!string.IsNullOrEmpty(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+                if (!string.IsNullOrEmpty(otlpEndpoint))
                 {
-                    t.AddOtlpExporter();
+                    t.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
                 }
             })
             .WithMetrics(m =>
@@ -30,9 +32,9 @@ public static class TelemetryExtension
                  .AddHttpClientInstrumentation()
                  .AddMeter("Microsoft.AspNetCore.RateLimiting");
 
-                if (!string.IsNullOrEmpty(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]))
+                if (!string.IsNullOrEmpty(otlpEndpoint))
                 {
-                    m.AddOtlpExporter();
+                    m.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
                 }
             });
 

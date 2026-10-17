@@ -12,7 +12,7 @@ public sealed class GatewayOptions
         "users",
         "auction",
         "notification",
-        "audit",
+        "log",
         "wallet"
     ];
 
@@ -66,7 +66,7 @@ public sealed class GatewayOptions
             "fulfillment" or "fulfillments" => "fulfillment",
             "category" or "categories" or "catalog" => "catalog",
             "order" or "orders" or "cart" or "commerce" => "commerce",
-            "audit" or "audits" => "audit",
+            "log" or "logs" or "audit" or "audits" => "log",
             "wallet" or "wallets" => "wallet",
             _ => lower
         };

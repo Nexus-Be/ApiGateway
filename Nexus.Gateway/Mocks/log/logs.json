@@ -15,7 +15,8 @@
       "correlationId": "77777777-7777-7777-7777-000000000001",
       "messageId": "99999999-9999-9999-9999-0000000000aa",
       "schemaVersion": 1,
-      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736"
+      "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+      "logLevel": "INFO"
     }
   ],
   "total": 1
