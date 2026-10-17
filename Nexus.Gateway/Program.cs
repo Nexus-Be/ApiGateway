@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Logging;
 using Nexus.Gateway.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Logging & Kestrel limits
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+// 1. Serilog Logging & Kestrel limits
+builder.AddGatewayLogging();
 builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 64 * 1024);
 
 // 2. Configuration & GatewayOptions

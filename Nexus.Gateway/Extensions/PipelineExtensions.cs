@@ -11,6 +11,7 @@ using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 using Nexus.Gateway.Services;
+using Serilog;
 
 public static class PipelineExtensions
 {
@@ -20,6 +21,23 @@ public static class PipelineExtensions
 
         app.UseExceptionHandler();
         app.UseStatusCodePages();
+
+        app.UseSerilogRequestLogging(opts =>
+        {
+            opts.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+            {
+                var traceId = ApiResponseFactory.ResolveTraceId(httpContext);
+                diagnosticContext.Set("TraceId", traceId);
+                if (httpContext.Items["BackendTag"] is string backend)
+                {
+                    diagnosticContext.Set("BackendTag", backend);
+                }
+                if (httpContext.Items["GatewayMode"] is string mode)
+                {
+                    diagnosticContext.Set("GatewayMode", mode);
+                }
+            };
+        });
 
         // Custom Gateway Headers: X-Trace-Id, X-Gateway-Mode, X-Content-Type-Options
         app.Use(async (context, next) =>
