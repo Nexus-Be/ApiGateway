@@ -13,6 +13,7 @@ using ShoppingCart.Contracts.V1;
 
 [ApiController]
 [Route("api/v1/log")]
+[Route("api/v1/audit")]
 [BackendTag("log")]
 [EnableRateLimiting("api")]
 public sealed class LogController : ControllerBase
