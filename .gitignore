@@ -77,12 +77,11 @@ packages/
 secrets.json
 .secrets/
 
-# Local appsettings overrides
-# appsettings.Local.json
-# appsettings.*.Local.json
-# appsettings.*.local.json
-# appsettings.Secrets.json
-# appsettings.*.Secrets.json
+# Appsettings & Secrets (DO NOT COMMIT ORIGINALS - ONLY COMMIT *.example*)
+appsettings*.json
+!appsettings*.example.json
+!appsettings.example.json
+!appsettings.*.example.json
 
 # Operating System Files
 # Windows
