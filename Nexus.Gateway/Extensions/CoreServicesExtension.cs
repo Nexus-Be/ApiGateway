@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Nexus.Gateway.HealthProber;
 using Nexus.Gateway.Middleware;
 using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
@@ -27,7 +28,18 @@ public static class CoreServicesExtension
         var isDevelopment = environment.IsDevelopment();
 
         services.AddHttpContextAccessor();
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new Common.Converters.PascalCaseJsonStringEnumConverter(allowIntegerValues: false));
+                options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            });
+
+        services.ConfigureHttpJsonOptions(options =>
+        {
+            options.SerializerOptions.Converters.Add(new Common.Converters.PascalCaseJsonStringEnumConverter(allowIntegerValues: false));
+            options.SerializerOptions.PropertyNameCaseInsensitive = true;
+        });
         services.Configure<ApiBehaviorOptions>(options =>
         {
             options.InvalidModelStateResponseFactory = actionContext =>
@@ -85,6 +97,7 @@ public static class CoreServicesExtension
         });
 
         services.AddHealthChecks();
+        services.AddGatewayHealthProber(configuration);
 
         return services;
     }

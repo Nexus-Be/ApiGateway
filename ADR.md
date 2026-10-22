@@ -110,3 +110,31 @@ Tài liệu này ghi nhận các quyết định kiến trúc cốt lõi định
      - **Lợi ích**: Các microservices con **không cần giải mã lại JWT**, giảm thiểu tính toán CPU lặp lại và chỉ cần lấy thông tin user trực tiếp từ `ServerCallContext.RequestHeaders`.
   5. **Quy tắc bắt buộc khi tạo Microservice mới**:
      - Mọi microservice mới khi đưa vào hệ sinh thái Nexus **bắt buộc** phải gọi `builder.Services.AddServiceObservability(builder.Configuration, "Tên_Service");` ngay trong `Program.cs` theo hướng dẫn trong [SETUP_GUIDE_SERVICES.md](SETUP_GUIDE_SERVICES.md).
+
+---
+
+## ADR 11: Cơ Chế Giám Sát Sức Khỏe (Health Prober Daemon), Tự Phục Hồi (Self-Healing) & Chiến Lược Log Sự Cố
+- **Bối cảnh & Vấn đề**:
+  Gateway làm điểm vào duy nhất nhưng cần chủ động biết trạng thái sống/chết (Health Probe) của 8 microservices con. Khi một service bị treo RAM/thread pool hoặc crash, nếu tiếp tục đẩy request sẽ làm treo Kestrel threads và cạn kiệt kết nối mạng. Đồng thời, việc ghi log ồ ạt cho các lần kiểm tra bình thường sẽ gây nghẽn đĩa cứng và làm đầy dung lượng (Log Pollution).
+- **Quyết định kiến trúc**:
+  1. **Tác nhân thăm dò chạy nền (External Health Prober Daemon Engine)**:
+     - Tích hợp `HealthProberManager` chạy như một Hosted Service trong Gateway.
+     - Mặc định khởi động ở trạng thái **TẮT (`Disabled`)**; chỉ chạy khi được kích hoạt qua Control API hoặc cấu hình.
+  2. **Bốn tham số chuẩn hóa**:
+     - `Interval`: 60 giây (1 phút).
+     - `Timeout`: 30 giây.
+     - `Retries / FailureThreshold`: 5 lần lỗi liên tiếp trước khi chuyển `Unhealthy`.
+     - `StartPeriod`: 60 giây ân hạn khi container mới bật lại (không tính lỗi vào Retries).
+  3. **State Machine chặt chẽ**:
+     - `Disabled` $\rightarrow$ `Starting` $\rightarrow$ `Healthy` $\leftrightarrow$ `Degraded` (1..4 lỗi) $\rightarrow$ `Unhealthy` (5/5 lỗi) $\rightarrow$ `Recovering`.
+  4. **Chiến lược phân tầng lưu log**:
+     - *Healthy định kỳ*: **Không ghi file log**. Chỉ giữ Ring Buffer 30 mẫu trong RAM để phục vụ API và đẩy metrics.
+     - *Sự cố (Degraded & Unhealthy)*: Ghi vào `logs/health/incident-YYYYMMDD-XXXX.log` với cơ chế xoay file tối đa **1000 dòng/file**.
+     - *Định hướng tương lai cho `LogService`*: Gom cụm tối thiểu 1000 dòng (Batching Sink) trước khi gửi bulk một lần qua mạng.
+  5. **Circuit Breaker Fast-Fail tại `GatewayDispatcher`**:
+     - Khi service ở `Unhealthy` hoặc `Recovering`, Gateway ngắt mạch tức thì trong 0ms, trả về HTTP 503 `DOWNSTREAM_UNHEALTHY` theo chuẩn RFC 9110 Problem Details.
+  6. **Saga Rollback & Docker Container Auto-Recovery**:
+     - Publish sự kiện `ServiceUnhealthyIntegrationEvent` lên RabbitMQ để hủy các giao dịch đang treo.
+     - Giao tiếp với Docker socket `/var/run/docker.sock` để Stop/Remove/Recreate container `nexus-{service}-service` (giới hạn tối đa 3 lần chống CrashLoopBackOff).
+  7. **Controller Quản Trị Mới (11th Controller)**:
+     - Bổ sung `HealthProberController` (`/api/v1/gateway/prober/...`) hỗ trợ xem trạng thái, bật/tắt từng daemon, bulk toggle và **API kiểm tra sức khỏe thủ công tức thì (Manual Check on demand)**.

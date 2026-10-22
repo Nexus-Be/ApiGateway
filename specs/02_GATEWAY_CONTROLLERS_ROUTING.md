@@ -1,11 +1,11 @@
 # 02 — BẢN ĐẶC TẢ CONTROLLERS & ĐỊNH TUYẾN (CONTROLLERS & ROUTING SPEC)
 
-Toàn bộ các API được quản lý bởi 10 Controllers tiêu chuẩn `[ApiController] ControllerBase` với tiền tố chuẩn hóa:
+Toàn bộ các API được quản lý bởi 11 Controllers tiêu chuẩn `[ApiController] ControllerBase` với tiền tố chuẩn hóa:
 $$\mathbf{/api/v1/\{service\}/...}$$
 
 ---
 
-## 1. DANH MỤC 10 CONTROLLERS & CÁC ROUTE
+## 1. DANH MỤC 11 CONTROLLERS & CÁC ROUTE
 
 ### 1. `AuthController` (`Controllers/AuthController.cs`)
 - Route Prefix: `/api/v1/auth` | Service: `users`
@@ -116,3 +116,13 @@ $$\mathbf{/api/v1/\{service\}/...}$$
   - `PUT /gateway/modes` $\rightarrow$ Cập nhật hàng loạt chế độ các service.
   - `GET /mock-engine/definitions` $\rightarrow$ Xem danh sách declarative mock endpoints động.
   - `POST /mock-engine/reload` $\rightarrow$ Kích hoạt quét và nạp lại mock definitions nóng.
+
+### 11. `HealthProberController` (`Controllers/HealthProberController.cs`)
+- Route Prefix: `/api/v1/gateway/prober` | Service: *Nội bộ Gateway*
+- Attributes: `[ApiController]`, `[EnableRateLimiting("api")]`, `[Authorize(GatewayPolicies.GatewayAdmin)]`, `[DisableMockAuthorizationBypass]`
+- Actions:
+  - `GET /status` $\rightarrow$ Lấy trạng thái prober, failure count, latency, recent samples của toàn bộ 8 services.
+  - `GET /status/{service}` $\rightarrow$ Chi tiết trạng thái prober của 1 service cụ thể.
+  - `PUT /{service}` $\rightarrow$ Bật/tắt prober daemon cho 1 service (`ServiceProberToggleDto`).
+  - `PUT /bulk` $\rightarrow$ Bật/tắt hàng loạt prober daemons (`BulkProberToggleDto`).
+  - `POST /{service}/check` $\rightarrow$ **Kiểm tra sức khỏe thủ công tức thì (Manual Check on demand)** — probe ngay 1 lần và trả về kết quả latency/status code.

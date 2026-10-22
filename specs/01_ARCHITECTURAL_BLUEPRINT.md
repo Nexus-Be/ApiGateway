@@ -10,10 +10,11 @@ Gateway được tái cấu trúc thành 3 khối phân tách triệt để, đ�
 [ HTTP Client Request ]
          │
          ▼
-1. TẦNG ĐẦU VÀO: 10 Standard Controllers (Controllers/)
+1. TẦNG ĐẦU VÀO: 11 Standard Controllers (Controllers/)
    - Nhận DTOs (trong Dtos/{Service}/*Requests.cs).
    - Kiểm tra input qua ValidationHelpers (Bad, PageOk, GuidOk).
    - Gọi 1 dòng: _dispatcher.DispatchAsync(...) hoặc _dispatcher.DispatchPagedAsync(...).
+   - Bao gồm HealthProberController quản lý daemon giám sát sức khỏe & test thủ công.
          │
          ▼
 2. TẦNG PHẦN GIỮA: The Dispatching Core (Dispatching/)
@@ -50,6 +51,7 @@ Gateway được tái cấu trúc thành 3 khối phân tách triệt để, đ�
    - Thực thi cuộc gọi gRPC bất đồng bộ.
 
 4. **`IGatewayDispatcher` / `GatewayDispatcher`**:
+   - Tích hợp **Circuit Breaker Fast-Fail** cùng `IHealthProberManager`: Nếu service con bị Unhealthy hoặc đang Recovering, lập tức ngắt mạch trong 0ms trả về HTTP 503 `DOWNSTREAM_UNHEALTHY`.
    - Cung cấp hai phương thức điều phối duy nhất:
      - `Task<IResult> DispatchAsync<T>(...)`: Cho các endpoint trả về đối tượng đơn lẻ.
      - `Task<IResult> DispatchPagedAsync<T>(...)`: Cho các endpoint trả về danh sách phân trang có `pageIndex`, `pageSize`, `totalCount`.

@@ -1,6 +1,6 @@
 # Nexus API Gateway (.NET 8)
 
-HTTP gateway gồm **10 controller** và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`. Controller dispatch qua gRPC khi service ở `Real`, hoặc đọc fixture protobuf JSON trong `Nexus.Gateway/Seeds/` khi ở `Mock`. `Nexus.Gateway/Mocks/*.mock.json` là **declarative mock routes** riêng: phục vụ Mock, không tự tạo RPC hay route Real. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để thêm API.
+HTTP gateway gồm **11 controller** và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`. Controller dispatch qua gRPC khi service ở `Real`, hoặc đọc fixture protobuf JSON trong `Nexus.Gateway/Seeds/` khi ở `Mock`. `Nexus.Gateway/Mocks/*.mock.json` là **declarative mock routes** riêng: phục vụ Mock, không tự tạo RPC hay route Real. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để thêm API và [MOCK_GUIDE.md](MOCK_GUIDE.md) để biết cách tạo dữ liệu mock trong 30 giây.
 
 ## Chạy và kiểm thử
 
@@ -12,6 +12,18 @@ dotnet test ApiGateway.sln -c Release
 ```
 
 Hoặc chạy `docker compose up -d` theo cấu hình Compose để khởi chạy trọn bộ hạ tầng: Gateway (port 8000), Redis (port 6379), Grafana Tempo (port 4317/3200) và Grafana Dashboard (port 3000 tại `http://localhost:3000/explore`). Kiểm tra địa chỉ Gateway trong script/launch profile hoặc cấu hình đang dùng; Swagger (`/swagger`) chỉ bật ở Development. Không giả định backend Real sẵn sàng: phải triển khai RPC tương ứng và cấu hình địa chỉ trước khi gọi.
+
+## Giám sát sức khỏe & Tự phục hồi (Health Prober Daemon)
+
+Gateway tích hợp sẵn **Health Prober Daemon Engine** giám sát định kỳ 8 backend services:
+- **Chu kỳ & Ngưỡng**: `Interval: 60s` (1 phút), `Timeout: 30s`, `Retries: 5 lần`, `StartPeriod: 60s` ân hạn khởi động.
+- **State Machine**: `Disabled` (mặc định) $\rightarrow$ `Starting` $\rightarrow$ `Healthy` $\leftrightarrow$ `Degraded` $\rightarrow$ `Unhealthy` $\rightarrow$ `Recovering`.
+- **Cơ chế phản ứng khi Unhealthy**:
+  - **Circuit Breaker Fast-Fail**: Ngắt mạch tức thì trong 0ms tại `GatewayDispatcher`, trả về HTTP 503 `DOWNSTREAM_UNHEALTHY`.
+  - **Saga Rollback**: Bắn sự kiện `ServiceUnhealthyIntegrationEvent` lên RabbitMQ để hủy các giao dịch đang treo.
+  - **Docker Auto-Recovery**: Tự động restart/recreate container `nexus-{service}-service` qua Docker socket (tối đa 3 lần chống lặp vô hạn).
+- **Log sự cố**: Lưu tại `logs/health/incident-YYYYMMDD-XXXX.log` với cơ chế xoay file tối đa `1000` dòng/file. Healthy không ghi file log.
+- **API Quản trị (Admin)**: `GET /api/v1/gateway/prober/status`, `PUT /api/v1/gateway/prober/{service}`, `PUT /api/v1/gateway/prober/bulk`, và `POST /api/v1/gateway/prober/{service}/check` (kiểm tra thủ công tức thì). Chi tiết xem [docs/HEALTH_AND_LOGGING_ARCHITECTURE.md](../../../docs/HEALTH_AND_LOGGING_ARCHITECTURE.md).
 
 ## Service mode và auth mode là hai trục khác nhau
 

@@ -29,7 +29,7 @@
 2. **Chế Độ Mock Bypass (`"Bypass"`)**:
    - Phục vụ Frontend team phát triển giao diện nhanh chóng, độc lập.
    - Không cần đăng nhập, không cần gửi token; Gateway tự động gán danh tính `ClaimsPrincipal` thích ứng để vượt qua bộ lọc RBAC một cách mượt mà.
-   - **Chặn Bypass Tuyệt Đối**: Các API điều khiển hệ thống (`/api/v1/gateway/...` và `/api/v1/mock-engine/...`) được đánh dấu thuộc tính `[DisableMockAuthorizationBypass]`, tuyệt đối không thể bypass.
+   - **Chặn Bypass Tuyệt Đối**: Các API điều khiển hệ thống (`/api/v1/gateway/...`, `/api/v1/mock-engine/...` và `/api/v1/gateway/prober/...`) được đánh dấu thuộc tính `[DisableMockAuthorizationBypass]`, tuyệt đối không thể bypass và luôn yêu cầu JWT Admin thật.
 
 ---
 

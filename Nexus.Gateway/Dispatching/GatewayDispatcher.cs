@@ -5,6 +5,7 @@ using System.Text.Json;
 using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
+using Nexus.Gateway.HealthProber;
 using Nexus.Gateway.Responses;
 
 public interface IGatewayDispatcher
@@ -38,17 +39,20 @@ public sealed class GatewayDispatcher : IGatewayDispatcher
     private readonly IMockDataMapper _mockDataMapper;
     private readonly IGrpcServiceCaller _grpcServiceCaller;
     private readonly IApiResponseFactory _responseFactory;
+    private readonly IHealthProberManager? _healthProberManager;
 
     public GatewayDispatcher(
         IModeEvaluator modeEvaluator,
         IMockDataMapper mockDataMapper,
         IGrpcServiceCaller grpcServiceCaller,
-        IApiResponseFactory responseFactory)
+        IApiResponseFactory responseFactory,
+        IHealthProberManager? healthProberManager = null)
     {
         _modeEvaluator = modeEvaluator;
         _mockDataMapper = mockDataMapper;
         _grpcServiceCaller = grpcServiceCaller;
         _responseFactory = responseFactory;
+        _healthProberManager = healthProberManager;
     }
 
     public async Task<IResult> DispatchAsync<T>(
@@ -96,6 +100,18 @@ public sealed class GatewayDispatcher : IGatewayDispatcher
 
         // 2. Phân loại REAL (gRPC)
         context.Response.Headers["X-Gateway-Mode"] = "Real";
+
+        if (_healthProberManager != null && !_healthProberManager.IsServiceAvailable(service))
+        {
+            return _responseFactory.FailureResult(
+                context,
+                title: "Downstream Service Unavailable",
+                status: StatusCodes.Status503ServiceUnavailable,
+                detail: $"Service '{service}' is currently unhealthy or undergoing recovery.",
+                errorCode: "DOWNSTREAM_UNHEALTHY"
+            );
+        }
+
         var realData = await _grpcServiceCaller.CallAsync(context, realCall, config, timeout.Token);
 
         // Đưa dữ liệu sang Đầu ra bọc ApiResponse
@@ -148,6 +164,18 @@ public sealed class GatewayDispatcher : IGatewayDispatcher
         else
         {
             context.Response.Headers["X-Gateway-Mode"] = "Real";
+
+            if (_healthProberManager != null && !_healthProberManager.IsServiceAvailable(service))
+            {
+                return _responseFactory.FailureResult(
+                    context,
+                    title: "Downstream Service Unavailable",
+                    status: StatusCodes.Status503ServiceUnavailable,
+                    detail: $"Service '{service}' is currently unhealthy or undergoing recovery.",
+                    errorCode: "DOWNSTREAM_UNHEALTHY"
+                );
+            }
+
             jsonResult = await _grpcServiceCaller.CallPagedJsonAsync(context, realCall, config, timeout.Token);
         }
 

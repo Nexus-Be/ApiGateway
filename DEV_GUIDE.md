@@ -136,3 +136,11 @@ Lệnh này khởi động 4 dịch vụ:
    - Thời gian Gateway tiếp nhận request.
    - Thời gian gọi gRPC sang backend microservice.
    - Chi tiết thời gian thực thi câu lệnh SQL / Redis / RabbitMQ bên trong backend microservice.
+
+---
+
+## 5. Quy Chuẩn Health Prober & Logging Tập Trung
+Xem tài liệu kiến trúc chuẩn tại [docs/HEALTH_AND_LOGGING_ARCHITECTURE.md](../../../docs/HEALTH_AND_LOGGING_ARCHITECTURE.md):
+- **Health Prober Daemon:** Quản lý vòng đời sức khỏe 8 services (Interval 60s, Timeout 30s, Retries 5, StartPeriod 60s).
+- **Incident File Logging:** Ghi log Unhealthy vào thư mục `logs/health/` với cơ chế giới hạn `MaxLinesPerLogFile = 1000` dòng/file.
+- **Log Tập Trung Tương Lai (LogService):** Luôn áp dụng Batching $\ge 1000$ dòng trước khi gửi bulk sang LogService (Port 8004).

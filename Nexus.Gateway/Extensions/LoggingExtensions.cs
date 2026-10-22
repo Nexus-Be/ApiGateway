@@ -40,8 +40,8 @@ public static class LoggingExtensions
             // 1. Lưu dưới dạng file rolling
             if (batchOptions.WriteToFile)
             {
-                var resolvedFilePath = string.IsNullOrWhiteSpace(batchOptions.FilePath) 
-                    ? "logs/gateway-.log" 
+                var resolvedFilePath = string.IsNullOrWhiteSpace(batchOptions.FilePath)
+                    ? "logs/gateway-.log"
                     : batchOptions.FilePath;
 
                 loggerConfiguration.WriteTo.File(

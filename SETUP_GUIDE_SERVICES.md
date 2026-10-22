@@ -31,6 +31,7 @@ Gateway có các thành phần nền tảng sau; chạy lại `dotnet test ApiGa
 4. **Authentication & RBAC**: Kiểm tra JWT Token chặt chẽ (chặn mock token khi service ở chế độ Real). `AuthMode: Bypass` chỉ dành cho Development, request Mock đủ điều kiện và không áp dụng cho control-plane.
 5. **IETF Standard Errors**: Trả mã lỗi Problem Details theo chuẩn quốc tế RFC 9110 & RFC 6585.
 6. **Observability**: Tích hợp sẵn OpenTelemetry 1.18.0 Tracing và Metrics (hỗ trợ đẩy OTLP ra Jaeger/Prometheus).
+7. **Health Prober Daemon, Circuit Breaker & Self-Healing**: Chủ động giám sát sức khỏe 8 backend services (Interval 60s, Timeout 30s, Retries 5, StartPeriod 60s). Tự động ngắt mạch trong 0ms khi Unhealthy (Circuit Breaker Fast-Fail), kích hoạt Saga Rollback Event lên RabbitMQ và tự động khôi phục container qua Docker Engine.
 
 ---
 
@@ -38,7 +39,6 @@ Gateway có các thành phần nền tảng sau; chạy lại `dotnet test ApiGa
 
 Cần hoàn thiện RPC, triển khai backend và test tích hợp cho từng service trước khi bật Real trong môi trường dùng chung. Những hướng mở rộng sau chưa được đảm bảo bởi Gateway hiện tại:
 - **Output Caching**: Thêm cache Redis cho các endpoint đọc công khai ít thay đổi (ví dụ: `GET /api/v1/catalog/categories`).
-- **Circuit Breaker / Retry Policy (Polly)**: Tự động ngắt mạch nếu một service backend gRPC bị sập liên tục quá nhiều lần.
 - **BFF (Backend for Frontend)**: Ghép dữ liệu đa nguồn nếu một màn hình mobile cần gộp thông tin từ cả Catalog, Commerce và Wallet.
 
 ---

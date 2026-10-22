@@ -62,3 +62,21 @@ Tài liệu này ghi nhận kế hoạch tổng thể, các kế hoạch con (su
   - [x] **Kiểm thử tự động**: Chạy toàn bộ test suite `dotnet test ApiGateway.sln` đạt 46/46 tests PASS 100%.
   - [x] **Đồng bộ tài liệu**: Cập nhật `dac_ta.md`, `DEV_GUIDE.md`, `README.md`, `PLAN.md`.
 
+- **Plan 8: Xây dựng Hệ Thống Health Prober Daemon, Giám Sát Sức Khỏe & Tự Hồi Phục (Self-Healing)**
+  - [x] **State Machine**: Thiết kế State Machine quản lý 6 trạng thái (`Disabled`, `Starting`, `Healthy`, `Degraded`, `Unhealthy`, `Recovering`).
+  - [x] **Cấu hình chuẩn hóa**: Bổ sung `HealthProberOptions` với Interval 60s, Timeout 30s, Retries 5, StartPeriod 60s, LogDirectory "logs/health", MaxLinesPerLogFile 1000.
+  - [x] **Logging phân tầng**:
+    - Healthy: Không ghi file log, lưu 30 mẫu trong Ring Buffer RAM & OpenTelemetry metrics.
+    - Sự cố: Xây dựng `FileRollingHealthIncidentLogger` tự động xoay file khi đạt ngưỡng 1000 dòng.
+    - Định hướng tương lai: Quy chuẩn gom batch $\ge 1000$ dòng trước khi gửi LogService tập trung.
+  - [x] **Circuit Breaker Fast-Fail**: Can thiệp `GatewayDispatcher`, ngắt mạch 0ms trả về HTTP 503 `DOWNSTREAM_UNHEALTHY` khi downstream Unhealthy/Recovering.
+  - [x] **Docker Container Recovery & Saga Rollback**: Tự động restart/recreate container qua Docker socket và bắn sự kiện `ServiceUnhealthyIntegrationEvent` lên RabbitMQ.
+  - [x] **Controller Quản Trị Mới (11th Controller)**: Xây dựng `HealthProberController` với các API tra cứu status, bật/tắt daemon từng service & bulk, và endpoint kiểm tra sức khỏe thủ công tức thì (`POST /api/v1/gateway/prober/{service}/check`).
+  - [x] **Kiểm thử tự động toàn diện**: Bổ sung `HealthProberUnitTests.cs` và `HealthProberControllerTests.cs`, đạt **111/111 tests PASS 100%**.
+
+- **Plan 9: Xây dựng Bộ Chuyển Đổi Enum Hai Chiều & Danh Mục Thực Thể Chuẩn Form**
+  - [x] **PascalCaseJsonStringEnumConverter**: Tự động chuyển đổi enum số trong DB sang chuỗi PascalCase cho Frontend, và parse ngược lại từ chuỗi FE sang enum số Backend.
+  - [x] **Validate Enum Input**: Trả về lỗi HTTP 400 ProblemDetails khi FE gửi sai enum kèm danh sách gợi ý giá trị hợp lệ.
+  - [x] **Đặc tả danh mục cho Frontend**: Xuất bản `docs/FRONTEND_ENTITY_AND_ENUM_CATALOG.md` với đầy đủ 80 Enums thuộc 8 Services.
+  - [x] **Kiểm thử tự động**: Bổ sung `EnumConversionTests.cs`, nâng tổng số bài test lên **120/120 tests PASS 100%**.
+

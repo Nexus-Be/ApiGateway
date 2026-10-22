@@ -20,10 +20,12 @@
    - [3.8. Tính Năng Bảo Vệ Kestrel Server & Request Timeouts](#38-tính-năng-bảo-vệ-kestrel-server--request-timeouts)
    - [3.9. Tính Năng Xử Lý Lỗi Tập Trung & Chuẩn Hóa Phản Hồi (RFC 9110 / RFC 6585)](#39-tính-năng-xử-lý-lỗi-tập-trung--chuẩn-hóa-phản-hồi-rfc-9110--rfc-6585)
    - [3.10. Tính Năng Phân Tán Trace & Giám Sát (OpenTelemetry Tracing)](#310-tính-năng-phân-tán-trace--giám-sát-opentelemetry-tracing)
+   - [3.11. Chiến Lược Phòng Thủ Xác Thực Dữ Liệu 3 Tầng (3-Tier Validation Defense-in-Depth)](#311-chiến-lược-phòng-thủ-xác-thực-dữ-liệu-3-tầng-3-tier-validation-defense-in-depth)
+   - [3.12. Tính Năng Health Prober Daemon, Giám Sát Sức Khỏe & Tự Động Hồi Phục (Self-Healing)](#312-tính-năng-health-prober-daemon-giám-sát-sức-khỏe--tự-động-hồi-phục-self-healing)
 4. [Bản Đồ Cấu Trúc Mã Nguồn & Phân Bổ Trách Nhiệm](#4-bản-đồ-cấu-trúc-mã-nguồn--phân-bổ-trách-nhiệm)
-5. [Bảng Tổng Hợp 10 Controllers & Danh Mục 16 Nhóm Route](#5-bảng-tổng-hợp-10-controllers--danh-mục-16-nhóm-route)
+5. [Bảng Tổng Hợp 11 Controllers & Danh Mục 17 Nhóm Route](#5-bảng-tổng-hợp-11-controllers--danh-mục-17-nhóm-route)
 6. [Quy Trình 3 Bước Thêm API Mới Dành Cho Developer](#6-quy-trình-3-bước-thêm-api-mới-dành-cho-developer)
-7. [Bảo Đảm Chất Lượng & Kết Quả Kiểm Thử Tự Động (46/46 Tests)](#7-bảo-đảm-chất-lượng--kết-quả-kiểm-thử-tự-động-4646-tests)
+7. [Bảo Đảm Chất Lượng & Kết Quả Kiểm Thử Tự Động (120/120 Tests)](#7-bảo-đảm-chất-lượng--kết-quả-kiểm-thử-tự-động-120120-tests)
 
 ---
 
@@ -485,6 +487,73 @@ Hệ thống Nexus phân định rạch ròi 3 tầng phòng vệ dữ liệu (S
 
 ---
 
+## 3.12. Tính Năng Health Prober Daemon, Giám Sát Sức Khỏe & Tự Động Hồi Phục (Self-Healing)
+
+Nhằm đảm bảo tính sẵn sàng cao (High Availability) cho toàn bộ hệ sinh thái Microservices, API Gateway tích hợp sẵn **Health Prober Daemon Engine** chạy nền, đóng vai trò là một External Prober chủ động giám sát trạng thái của 8 backend services (`users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`).
+
+### 3.12.1. Bốn Tham Số Điều Khiển Chuẩn (Configuration Standards)
+Hệ thống điều khiển quy trình kiểm tra sức khỏe thông qua 4 tham số chuẩn (cấu hình qua `appsettings.json` hoặc biến môi trường `Gateway__HealthProber__...`):
+- **Interval (Chu kỳ kiểm tra)**: Mặc định `60s` (1 phút). Khoảng cách thời gian giữa hai lần gõ cửa kiểm tra service.
+- **Timeout (Thời gian chờ tối đa)**: Mặc định `30s`. Thời gian tối đa chờ phản hồi HTTP/gRPC từ service; nếu quá 30s coi như lần probe thất bại.
+- **Retries / FailureThreshold (Ngưỡng thất bại)**: Mặc định `5 lần`. Số lần kiểm tra thất bại liên tiếp trước khi chuyển trạng thái sang `Unhealthy`.
+- **StartPeriod (Thời gian ân hạn khởi động)**: Mặc định `60s` (1 phút). Khi container mới khởi động lại, trong 60s đầu tiên nếu probe thất bại sẽ không tính vào số lần Retries (để container có thời gian khởi tạo runtime và kết nối DB).
+
+### 3.12.2. State Machine Quản Lý Vòng Đời Trạng Thái (Health State Machine)
+Mỗi service được quản lý bởi một State Machine chặt chẽ:
+```
+    [ DISABLED ] ──(Gọi API kích hoạt)──► [ STARTING (StartPeriod 60s) ]
+                                                    │
+                 ┌──────────────────────────────────┴──────────────────┐
+                 │ Nhận HTTP 200 OK                                    │ Hết 60s vẫn lỗi
+                 ▼                                                     ▼
+           [ HEALTHY ] ◄─────────────(Nhận 200 OK)───────────── [ DEGRADED (1-4 lỗi) ]
+                 │                                                     │
+                 │ Probe Timeout / 5xx                                 │ Lỗi tiếp chạm 5/5
+                 └────────────► [ DEGRADED (1/5) ]                    ▼
+                                                                [ UNHEALTHY ]
+                                                                      │
+                              ┌───────────────────────────────────────┴───────────────────────┐
+                              │ 1. Circuit Breaker Fast-Fail: Chặn ngay request tới service   │
+                              │ 2. Kích hoạt Saga Rollback: Bắn Event lên RabbitMQ            │
+                              │ 3. Docker Auto-Recovery: Xóa & Recreate Container             │
+                              │ 4. Ghi log sự cố vào File theo cơ chế giới hạn dòng          │
+                              └───────────────────────────────────────┬───────────────────────┘
+                                                                      ▼
+                                                           [ RECOVERING (Recreated) ]
+                                                                      │
+                                                                      ▼
+                                                           [ STARTING (Grace Period 60s) ]
+```
+
+### 3.12.3. Chiến Lược Phân Tầng Lưu Vết Log Sự Cố (Incident File Logging & Batching)
+- **Với các lần check Healthy bình thường:** Tuyệt đối **không ghi ra file log** để tránh làm nghẽn Disk I/O và gây rác log (Log Pollution). Gateway lưu trữ 30 mẫu kiểm tra gần nhất trong **In-Memory Ring Buffer** phục vụ API truy vấn tức thì và đẩy metrics OpenTelemetry.
+- **Khi xảy ra sự cố (Degraded 1/5 - 4/5 và Unhealthy 5/5):**
+  - Gateway lưu log sự cố vào thư mục riêng: `logs/health/incident-YYYYMMDD-XXXX.log`.
+  - **Cơ chế giới hạn dòng trên mỗi file (`MaxLinesPerLogFile = 1000`)**: Khi file log đạt đủ 1000 dòng, hệ thống tự động ngắt và mở file mới (`incident-YYYYMMDD-0002.log`).
+- **Định hướng tương lai cho Code Agent / Developer khi triển khai `LogService` tập trung (Port 8004, `log_db`):**
+  - Khi triển khai gom log tập trung về `LogService`, Gateway áp dụng cơ chế **Gom cụm tối thiểu 1000 dòng log (Batching Sink)** mới gửi bulk sang LogService qua HTTP `POST /api/v1/log/batch` hoặc RabbitMQ. Tuyệt đối không gửi từng dòng log đơn lẻ qua mạng.
+
+### 3.12.4. Phản Ứng Tự Động Khi Service Rơi Vào Trạng Thái Unhealthy
+1. **Circuit Breaker Fast-Fail Tại `GatewayDispatcher`:**
+   - Khi service ở trạng thái `Unhealthy` hoặc `Recovering`, Gateway lập tức ngắt mạch trong 0ms, không đẩy request xuống mạng gRPC.
+   - Trả về mã lỗi chuẩn RFC 9110: **HTTP 503 Service Unavailable** (`errorCode: "DOWNSTREAM_UNHEALTHY"`).
+2. **Kích Hoạt Saga Rollback Toàn Bộ:**
+   - Gateway publish sự kiện `ServiceUnhealthyIntegrationEvent` lên RabbitMQ để các orchestrator (như Checkout Saga của CommerceService) lập tức hủy và bù trừ (compensate) các giao dịch đang treo liên quan đến service bị sập.
+3. **Docker Container Auto-Recovery (Tự Động Recreate Container):**
+   - Gateway giao tiếp với Docker Engine qua socket `/var/run/docker.sock`, tự động gọi `Stop` $\rightarrow$ `Remove` $\rightarrow$ `Recreate` container tương ứng (`nexus-{service}-service`).
+   - Sau khi container được tạo lại, chuyển trạng thái sang `Recovering` $\rightarrow$ `Starting` (ân hạn 60s).
+   - **Chống lặp vô hạn (CrashLoopBackOff Protection):** Giới hạn tối đa 3 lần tự động restart liên tiếp (`MaxAutoRecoverAttempts = 3`). Nếu vượt quá, Prober ngừng restart và bắn cảnh báo khẩn cấp `CRITICAL_INTERVENTION_NEEDED`.
+
+### 3.12.5. Danh Mục Endpoint Quản Trị Health Prober
+Được phân quyền nghiêm ngặt theo chính sách `[Authorize(GatewayPolicies.GatewayAdmin)]` và chặn hoàn toàn bypass:
+- `GET /api/v1/gateway/prober/status`: Tra cứu trạng thái toàn bộ 8 services, số lần lỗi liên tiếp, và danh sách các mẫu check gần nhất.
+- `GET /api/v1/gateway/prober/status/{service}`: Tra cứu chi tiết sức khỏe của 1 service cụ thể.
+- `PUT /api/v1/gateway/prober/{service}`: Bật hoặc tắt prober daemon của 1 service (hỗ trợ tùy chỉnh interval, threshold).
+- `PUT /api/v1/gateway/prober/bulk`: Bật hoặc tắt hàng loạt toàn bộ 8 prober daemons cùng lúc.
+- `POST /api/v1/gateway/prober/{service}/check`: **API kiểm tra sức khỏe thủ công tức thì (Manual Check on demand)** — thực thi probe ngay lập tức và trả về latency (ms), HTTP status code và kết quả.
+
+---
+
 # 4. BẢN ĐỒ CẤU TRÚC MÃ NGUỒN & PHÂN BỔ TRÁCH NHIỆM
 
 ```
@@ -516,7 +585,7 @@ src/Services/ApiGateway/
 │   ├── Common/                           # TẦNG DÙNG CHUNG (VALIDATION & HELPERS)
 │   │   └── ValidationHelpers.cs          # Validation helpers: Bad(), PageOk(), GuidOk(), Roles, Consts
 │   │
-│   ├── Controllers/                      # ĐẦU VÀO: 10 CONTROLLERS TIÊU CHUẨN [ApiController] ControllerBase
+│   ├── Controllers/                      # ĐẦU VÀO: 11 CONTROLLERS TIÊU CHUẨN [ApiController] ControllerBase
 │   │   ├── AuthController.cs             # Routes: /api/v1/auth/... (login, register)
 │   │   ├── UsersController.cs            # Routes: /api/v1/users/..., /api/v1/admin/users, roles
 │   │   ├── CatalogController.cs          # Routes: /api/v1/catalog/..., /api/v1/seller/products, inventory
@@ -526,7 +595,8 @@ src/Services/ApiGateway/
 │   │   ├── NotificationController.cs     # Routes: /api/v1/notifications/... (list, read, preferences)
 │   │   ├── LogController.cs              # Routes: /api/v1/log/... (logs, event types)
 │   │   ├── WalletController.cs           # Routes: /api/v1/wallet/... (balance, deposit, withdraw, transfer)
-│   │   └── GatewayControlController.cs   # Routes: /api/v1/gateway/..., /mock-engine/... (control plane)
+│   │   ├── GatewayControlController.cs   # Routes: /api/v1/gateway/..., /mock-engine/... (control plane)
+│   │   └── HealthProberController.cs     # Routes: /api/v1/gateway/prober/... (status, toggle, bulk, manual check)
 │   │
 │   ├── Dtos/                             # CÁC DTO ĐƯỢC TÁCH BIỆT RÀNH MẠCH THEO SERVICE
 │   │   ├── Auth/                         # AuthRequests.cs, AuthResponses.cs
@@ -538,7 +608,23 @@ src/Services/ApiGateway/
 │   │   ├── Notification/                 # NotificationRequests.cs, NotificationResponses.cs
 │   │   ├── Log/                          # LogRequests.cs, LogResponses.cs
 │   │   ├── Wallet/                       # WalletRequests.cs, WalletResponses.cs
-│   │   └── GatewayControl/               # GatewayControlRequests.cs, GatewayControlResponses.cs
+│   │   ├── GatewayControl/               # GatewayControlRequests.cs, GatewayControlResponses.cs
+│   │   └── HealthProber/                 # HealthProberDtos.cs (ToggleDto, BulkDto, StatusDto)
+│   │
+│   ├── HealthProber/                     # ENGINE GIÁM SÁT SỨC KHỎE & HỒI PHỤC (PROBER DAEMON)
+│   │   ├── HealthProberOptions.cs        # Cấu hình Interval 60s, Timeout 30s, Retries 5, MaxLines 1000
+│   │   ├── ProberRunStatus.cs            # State Machine: Disabled, Starting, Healthy, Degraded, Unhealthy, Recovering
+│   │   ├── ServiceHealthState.cs         # Ring Buffer 30 mẫu gần nhất, biến đếm lỗi liên tiếp
+│   │   ├── HealthCheckSample.cs          # DTO lưu vết từng mẫu kiểm tra (latency, status code, error)
+│   │   ├── IHealthProberManager.cs       # Interface quản trị vòng đời các Prober Daemon
+│   │   ├── HealthProberManager.cs        # Background Service điều khiển chu kỳ thăm dò & kích hoạt sự cố
+│   │   ├── IHealthIncidentLogger.cs      # Interface ghi vết sự cố sức khỏe
+│   │   ├── FileRollingHealthIncidentLogger.cs # Ghi log Unhealthy ra file logs/health/, xoay file mỗi 1000 dòng
+│   │   ├── IDockerContainerRecoveryService.cs # Interface khôi phục container Docker
+│   │   ├── DockerContainerRecoveryService.cs  # Tự động restart/recreate container qua Docker socket
+│   │   ├── ISagaRollbackPublisher.cs     # Interface phát sự kiện Saga Rollback
+│   │   ├── SagaRollbackPublisher.cs      # Publish ServiceUnhealthyIntegrationEvent lên RabbitMQ
+│   │   └── HealthProberExtensions.cs     # Đăng ký DI cho toàn bộ khối Health Prober
 │   │
 │   ├── Dispatching/                      # PHẦN GIỮA: THE DISPATCHING CORE (ĐIỀU PHỐI KHÔNG IF/ELSE Ở CONTROLLER)
 │   │   ├── IModeEvaluator.cs / ModeEvaluator.cs       # Đánh giá mode Mock/Real, hot-reload & header override
@@ -598,18 +684,21 @@ src/Services/ApiGateway/
 │       ├── IGatewayRuntimeManager.cs     # Interface quản lý runtime mode (Mock/Real, AuthMode)
 │       └── GatewayRuntimeManager.cs      # Quản lý trạng thái Real/Mock theo service, ghi file gateway.runtime.json
 │
-└── Nexus.Gateway.Tests/                  # PROJECT KIỂM THỬ TỰ ĐỘNG (46/46 PASS 100%)
+└── Nexus.Gateway.Tests/                  # PROJECT KIỂM THỬ TỰ ĐỘNG (111/111 PASS 100%)
     ├── Factory.cs                        # Custom WebApplicationFactory dựng TestServer in-memory
     ├── ApiResponseFactoryTests.cs        # Unit tests kiểm tra định dạng envelope response & error
     ├── GatewayTests.cs                   # Integration tests kiểm tra Kestrel limits, timeouts, Redis failover
     ├── GatewaySurfaceTests.cs            # Tests kiểm tra toàn bộ bề mặt API các service
     ├── MockEngineTests.cs                # Tests kiểm tra thuật toán matcher, route precedence, dynamic mocks
-    └── SevenServicesGatewayTests.cs      # Tests kiểm tra chi tiết cả 8 microservices ở 2 chế độ Standard & Bypass
+    ├── SevenServicesGatewayTests.cs      # Tests kiểm tra chi tiết cả 8 microservices ở 2 chế độ Standard & Bypass
+    ├── HealthProberUnitTests.cs          # Tests kiểm tra State Machine, Ring Buffer và File Rolling xoay 1000 dòng
+    ├── HealthProberControllerTests.cs    # Tests kiểm tra API quản trị Prober, Manual Check & Circuit Breaker
+    └── EnumConversionTests.cs            # Tests kiểm tra chuyển đổi Enum 2 chiều PascalCase String và bắt lỗi 400
 ```
 
 ---
 
-# 5. BẢNG TỔNG HỢP 10 CONTROLLERS & DANH MỤC 16 NHÓM ROUTE
+# 5. BẢNG TỔNG HỢP 11 CONTROLLERS & DANH MỤC 17 NHÓM ROUTE
 
 Toàn bộ các endpoint trong Gateway đều bắt đầu bằng tiền tố duy nhất:
 $$\mathbf{/api/v1/...}$$
@@ -632,6 +721,7 @@ $$\mathbf{/api/v1/...}$$
 | 14 | `WalletController` | `Controllers/WalletController.cs` | `/api/v1/wallet` | Authenticated | Quản lý ví điện tử: tra cứu số dư (`/balance`), nạp tiền (`/deposit`), rút tiền (`/withdraw`), chuyển tiền nội bộ (`/transfer`), xem lịch sử giao dịch. | `wallet` |
 | 15 | `GatewayControlController`| `Controllers/GatewayControlController.cs`| `/api/v1/gateway` | GatewayAdmin (chặn bypass)| Tra cứu trạng thái 8 services (`GET /modes`), đổi auth mode (`PUT /mode`), đổi mode Mock/Real từng service (`PUT /modes/{service}`). | *Nội bộ Gateway* |
 | 16 | `GatewayControlController`| `Controllers/GatewayControlController.cs`| `/api/v1/mock-engine`| GatewayAdmin (chặn bypass)| Xem danh sách declarative mock endpoints (`GET /definitions`), kích hoạt nạp lại mock nóng (`POST /reload`). | *Nội bộ Gateway* |
+| 17 | `HealthProberController` | `Controllers/HealthProberController.cs` | `/api/v1/gateway/prober`| GatewayAdmin (chặn bypass)| Tra cứu trạng thái Prober 8 services (`GET /status`), bật/tắt daemon từng service (`PUT /{service}`) hoặc bulk (`PUT /bulk`), kiểm tra sức khỏe thủ công tức thì (`POST /{service}/check`). | *Nội bộ Gateway* |
 
 ---
 
@@ -716,9 +806,12 @@ Hệ sinh thái Gateway đi kèm bộ kiểm thử tự động toàn diện tro
 - **`MockEngineTests.cs`**: Kiểm tra thuật toán khớp route động, ưu tiên route tĩnh, và nạp mock JSON.
 - **`GatewaySurfaceTests.cs`**: Kiểm tra toàn bộ bề mặt API của 8 services.
 - **`SevenServicesGatewayTests.cs`**: Kiểm tra một số luồng Mock/Real và auth Enforce/Bypass; không thay thế integration tests của 8 backend.
+- **`HealthProberUnitTests.cs`**: Kiểm tra logic State Machine, Ring Buffer, và cơ chế File Rolling tự động xoay file khi đạt ngưỡng 1000 dòng.
+- **`HealthProberControllerTests.cs`**: Kiểm tra phân quyền Admin cho API Prober, bật/tắt daemon từng service & bulk, API check thủ công (Manual Check), và Circuit Breaker ngắt mạch trong 0ms khi Unhealthy (HTTP 503 `DOWNSTREAM_UNHEALTHY`).
+- **`EnumConversionTests.cs`**: Kiểm chứng chuyển đổi Enum 2 chiều (Serialize Enum số ➔ PascalCase String, Deserialize case-insensitive String ➔ Enum, và bắt lỗi validation 400 ProblemDetails khi FE gửi sai).
 
 ### Lệnh chạy kiểm thử:
 ```bash
 dotnet test src/Services/ApiGateway/ApiGateway.sln -c Release
 ```
-Chạy lại lệnh sau mỗi thay đổi; không dùng số bài test cố định làm bảo đảm chất lượng. Đặc biệt kiểm tra auth Standard/Bypass, mode Mock/Real, HTTP status 200/201/4xx, lỗi typed/malformed JSON, route phân trang và response trace ID.
+👉 Hiện tại toàn bộ **120/120 bài kiểm thử tự động** đều vượt qua tuyệt đối (100% Passed). Chạy lại lệnh sau mỗi thay đổi; không dùng số bài test cố định làm bảo đảm chất lượng. Đặc biệt kiểm tra auth Standard/Bypass, mode Mock/Real, HTTP status 200/201/4xx, lỗi typed/malformed JSON, route phân trang và response trace ID.

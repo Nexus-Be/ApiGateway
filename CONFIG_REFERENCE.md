@@ -106,7 +106,23 @@ Mỗi service được cấu hình với 5 thuộc tính:
 
 ---
 
-### E. Danh Sách Request Headers Ghi Đè (Header Overrides)
+### E. Cấu Hình Giám Sát Sức Khỏe & Tự Hồi Phục (`Gateway:HealthProber`)
+Đặt tại: `appsettings.json`, `appsettings.Development.json` hoặc qua biến môi trường `Gateway__HealthProber__*`.
+
+| Khóa cấu hình (JSON) | Biến môi trường tương ứng | Kiểu | Mặc định | Ý nghĩa & Tác dụng |
+|:---|:---|:---:|:---:|:---|
+| `Gateway:HealthProber:IntervalSeconds` | `Gateway__HealthProber__IntervalSeconds` | `int` | `60` | Chu kỳ định kỳ mỗi lần Prober Daemon gửi request probe (tính bằng giây). Mặc định 1 phút. |
+| `Gateway:HealthProber:TimeoutSeconds` | `Gateway__HealthProber__TimeoutSeconds` | `int` | `30` | Thời gian tối đa chờ phản hồi HTTP /health từ backend service trước khi tính là probe timeout. |
+| `Gateway:HealthProber:FailureThreshold` | `Gateway__HealthProber__FailureThreshold` | `int` | `5` | Số lần thất bại liên tiếp trước khi chuyển trạng thái sang `Unhealthy` và kích hoạt Circuit Breaker. |
+| `Gateway:HealthProber:StartPeriodSeconds` | `Gateway__HealthProber__StartPeriodSeconds` | `int` | `60` | Thời gian ân hạn khi container mới khởi động lại (không tính lỗi trong khoảng này để container kịp nạp runtime/DB). |
+| `Gateway:HealthProber:AutoRecoverContainer` | `Gateway__HealthProber__AutoRecoverContainer` | `bool` | `true` | Tự động kích hoạt chuỗi Stop $\rightarrow$ Remove $\rightarrow$ Recreate container qua Docker socket khi đạt ngưỡng Unhealthy. |
+| `Gateway:HealthProber:MaxAutoRecoverAttempts` | `Gateway__HealthProber__MaxAutoRecoverAttempts` | `int` | `3` | Giới hạn số lần tự động hồi phục liên tiếp để chống CrashLoopBackOff làm treo tài nguyên máy chủ. |
+| `Gateway:HealthProber:LogDirectory` | `Gateway__HealthProber__LogDirectory` | `string` | `"logs/health"` | Thư mục lưu trữ tệp log sự cố sức khỏe (Incident log) tại Gateway. |
+| `Gateway:HealthProber:MaxLinesPerLogFile` | `Gateway__HealthProber__MaxLinesPerLogFile` | `int` | `1000` | Số dòng tối đa trên một tệp log sự cố trước khi tự động xoay sang tệp mới (`incident-YYYYMMDD-XXXX.log`). |
+
+---
+
+### F. Danh Sách Request Headers Ghi Đè (Header Overrides)
 
 Trong môi trường Development, Gateway hỗ trợ ghi đè cấu hình cho từng request thông qua các HTTP Headers:
 
