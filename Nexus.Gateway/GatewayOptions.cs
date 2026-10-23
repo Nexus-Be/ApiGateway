@@ -17,6 +17,7 @@ public sealed class GatewayOptions
     ];
 
     public Dictionary<string, BackendOptions> Services { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, RateLimitPolicyOptions> RateLimits { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public int PermitLimit { get; set; } = 100;
     public int WindowSeconds { get; set; } = 60;
     public int ConcurrencyLimit { get; set; } = 100;
@@ -72,6 +73,25 @@ public sealed class GatewayOptions
         };
     }
 
+    public RateLimitPolicyOptions GetRateLimitPolicy(string? policyName)
+    {
+        if (!string.IsNullOrWhiteSpace(policyName) && RateLimits.TryGetValue(policyName, out var policy))
+        {
+            return policy;
+        }
+
+        if (RateLimits.TryGetValue("default", out var defaultPolicy))
+        {
+            return defaultPolicy;
+        }
+
+        return new RateLimitPolicyOptions
+        {
+            PermitLimit = PermitLimit,
+            WindowSeconds = WindowSeconds
+        };
+    }
+
     public bool IsValid(bool development) =>
         PermitLimit > 0 && WindowSeconds > 0 && ConcurrencyLimit > 0 &&
         !string.IsNullOrWhiteSpace(RedisConnectionString) && !string.IsNullOrWhiteSpace(RedisKeyPrefix) &&
@@ -79,6 +99,7 @@ public sealed class GatewayOptions
             (u.Scheme is "https" or "http") && u.AbsolutePath == "/") &&
         CanonicalServices.All(HasService) &&
         IsValidAuthMode(AuthMode ?? GatewayMode ?? "Enforce", development) &&
+        (RateLimits.Count == 0 || RateLimits.Values.All(r => r.PermitLimit > 0 && r.WindowSeconds > 0)) &&
         Services.Values.All(s => s.Mode is "Real" or "Mock" &&
             (development || s.Mode == "Real") &&
             s.TimeoutSeconds is >= 1 and <= 60 && s.MockDelayMs is >= 0 and <= 60000 &&
@@ -101,4 +122,10 @@ public sealed class BackendOptions
     public int TimeoutSeconds { get; set; } = 5;
     public int MockDelayMs { get; set; } = 0;
     public int MockStatus { get; set; } = 200;
+}
+
+public sealed class RateLimitPolicyOptions
+{
+    public int PermitLimit { get; set; } = 100;
+    public int WindowSeconds { get; set; } = 60;
 }

@@ -26,6 +26,7 @@ public sealed class UsersController : ControllerBase
 
     [HttpGet("users/me")]
     [Authorize("authenticated")]
+    [EnableRateLimiting("user-frequent")]
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> GetMe()
     {

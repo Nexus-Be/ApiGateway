@@ -53,8 +53,10 @@ Dùng admin API để xem/đổi mode chung, dùng header cho một request test
 | Khóa cấu hình (JSON) | Biến môi trường tương ứng | Giá trị mẫu | Ý nghĩa & Tác dụng |
 |:---|:---|:---:|:---|
 | `Gateway:AuthMode` | `Gateway__AuthMode` | `"Standard"` / `"Enforce"` hoặc `"Bypass"` | **Chế độ kiểm tra xác thực của Gateway**:<br>- `"Standard"` hoặc `"Enforce"`: Yêu cầu JWT và kiểm tra quyền RBAC nghiêm ngặt (chặn 401/403).<br>- `"Bypass"`: (Development-only) Tự động nới lỏng auth để Frontend test độc lập với Mock API. |
-| `Gateway:PermitLimit` | `Gateway__PermitLimit` | `100` | Số lượng request tối đa được phép trong một cửa sổ thời gian cố định (Redis fixed-window rate limit). |
-| `Gateway:WindowSeconds` | `Gateway__WindowSeconds` | `60` | Thời gian của cửa sổ rate limit (tính bằng giây). Mặc định `100` requests / `60` giây. |
+| `Gateway:PermitLimit` | `Gateway__PermitLimit` | `100` | Số lượng request tối đa mặc định được phép trong một cửa sổ thời gian (Redis fixed-window rate limit fallback). |
+| `Gateway:WindowSeconds` | `Gateway__WindowSeconds` | `60` | Thời gian mặc định của cửa sổ rate limit (tính bằng giây). |
+| `Gateway:RateLimits:<policy>:PermitLimit` | `Gateway__RateLimits__<policy>__PermitLimit` | `5` (auth-strict), `10` (auth-login), `120` (user-frequent) | Giới hạn request cho từng policy cụ thể (`auth-strict`, `auth-login`, `user-frequent`, `default`). |
+| `Gateway:RateLimits:<policy>:WindowSeconds` | `Gateway__RateLimits__<policy>__WindowSeconds` | `60` | Độ dài cửa sổ thời gian theo giây cho từng policy cụ thể. |
 | `Gateway:ConcurrencyLimit` | `Gateway__ConcurrencyLimit` | `100` | Số lượng request đồng thời tối đa Gateway tiếp nhận cùng một thời điểm. |
 | `Gateway:RedisConnectionString` | `Gateway__RedisConnectionString` | `"localhost:6379"` | Địa chỉ kết nối Redis phục vụ tính năng Distributed Rate Limiting. |
 | `Gateway:RedisKeyPrefix` | `Gateway__RedisKeyPrefix` | `"nexus:gateway"` | Tiền tố cho các khóa (keys) lưu trong Redis để tránh xung đột với ứng dụng khác. |

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -35,6 +36,13 @@ public sealed class RedisRateLimitMiddleware
             return;
         }
 
+        var endpoint = context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<DisableRateLimitingAttribute>() != null)
+        {
+            await _next(context);
+            return;
+        }
+
         var options = optionsMonitor.CurrentValue;
         if (!rateLimitStore.IsAvailable)
         {
@@ -49,16 +57,25 @@ public sealed class RedisRateLimitMiddleware
             return;
         }
 
+        var policyName = endpoint?.Metadata.GetMetadata<GatewayRateLimitAttribute>()?.PolicyName
+            ?? endpoint?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+
+        var policy = options.GetRateLimitPolicy(policyName);
+        var effectivePolicyName = !string.IsNullOrWhiteSpace(policyName) ? policyName.Trim().ToLowerInvariant() : "default";
+
         var service = GatewaySecurityHelper.DetectServiceForRequest(context, mockEngine);
         var principal = context.User.FindFirst("sub")?.Value;
         var identity = principal ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
         var now = DateTimeOffset.UtcNow;
-        var bucket = now.ToUnixTimeSeconds() / options.WindowSeconds;
-        var key = $"{options.RedisKeyPrefix}:rate:{service}:{identity}:{bucket}";
+        var windowSeconds = policy.WindowSeconds;
+        var permitLimit = policy.PermitLimit;
+
+        var bucket = now.ToUnixTimeSeconds() / windowSeconds;
+        var key = $"{options.RedisKeyPrefix}:rate:{effectivePolicyName}:{service}:{identity}:{bucket}";
         long count;
         try
         {
-            count = await rateLimitStore.IncrementAsync(key, TimeSpan.FromSeconds(options.WindowSeconds));
+            count = await rateLimitStore.IncrementAsync(key, TimeSpan.FromSeconds(windowSeconds));
         }
         catch (RedisConnectionException ex) when (environment.IsDevelopment() && options.RedisFailOpenInDevelopment)
         {
@@ -83,13 +100,13 @@ public sealed class RedisRateLimitMiddleware
             return;
         }
 
-        if (count <= options.PermitLimit)
+        if (count <= permitLimit)
         {
             await _next(context);
             return;
         }
 
-        var remainingSeconds = options.WindowSeconds - (now.ToUnixTimeSeconds() % options.WindowSeconds);
+        var remainingSeconds = windowSeconds - (now.ToUnixTimeSeconds() % windowSeconds);
         context.Response.Headers.RetryAfter = Math.Max(1, remainingSeconds).ToString();
         var result = responseFactory.FailureResult(
             context,

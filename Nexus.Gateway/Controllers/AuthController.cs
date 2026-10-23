@@ -28,6 +28,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> Register([FromBody] RegisterRequestDto body)
     {
@@ -59,6 +60,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("verify-otp")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> VerifyOtp([FromBody] VerifyOtpRequestDto body)
     {
@@ -81,6 +83,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("resend-otp")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<OtpResponse>), StatusCodes.Status200OK)]
     public Task<IResult> ResendOtp([FromBody] ResendOtpRequestDto body)
     {
@@ -102,6 +105,7 @@ public sealed class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth-login")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
     public Task<IResult> Login([FromBody] LoginRequestDto body)
     {

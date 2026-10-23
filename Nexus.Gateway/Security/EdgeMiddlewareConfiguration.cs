@@ -17,6 +17,13 @@ public sealed class BackendTagAttribute : Attribute
     public BackendTagAttribute(string name) => Name = name;
 }
 
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true, AllowMultiple = false)]
+public sealed class GatewayRateLimitAttribute : Attribute
+{
+    public string PolicyName { get; }
+    public GatewayRateLimitAttribute(string policyName) => PolicyName = policyName;
+}
+
 public static class EdgeMiddlewareConfiguration
 {
     public static IServiceCollection AddGatewayCors(this IServiceCollection services, GatewayOptions gateway)
@@ -75,9 +82,29 @@ public static class EdgeMiddlewareConfiguration
                 }));
 
             // RedisRateLimitMiddleware enforces the distributed per-user/IP API
-            // limit. Keep this named policy so existing endpoint metadata stays
-            // valid while the global concurrency limiter remains active.
-            o.AddPolicy("api", _ => RateLimitPartition.GetNoLimiter("api"));
+            // limit. Keep these named policies registered with GetNoLimiter so
+            // endpoint metadata stays valid while the global concurrency limiter remains active.
+            var policyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "api",
+                "auth-strict",
+                "auth-login",
+                "user-frequent",
+                "default"
+            };
+
+            if (gateway.RateLimits != null)
+            {
+                foreach (var key in gateway.RateLimits.Keys)
+                {
+                    policyNames.Add(key);
+                }
+            }
+
+            foreach (var policy in policyNames)
+            {
+                o.AddPolicy(policy, _ => RateLimitPartition.GetNoLimiter(policy));
+            }
 
             o.OnRejected = async (context, token) =>
             {

@@ -127,6 +127,7 @@ public sealed class SevenServicesGatewayTests
             Configure = o =>
             {
                 o.PermitLimit = 3;
+                o.RateLimits["auth-login"] = new() { PermitLimit = 3, WindowSeconds = 60 };
                 o.WindowSeconds = 60;
                 o.RedisFailOpenInDevelopment = false;
             }
