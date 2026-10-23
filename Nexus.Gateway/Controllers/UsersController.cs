@@ -47,9 +47,9 @@ public sealed class UsersController : ControllerBase
     public Task<IResult> UpdateMe([FromBody] UpdateProfileRequestDto body)
     {
         if (body.DisplayName is null && body.Email is null)
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "displayName hoặc email phải có"));
+            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "Either displayName or email is required."));
         if (body.Email is not null && !body.Email.Contains('@'))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "email không hợp lệ", field: "Email"));
+            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "Email is invalid.", field: "Email"));
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -72,9 +72,9 @@ public sealed class UsersController : ControllerBase
     public Task<IResult> RequestSellerUpgrade([FromBody] SellerUpgradeRequestDto body)
     {
         if (string.IsNullOrWhiteSpace(body.ShopName))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "shopName là bắt buộc", field: "ShopName"));
+            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "ShopName is required.", field: "ShopName"));
         if (body.ContactEmail is not null && !body.ContactEmail.Contains('@'))
-            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "contactEmail không hợp lệ", field: "ContactEmail"));
+            return Task.FromResult(ValidationHelpers.Bad(HttpContext, "ContactEmail is invalid.", field: "ContactEmail"));
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -91,138 +91,6 @@ public sealed class UsersController : ControllerBase
             }, o),
             SellerRegistrationInfo.Parser,
             successMessage: "Seller upgrade requested successfully."
-        );
-    }
-
-    [HttpGet("admin/users")]
-    [Authorize("staff")]
-    [ProducesResponseType(typeof(ApiResponse<PagedData<UserProfile>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListUsers([FromQuery] PaginationRequest pagination, [FromQuery] string? q = null, [FromQuery] string? role = null)
-    {
-        pagination.EnsureValid();
-
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext,
-            "users",
-            "users",
-            pagination.Page,
-            pagination.PageSize,
-            o => _client.ListUsersAsync(new ListUsersRequest
-            {
-                Page = pagination.Page,
-                PageSize = pagination.PageSize,
-                Q = q ?? "",
-                Role = role ?? ""
-            }, o),
-            UserPage.Parser
-        );
-    }
-
-    [HttpPost("admin/sellers/{id:guid}/approve")]
-    [Authorize("staff")]
-    [ProducesResponseType(typeof(ApiResponse<SellerRegistrationInfo>), StatusCodes.Status200OK)]
-    public Task<IResult> ApproveSeller([FromRoute] Guid id, [FromBody] ApproveSellerRequestDto body)
-    {
-        if (!body.Approve && string.IsNullOrWhiteSpace(body.Reason))
-            throw new GatewayInputException("từ chối đơn đăng ký phải kèm reason", "Reason");
-
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "users",
-            "seller-approve",
-            o => _client.ApproveSellerAsync(new ApproveSellerRequest
-            {
-                RegistrationId = id.ToString(),
-                Approve = body.Approve,
-                Reason = body.Reason ?? ""
-            }, o),
-            SellerRegistrationInfo.Parser,
-            successMessage: "Seller application processed."
-        );
-    }
-
-    [HttpPost("admin/users")]
-    [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status201Created)]
-    public Task<IResult> CreateUser([FromBody] CreateUserRequestDto body)
-    {
-        var roles = body.Roles ?? Array.Empty<string>();
-        if (string.IsNullOrWhiteSpace(body.Username) || !body.Email.Contains('@') || (body.Password?.Length ?? 0) < 8)
-            throw new GatewayInputException("username, email hợp lệ và password >= 8 ký tự là bắt buộc");
-        if (roles.Any(r => !ValidationHelpers.KnownRoles.Contains(r.Trim().ToLowerInvariant())))
-            throw new GatewayInputException("roles chỉ được chứa buyer|seller|staff|admin", "Roles");
-
-        var req = new CreateUserRequest
-        {
-            Username = body.Username,
-            Email = body.Email,
-            Password = body.Password,
-            DisplayName = body.DisplayName ?? body.Username
-        };
-        req.Roles.AddRange(roles.Select(r => r.Trim().ToLowerInvariant()));
-
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "users",
-            "user-create",
-            o => _client.CreateUserAsync(req, o),
-            UserProfile.Parser,
-            successMessage: "User created successfully.",
-            successStatusCode: StatusCodes.Status201Created
-        );
-    }
-
-    [HttpPost("admin/users/{id:guid}/roles")]
-    [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
-    public Task<IResult> AssignRoles([FromRoute] Guid id, [FromBody] AssignRolesRequestDto body)
-    {
-        var roles = body.Roles ?? Array.Empty<string>();
-        if (roles.Length == 0)
-            throw new GatewayInputException("ít nhất một role là bắt buộc", "Roles");
-        if (roles.Any(r => !ValidationHelpers.KnownRoles.Contains(r.Trim().ToLowerInvariant())))
-            throw new GatewayInputException("roles chỉ được chứa buyer|seller|staff|admin", "Roles");
-
-        var req = new AssignRolesRequest { UserId = id.ToString() };
-        req.Roles.AddRange(roles.Select(r => r.Trim().ToLowerInvariant()));
-
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "users",
-            "user-roles",
-            o => _client.AssignRolesAsync(req, o),
-            UserProfile.Parser,
-            successMessage: "Roles assigned successfully."
-        );
-    }
-
-    [HttpGet("admin/roles")]
-    [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<RoleList>), StatusCodes.Status200OK)]
-    public Task<IResult> ListRoles()
-    {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "users",
-            "roles",
-            o => _client.ListRolesAsync(new Empty(), o),
-            RoleList.Parser,
-            successMessage: "Roles retrieved successfully."
-        );
-    }
-
-    [HttpGet("admin/permissions")]
-    [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<PermissionList>), StatusCodes.Status200OK)]
-    public Task<IResult> ListPermissions()
-    {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "users",
-            "permissions",
-            o => _client.ListPermissionsAsync(new Empty(), o),
-            PermissionList.Parser,
-            successMessage: "Permissions retrieved successfully."
         );
     }
 }

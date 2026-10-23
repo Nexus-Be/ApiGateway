@@ -31,8 +31,12 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> Register([FromBody] RegisterRequestDto body)
     {
-        if (string.IsNullOrWhiteSpace(body.Username) || !body.Email.Contains('@') || (body.Password?.Length ?? 0) < 8)
-            throw new GatewayInputException("username, email hợp lệ và password >= 8 ký tự là bắt buộc");
+        var username = body.Username ?? (body.Email?.Contains('@') == true ? body.Email.Split('@')[0] : null);
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(body.Email) || !body.Email.Contains('@') || (body.Password?.Length ?? 0) < 8)
+            throw new GatewayInputException("Username, valid email, and password with at least 8 characters are required.");
+
+        var displayName = body.DisplayName ?? $"{body.FirstName} {body.LastName}".Trim();
+        if (string.IsNullOrWhiteSpace(displayName)) displayName = username;
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -40,13 +44,59 @@ public sealed class AuthController : ControllerBase
             "register",
             o => _client.RegisterAsync(new RegisterRequest
             {
-                Username = body.Username,
-                Email = body.Email,
+                Username = username,
+                Email = body.Email.Trim().ToLowerInvariant(),
                 Password = body.Password,
-                DisplayName = body.DisplayName ?? body.Username
+                DisplayName = displayName,
+                FirstName = body.FirstName ?? "",
+                LastName = body.LastName ?? "",
+                PhoneNumber = body.PhoneNumber ?? ""
             }, o),
             UserProfile.Parser,
             successMessage: "User registered successfully."
+        );
+    }
+
+    [HttpPost("verify-otp")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
+    public Task<IResult> VerifyOtp([FromBody] VerifyOtpRequestDto body)
+    {
+        if (string.IsNullOrWhiteSpace(body.Email) || string.IsNullOrWhiteSpace(body.Otp))
+            throw new GatewayInputException("Email and OTP code are required.");
+
+        return _dispatcher.DispatchAsync(
+            HttpContext,
+            "users",
+            "verify-otp",
+            o => _client.VerifyOtpAsync(new VerifyOtpRequest
+            {
+                Email = body.Email.Trim().ToLowerInvariant(),
+                Otp = body.Otp.Trim()
+            }, o),
+            UserProfile.Parser,
+            successMessage: "Account verified successfully."
+        );
+    }
+
+    [HttpPost("resend-otp")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<OtpResponse>), StatusCodes.Status200OK)]
+    public Task<IResult> ResendOtp([FromBody] ResendOtpRequestDto body)
+    {
+        if (string.IsNullOrWhiteSpace(body.Email))
+            throw new GatewayInputException("Email address is required.");
+
+        return _dispatcher.DispatchAsync(
+            HttpContext,
+            "users",
+            "resend-otp",
+            o => _client.ResendOtpAsync(new ResendOtpRequest
+            {
+                Email = body.Email.Trim().ToLowerInvariant()
+            }, o),
+            OtpResponse.Parser,
+            successMessage: "Verification code has been resent to your email."
         );
     }
 
@@ -57,7 +107,7 @@ public sealed class AuthController : ControllerBase
     {
         Response.Headers.CacheControl = "no-store";
         if (string.IsNullOrWhiteSpace(body.Username) || string.IsNullOrEmpty(body.Password))
-            throw new GatewayInputException("username và password là bắt buộc");
+            throw new GatewayInputException("Username and password are required.");
 
         return _dispatcher.DispatchAsync(
             HttpContext,

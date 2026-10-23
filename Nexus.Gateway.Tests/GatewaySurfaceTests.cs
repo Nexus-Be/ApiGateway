@@ -22,6 +22,8 @@ public sealed class GatewaySurfaceTests
     [
         // auth (public)
         new("POST", "/gateway/api/v1/auth/register", """{"username":"newbie","email":"newbie@mcs.local","password":"Passw0rd!"}""", null, "users", "register"),
+        new("POST", "/gateway/api/v1/auth/verify-otp", """{"email":"verified@mcs.local","otp":"123456"}""", null, "users", "verify-otp"),
+        new("POST", "/gateway/api/v1/auth/resend-otp", """{"email":"user@mcs.local"}""", null, "users", "resend-otp"),
         new("POST", "/gateway/api/v1/auth/login", """{"username":"buyer01","password":"Passw0rd!"}""", null, "users", "login"),
         // users
         new("GET", "/gateway/api/v1/users/me", null, "buyer", "users", "profile"),
@@ -116,7 +118,7 @@ public sealed class GatewaySurfaceTests
         }
 
         Assert.Empty(failures);
-        Assert.Equal(37, Surface.Length);
+        Assert.Equal(39, Surface.Length);
     }
 
     [Fact]

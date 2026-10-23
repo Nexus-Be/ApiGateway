@@ -1,0 +1,80 @@
+[
+  {
+    "Timestamp": "2026-10-23T02:46:49.3600866\u002B07:00",
+    "Level": "Warning",
+    "Message": "No XML encryptor configured. Key {b49fc90b-7911-4393-aa40-7c391c85670e} may be persisted to storage in unencrypted form.",
+    "Exception": null,
+    "Properties": {
+      "KeyId": "b49fc90b-7911-4393-aa40-7c391c85670e",
+      "EventId": "{ Id: 35, Name: \u0022NoXMLEncryptorConfiguredKeyMayBePersistedToStorageInUnencryptedForm\u0022 }",
+      "SourceContext": "\u0022Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  },
+  {
+    "Timestamp": "2026-10-23T02:46:49.4330614\u002B07:00",
+    "Level": "Error",
+    "Message": "An error occurred while reading the key ring.",
+    "Exception": "System.IO.IOException: Read-only file system\n   at System.IO.FileSystem.LinkOrCopyFile(String sourceFullPath, String destFullPath)\n   at System.IO.FileSystem.MoveFile(String sourceFullPath, String destFullPath, Boolean overwrite)\n   at System.IO.File.Move(String sourceFileName, String destFileName, Boolean overwrite)\n   at Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository.StoreElementCore(XElement element, String filename)\n   at Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository.StoreElement(XElement element, String friendlyName)\n   at Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager.Microsoft.AspNetCore.DataProtection.KeyManagement.Internal.IInternalXmlKeyManager.CreateNewKey(Guid keyId, DateTimeOffset creationDate, DateTimeOffset activationDate, DateTimeOffset expirationDate)\n   at Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager.CreateNewKey(DateTimeOffset activationDate, DateTimeOffset expirationDate)\n   at Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider.CreateCacheableKeyRingCore(DateTimeOffset now, IKey keyJustAdded)\n   at Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider.GetCurrentKeyRingCore(DateTime utcNow, Boolean forceRefresh)\n   at Microsoft.AspNetCore.DataProtection.Internal.DataProtectionHostedService.StartAsync(CancellationToken token)",
+    "Properties": {
+      "EventId": "{ Id: 48, Name: \u0022ErrorOccurredWhileReadingKeyRing\u0022 }",
+      "SourceContext": "\u0022Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  },
+  {
+    "Timestamp": "2026-10-23T02:46:49.4414499\u002B07:00",
+    "Level": "Information",
+    "Message": "HealthProberManager initialized. Probers for 8 services are registered and default to Disabled.",
+    "Exception": null,
+    "Properties": {
+      "Count": "8",
+      "SourceContext": "\u0022Nexus.Gateway.HealthProber.HealthProberManager\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  },
+  {
+    "Timestamp": "2026-10-23T02:46:49.4977550\u002B07:00",
+    "Level": "Information",
+    "Message": "Now listening on: \u0022http://localhost:8000\u0022",
+    "Exception": null,
+    "Properties": {
+      "address": "\u0022http://localhost:8000\u0022",
+      "EventId": "{ Id: 14, Name: \u0022ListeningOnAddress\u0022 }",
+      "SourceContext": "\u0022Microsoft.Hosting.Lifetime\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  },
+  {
+    "Timestamp": "2026-10-23T02:46:49.4979637\u002B07:00",
+    "Level": "Information",
+    "Message": "Application started. Press Ctrl\u002BC to shut down.",
+    "Exception": null,
+    "Properties": {
+      "SourceContext": "\u0022Microsoft.Hosting.Lifetime\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  },
+  {
+    "Timestamp": "2026-10-23T02:46:49.4980447\u002B07:00",
+    "Level": "Information",
+    "Message": "Hosting environment: \u0022Development\u0022",
+    "Exception": null,
+    "Properties": {
+      "EnvName": "\u0022Development\u0022",
+      "SourceContext": "\u0022Microsoft.Hosting.Lifetime\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  },
+  {
+    "Timestamp": "2026-10-23T02:46:49.4980829\u002B07:00",
+    "Level": "Information",
+    "Message": "Content root path: \u0022/home/yuikiri/Documents/Code/Yuikiri/Github/Nexus-Be/src/Services/ApiGateway/Nexus.Gateway\u0022",
+    "Exception": null,
+    "Properties": {
+      "ContentRoot": "\u0022/home/yuikiri/Documents/Code/Yuikiri/Github/Nexus-Be/src/Services/ApiGateway/Nexus.Gateway\u0022",
+      "SourceContext": "\u0022Microsoft.Hosting.Lifetime\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  }
+]

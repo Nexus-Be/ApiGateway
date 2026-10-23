@@ -11,14 +11,14 @@ Gateway làm đầu mối duy nhất cho Frontend gọi vào ở cổng `8000`. 
 | STT | Tên Service | Port | Database | Nhiệm vụ chính | Trạng thái Gateway |
 |:---:|:---|:---:|:---|:---|:---:|
 | **0** | **Nexus.Gateway** | **8000** | *(Redis: 6379)* | Edge Proxy, JWT/RBAC, RateLimit, MockEngine, OpenTelemetry | ✅ Hoàn thành 100% |
-| **1** | **Users Service** | **8001** | `usermanagement_db` (5432) | Đăng ký, đăng nhập, phát hành JWT, User Profile, RBAC, Duyệt Seller | Sẵn sàng kết nối |
-| **2** | **Catalog Service** | **8002** | `category_db` (5433) | Quản lý danh mục, sản phẩm, tồn kho kho ảo của Seller | Sẵn sàng kết nối |
-| **3** | **Commerce Service** | **8003** | `commerce_db` (5434) | Giỏ hàng, tạo đơn hàng, quản lý đơn hàng Seller/Admin, Điều phối Checkout Saga | Sẵn sàng kết nối |
-| **4** | **Log Service** | **8004** | `log_db` (5435) | Lưu vết nhật ký tập trung và sự kiện qua RabbitMQ event consumer | Sẵn sàng kết nối |
-| **5** | **Auction Service** | **8005** | `auction_db` (5436) | Phiên đấu giá, trả giá (bid), đồng hồ đếm ngược | Sẵn sàng kết nối |
-| **6** | **Fulfillment Service**| **8006** | `fulfillment_db` (5437) | Tồn kho vật lý kho bãi, tính phí vận chuyển, tra cứu mã vận đơn | Sẵn sàng kết nối |
-| **7** | **Notification Service**| **8007** | `notification_db` (5438)| Gửi thông báo, lịch sử thông báo, cài đặt thông báo người dùng | Sẵn sàng kết nối |
-| **8** | **Wallet Service** | **8008** | `wallet_db` (5439) | Ví điện tử riêng biệt, số dư, nạp/rút tiền, chuyển tiền, thanh toán đơn hàng | Sẵn sàng kết nối |
+| **1** | **Users Service** | **8001** | `usermanagement_db` (5433) | Đăng ký, đăng nhập, phát hành JWT, User Profile, RBAC, Duyệt Seller | Sẵn sàng kết nối |
+| **2** | **Catalog Service** | **8002** | `category_db` (5434) | Quản lý danh mục, sản phẩm, tồn kho kho ảo của Seller | Sẵn sàng kết nối |
+| **3** | **Commerce Service** | **8003** | `commerce_db` (5435) | Giỏ hàng, tạo đơn hàng, quản lý đơn hàng Seller/Admin, Điều phối Checkout Saga | Sẵn sàng kết nối |
+| **4** | **Log Service** | **8004** | `log_db` (5436) | Lưu vết nhật ký tập trung và sự kiện qua RabbitMQ event consumer | Sẵn sàng kết nối |
+| **5** | **Auction Service** | **8005** | `auction_db` (5437) | Phiên đấu giá, trả giá (bid), đồng hồ đếm ngược | Sẵn sàng kết nối |
+| **6** | **Fulfillment Service**| **8006** | `fulfillment_db` (5438) | Tồn kho vật lý kho bãi, tính phí vận chuyển, tra cứu mã vận đơn | Sẵn sàng kết nối |
+| **7** | **Notification Service**| **8007** | `notification_db` (5439)| Gửi thông báo, lịch sử thông báo, cài đặt thông báo người dùng | Sẵn sàng kết nối |
+| **8** | **Wallet Service** | **8008** | `wallet_db` (5440) | Ví điện tử riêng biệt, số dư, nạp/rút tiền, chuyển tiền, thanh toán đơn hàng | Sẵn sàng kết nối |
 
 ---
 
@@ -102,7 +102,7 @@ builder.Services.AddMassTransit(x =>
         cfg.Host("localhost", 5672, "/", h =>
         {
             h.Username(builder.Configuration["RabbitMq:User"] ?? "guest");
-            h.Password(builder.Configuration["RabbitMq:Password"] ?? "guest");
+            h.Password(builder.Configuration["RabbitMq:Password"] ?? "MatkhaucuaTui123@");
         });
         cfg.ConfigureEndpoints(context);
     });

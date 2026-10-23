@@ -16,38 +16,19 @@ using ShoppingCart.Contracts.V1;
 [Route("api/v1")]
 [BackendTag("catalog")]
 [EnableRateLimiting("api")]
-public sealed class CatalogController : ControllerBase
+public sealed class ProductsController : ControllerBase
 {
     private readonly IGatewayDispatcher _dispatcher;
     private readonly CatalogApi.CatalogApiClient _client;
 
-    public CatalogController(IGatewayDispatcher dispatcher, CatalogApi.CatalogApiClient client)
+    public ProductsController(IGatewayDispatcher dispatcher, CatalogApi.CatalogApiClient client)
     {
         _dispatcher = dispatcher;
         _client = client;
     }
 
-    // ---------- Catalog Public Endpoints ----------
-
-    [HttpGet("catalog/categories")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<PagedData<Category>>), StatusCodes.Status200OK)]
-    public Task<IResult> ListCategories([FromQuery] PaginationRequest pagination)
-    {
-        pagination.EnsureValid();
-
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext,
-            "catalog",
-            "categories",
-            pagination.Page,
-            pagination.PageSize,
-            o => _client.ListCategoriesAsync(new PageRequest { Page = pagination.Page, PageSize = pagination.PageSize }, o),
-            CategoryPage.Parser
-        );
-    }
-
     [HttpGet("catalog/products")]
+    [HttpGet("products")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<Product>>), StatusCodes.Status200OK)]
     public Task<IResult> ListProducts(
@@ -79,6 +60,7 @@ public sealed class CatalogController : ControllerBase
     }
 
     [HttpGet("catalog/products/{id:guid}")]
+    [HttpGet("products/{id:guid}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<Product>), StatusCodes.Status200OK)]
     public Task<IResult> GetProduct([FromRoute] Guid id)
@@ -92,70 +74,6 @@ public sealed class CatalogController : ControllerBase
             successMessage: "Product retrieved successfully."
         );
     }
-
-    // ---------- Catalog Admin Endpoints ----------
-
-    [HttpPost("catalog/categories")]
-    [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<Category>), StatusCodes.Status200OK)]
-    public Task<IResult> CreateCategory([FromBody] CategoryRequestDto body)
-    {
-        ValidationHelpers.EnsureRequired(body.Name, "Name");
-        ValidationHelpers.EnsureGuid(body.ParentId, "ParentId");
-
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "catalog",
-            "category-create",
-            o => _client.CreateCategoryAsync(new CategoryInput
-            {
-                Name = body.Name,
-                ParentId = body.ParentId ?? ""
-            }, o),
-            Category.Parser,
-            successMessage: "Category created successfully."
-        );
-    }
-
-    [HttpPut("catalog/categories/{id:guid}")]
-    [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<Category>), StatusCodes.Status200OK)]
-    public Task<IResult> UpdateCategory([FromRoute] Guid id, [FromBody] CategoryRequestDto body)
-    {
-        ValidationHelpers.EnsureRequired(body.Name, "Name");
-        ValidationHelpers.EnsureGuid(body.ParentId, "ParentId");
-
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "catalog",
-            "category-update",
-            o => _client.UpdateCategoryAsync(new UpdateCategoryRequest
-            {
-                Id = id.ToString(),
-                Name = body.Name,
-                ParentId = body.ParentId ?? ""
-            }, o),
-            Category.Parser,
-            successMessage: "Category updated successfully."
-        );
-    }
-
-    [HttpDelete("catalog/categories/{id:guid}")]
-    [Authorize("admin")]
-    [ProducesResponseType(typeof(ApiResponse<DeleteResponse>), StatusCodes.Status200OK)]
-    public Task<IResult> DeleteCategory([FromRoute] Guid id)
-    {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "catalog",
-            "category-delete",
-            o => _client.DeleteCategoryAsync(new IdRequest { Id = id.ToString() }, o),
-            DeleteResponse.Parser,
-            successMessage: "Category deleted."
-        );
-    }
-
-    // ---------- Seller Catalog Endpoints ----------
 
     [HttpGet("seller/products")]
     [Authorize("seller")]
@@ -214,7 +132,7 @@ public sealed class CatalogController : ControllerBase
     {
         var price = ValidateProduct(body);
         if (body.Available != 0)
-            throw new GatewayInputException("available không đổi qua cập nhật sản phẩm — dùng PUT /api/v1/seller/inventory/{productId}", "Available");
+            throw new GatewayInputException("Available cannot be modified via product update. Use PUT /api/v1/seller/inventory/{productId}.", "Available");
 
         return _dispatcher.DispatchAsync(
             HttpContext,
@@ -251,52 +169,13 @@ public sealed class CatalogController : ControllerBase
         );
     }
 
-    [HttpGet("seller/inventory")]
-    [Authorize("seller")]
-    [ProducesResponseType(typeof(ApiResponse<InventoryPage>), StatusCodes.Status200OK)]
-    public Task<IResult> GetInventory()
-    {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "catalog",
-            "inventory",
-            o => _client.GetInventoryAsync(HttpContext.ToUserRequest(), o),
-            InventoryPage.Parser,
-            successMessage: "Inventory retrieved successfully."
-        );
-    }
-
-    [HttpPut("seller/inventory/{productId:guid}")]
-    [Authorize("seller")]
-    [ProducesResponseType(typeof(ApiResponse<Inventory>), StatusCodes.Status200OK)]
-    public Task<IResult> AdjustInventory([FromRoute] Guid productId, [FromBody] AdjustInventoryRequestDto body)
-    {
-        if (body.Available < 0)
-            throw new GatewayInputException("available phải >= 0", "Available");
-
-        return _dispatcher.DispatchAsync(
-            HttpContext,
-            "catalog",
-            "inventory-adjust",
-            o => _client.AdjustInventoryAsync(new AdjustInventoryRequest
-            {
-                SellerId = HttpContext.ToUserRequest().UserId,
-                ProductId = productId.ToString(),
-                Available = body.Available,
-                Reason = body.Reason ?? ""
-            }, o),
-            Inventory.Parser,
-            successMessage: "Inventory updated successfully."
-        );
-    }
-
     private static string ValidateProduct(ProductRequestDto body)
     {
         ValidationHelpers.EnsureRequired(body.Name, "Name");
         if (!MoneyPrecision.TryParsePositive(body.Price, out var value))
-            throw new GatewayInputException("price phải là số thập phân > 0 (ví dụ \"1250000.00\")", "Price");
+            throw new GatewayInputException("Price must be a valid positive decimal (e.g. \"1250000.00\").", "Price");
         if (body.Available < 0)
-            throw new GatewayInputException("available phải >= 0", "Available");
+            throw new GatewayInputException("Available must be greater than or equal to 0.", "Available");
         ValidationHelpers.EnsureGuid(body.CategoryId, "CategoryId");
         return value.ToString("0.00", CultureInfo.InvariantCulture);
     }

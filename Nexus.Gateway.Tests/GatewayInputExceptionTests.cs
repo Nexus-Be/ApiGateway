@@ -8,8 +8,8 @@ namespace Nexus.Gateway.Tests;
 public sealed class GatewayInputExceptionTests
 {
     [Theory]
-    [InlineData("register", "username, email hợp lệ và password >= 8 ký tự là bắt buộc")]
-    [InlineData("login", "username và password là bắt buộc")]
+    [InlineData("register", "Username, valid email, and password with at least 8 characters are required.")]
+    [InlineData("login", "Username and password are required.")]
     public async Task Typed_input_error_maps_to_existing_gateway_error_contract(string endpoint, string message)
     {
         using var app = new Factory();

@@ -59,6 +59,9 @@ service UsersApi {
   rpc ApproveSeller(ApproveSellerRequest) returns (SellerRegistrationInfo);
   // v3 (2026-10-12c) — additive: admin tạo user kèm gán role trong **một** lời gọi (Register là đường ẩn danh, chỉ `buyer`)
   rpc CreateUser(CreateUserRequest) returns (UserProfile);
+  // v4 (2026-10-23) — OTP verification and resend
+  rpc VerifyOtp(VerifyOtpRequest) returns (UserProfile);
+  rpc ResendOtp(ResendOtpRequest) returns (OtpResponse);
 }
 
 service AuditApi {
@@ -190,7 +193,30 @@ message SellerOrdersRequest { string seller_id = 1; int32 page = 2; int32 page_s
 message MyOrdersRequest { string user_id = 1; int32 page = 2; int32 page_size = 3; }
 
 // Users
-message RegisterRequest { string username = 1; string email = 2; string password = 3; string display_name = 4; }
+message RegisterRequest {
+  string username = 1;
+  string email = 2;
+  string password = 3;
+  string display_name = 4;
+  string first_name = 5;
+  string last_name = 6;
+  string phone_number = 7;
+}
+
+message VerifyOtpRequest {
+  string email = 1;
+  string otp = 2;
+}
+
+message ResendOtpRequest {
+  string email = 1;
+}
+
+message OtpResponse {
+  bool success = 1;
+  string message = 2;
+  string email = 3;
+}
 // v3 (2026-10-12c) — admin tạo user kèm role; `roles` rỗng ⇒ mặc định `buyer`
 message CreateUserRequest {
   string username = 1; string email = 2; string password = 3; string display_name = 4;

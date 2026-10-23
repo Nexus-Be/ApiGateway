@@ -1,0 +1,20 @@
+[
+  {
+    "Timestamp": "2026-10-23T02:52:26.1605413\u002B07:00",
+    "Level": "Information",
+    "Message": "HTTP \u0022POST\u0022 \u0022/api/v1/auth/resend-otp\u0022 responded 200 in 38.7074 ms",
+    "Exception": null,
+    "Properties": {
+      "TraceId": "\u00220HNPGEKU7HG0F:00000001\u0022",
+      "GatewayMode": "\u0022Real\u0022",
+      "RequestMethod": "\u0022POST\u0022",
+      "RequestPath": "\u0022/api/v1/auth/resend-otp\u0022",
+      "StatusCode": "200",
+      "Elapsed": "38.707406",
+      "SourceContext": "\u0022Serilog.AspNetCore.RequestLoggingMiddleware\u0022",
+      "RequestId": "\u00220HNPGEKU7HG0F:00000001\u0022",
+      "ConnectionId": "\u00220HNPGEKU7HG0F\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  }
+]
