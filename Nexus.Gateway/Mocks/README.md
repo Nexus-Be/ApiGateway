@@ -1,184 +1,97 @@
-# Hướng Dẫn Định Nghĩa File Mock Trong Nexus Gateway
+# Hướng Dẫn Sử Dụng & Định Nghĩa Mock API Tại Nexus Gateway
 
-Gateway hỗ trợ bạn phát triển và test độc lập với backend microservices thông qua 2 cơ chế:
-1. **Dynamic Declarative Mock (`.mock.json` / `.def.json`)**: Định nghĩa bất kỳ API REST nào, hỗ trợ hot-reload, tự động hiện lên Swagger UI.
-2. **Static Protobuf Fixtures (`Mocks/<service>/<operation>.json`)**: Mock dữ liệu cho các API Minimal đã khai báo trong code C#.
+Gateway cung cấp cơ chế **Dynamic Declarative Mock (`*.mock.json`)** giúp Frontend và Backend team có thể phát triển, tích hợp và kiểm thử giao diện hoàn toàn độc lập mà không cần chờ backend service chạy hay viết bất kỳ dòng code C# nào.
 
 ---
 
-## 1. Dynamic Declarative Mock (*.mock.json hoặc *.def.json)
+## 1. Cơ Chế Hoạt Động & Quy Chuẩn Response Factory
 
-Đặt file ở bất kỳ đâu trong thư mục `Mocks/` (ví dụ: `Mocks/catalog/search.mock.json`).
-
-### 1.1 Template Endpoint Đơn (responseType: 'single')
-Gateway sẽ tự động bọc response vào vỏ chuẩn: `{ success: true, statusCode: 200, message: '...', data: { ... } }`.
-
-```json
-{
-  "id": "get-product-detail",
-  "service": "catalog",
-  "method": "GET",
-  "path": "/gateway/api/v1/catalog/products/{id}",
-  "description": "Lấy chi tiết một sản phẩm",
-  "policy": "public",
-  "statusCode": 200,",
-  "responseType": "single",
-  "message": "Lấy thông tin sản phẩm thành công.",
-  "response": {
-    "id": "22222222-2222-2222-2222-000000000001",
-    "name": "Bàn phím cơ RGB Custom",
-    "price": "1250000.00",
-    "currency": "VND",
-    "stock": 50
-  }
-}
-```
+Khi một request được gửi đến Gateway:
+1. `MockEngineMiddleware` quét các file `.mock.json` trong thư mục `Mocks/`.
+2. Nếu khớp Method và Route Path (và service tương ứng đang ở chế độ `Mock`), Gateway sẽ lập tức trả về dữ liệu mock.
+3. **Chuẩn hóa qua `ApiResponseFactory`**: Mọi response dạng `single` sẽ được bọc tự động trong cấu trúc chuẩn:
+   ```json
+   {
+     "success": true,
+     "statusCode": 200,
+     "message": "Sentence case success message in 100% English.",
+     "data": { ... },
+     "traceId": "0HNPGSVMA0V0K",
+     "timestamp": "2026-10-23T17:00:00Z"
+   }
+   ```
+4. **Tự động hiện trên Swagger UI**: Tất cả các file `.mock.json` được tự động nạp vào Swagger UI (`/swagger`), hỗ trợ đầy đủ Request Body mẫu và Execute trực tiếp.
 
 ---
 
-### 1.2 Template Phân Trang (responseType: 'paged')
-Hỗ trợ tự động bọc dữ liệu phân trang và nhận query `?page=1&pageSize=20`:
+## 2. 5 File Mock Mẫu Chuẩn Cho Team Tham Khảo (Reference Blueprints)
+
+Trong thư mục `Mocks/` này có sẵn **5 Mock API chuẩn mẫu** đại diện cho các trường hợp phổ biến:
+
+| File | Method & Path | Policy | Response Type | Mục Đích Tham Khảo |
+| :--- | :--- | :---: | :---: | :--- |
+| **`auth-register.mock.json`** | `POST /api/v1/auth/register` | `public` | `single` | Mẫu API đăng ký công khai, nhận Request body, trả về `UserProfile` với status `PendingVerification`. |
+| **`auth-resend-otp.mock.json`** | `POST /api/v1/auth/resend-otp` | `public` | `single` | Mẫu API gửi lại mã OTP, trả về `OtpResponse` (`success`, `message`, `email`). |
+| **`auth-verify-otp.mock.json`** | `POST /api/v1/auth/verify-otp` | `public` | `single` | Mẫu API xác thực OTP, chuyển status của `UserProfile` sang `Active`. |
+| **`auth-login.mock.json`** | `POST /api/v1/auth/login` | `public` | `single` | Mẫu API đăng nhập, trả về `LoginResponse` (`accessToken`, `expiresAt`, `userId`, `roles`). |
+| **`users-me.mock.json`** | `GET /api/v1/users/me` | `authenticated` | `single` | Mẫu API yêu cầu xác thực người dùng (`Bearer Token`), trả về `UserProfile` cá nhân. |
+
+---
+
+## 3. Cấu Trúc Chi Tiết Của Một File `.mock.json`
 
 ```json
 {
-  "id": "search-products-paged",
-  "service": "catalog",
+  "id": "auth-register",
+  "service": "users",
   "method": "POST",
-  "path": "/gateway/api/v1/catalog/search",
-  "description": "Tìm kiếm sản phẩm theo từ khóa",
+  "path": "/api/v1/auth/register",
+  "description": "Register a new user account with pending verification",
   "policy": "public",
   "statusCode": 200,
-  "responseType": "paged",
+  "responseType": "single",
+  "message": "User registered successfully.",
   "request": {
-    "keyword": "bàn phím",
-    "minPrice": 500000
+    "username": "johndoe",
+    "email": "john.doe@example.com",
+    "password": "Password123!",
+    "displayName": "John Doe",
+    "firstName": "John",
+    "lastName": "Doe",
+    "phoneNumber": "+84901234567"
   },
   "response": {
-    "items": [
-      {
-        "id": "22222222-2222-2222-2222-000000000001",
-        "name": "Bàn phím cơ RGB Custom",
-        "price": "1250000.00"
-      }
-    ],
-    "total": 1
+    "id": "11111111-1111-1111-1111-000000000099",
+    "displayName": "John Doe",
+    "email": "john.doe@example.com",
+    "roles": ["buyer"],
+    "status": "PendingVerification",
+    "shopName": ""
   }
 }
 ```
 
----
+### Bảng Tra Cứu Các Thuộc Tính
 
-### 1.3 Template Giả Lập Lỗi Nghiệp Vụ (responseType: 'error')
-Gateway tự động trả về Problem Details chuẩn RFC 7807:
-
-```json
-{
-  "id": "product-out-of-stock",
-  "service": "catalog",
-  "method": "POST",
-  "path": "/gateway/api/v1/catalog/orders/quick-buy",
-  "description": "Giả lập lỗi hết hàng trong kho",
-  "policy": "authenticated",
-  "statusCode": 422,
-  "responseType": "error",
-  "errorCode": "PRODUCT_OUT_OF_STOCK",
-  "message": "Sản phẩm đã hết hàng trong kho."
-}
-```
+| Thuộc tính | Bắt buộc | Giá trị hợp lệ | Ý nghĩa |
+| :--- | :---: | :--- | :--- |
+| **`id`** | Có | Chuỗi định danh kebab-case, ví dụ: `"auth-register"` | Định danh duy nhất của mock endpoint. |
+| **`service`** | Có | `"users"`, `"catalog"`, `"commerce"`, `"auction"`, `"fulfillment"`, `"notification"`, `"wallet"`, `"log"` | Service phụ trách quản lý endpoint. |
+| **`method`** | Có | `"GET"`, `"POST"`, `"PUT"`, `"PATCH"`, `"DELETE"` | Phương thức HTTP của API. |
+| **`path`** | Có | `"/api/v1/..."` (hỗ trợ route param như `{id}`) | Đường dẫn URL của API. |
+| **`description`** | Không | Chuỗi mô tả ngắn bằng tiếng Anh | Hiển thị tóm tắt trên Swagger UI. |
+| **`policy`** | Không | `"public"`, `"authenticated"`, `"buyer"`, `"seller"`, `"staff"`, `"admin"` | Quyền hạn truy cập API (mặc định: `"public"`). |
+| **`statusCode`** | Có | `200`, `201`, `400`, `404`, `422`, `500` | HTTP Status code trả về cho client. |
+| **`responseType`** | Không | `"single"` (mặc định), `"paged"`, `"raw"`, `"error"` | Kiểu đóng gói phản hồi qua `ApiResponseFactory`. |
+| **`message`** | Không | Chuỗi thông báo thành công bằng tiếng Anh (Sentence case) | Được gán vào trường `message` của `ApiResponse`. |
+| **`request`** | Không | Object JSON | Payload mẫu hiển thị sẵn trên Swagger UI khi test. |
+| **`response`** | Có | Object hoặc Array JSON | Dữ liệu trả về (sẽ được đưa vào trường `data` của `ApiResponse`). |
 
 ---
 
-### 1.4 Template Trả JSON Gốc Không Bọc Vỏ (responseType: 'raw')
+## 4. Cách Thêm Một Mock API Mới
 
-```json
-{
-  "id": "raw-config-endpoint",
-  "service": "catalog",
-  "method": "GET",
-  "path": "/gateway/api/v1/catalog/app-config",
-  "description": "Trả JSON thô không qua bọc ApiResponse",
-  "policy": "public",
-  "statusCode": 200,
-  "responseType": "raw",
-  "response": {
-    "version": "1.0.0",
-    "maintenance": false
-  }
-}
-```
-
----
-
-### 1.5 Định Nghĩa Nhiều Endpoint Trong Một File (JSON Array)
-Một file `.mock.json` có thể chứa 1 mảng `[ ... ]` các định nghĩa:
-
-```json
-[
-  {
-    "id": "catalog-brands",
-    "service": "catalog",
-    "method": "GET",
-    "path": "/gateway/api/v1/catalog/brands",
-    "policy": "public",
-    "responseType": "single",
-    "response": ["Keychron", "Akko", "Logitech"]
-  },
-  {
-    "id": "catalog-tags",
-    "service": "catalog",
-    "method": "GET",
-    "path": "/gateway/api/v1/catalog/tags",
-    "policy": "public",
-    "responseType": "single",
-    "response": ["gaming", "office", "wireless"]
-  }
-]
-```
-
----
-
-### 1.6 Tách File Dữ Liệu Rời (responseFile / requestFile)
-Khi dữ liệu mock dài, có thể tách sang file riêng cùng thư mục:
-
-```json
-{
-  "id": "heavy-catalog-data",
-  "service": "catalog",
-  "method": "GET",
-  "path": "/gateway/api/v1/catalog/large-inventory",
-  "policy": "seller",
-  "responseType": "single",
-  "responseFile": "inventory-data.json"
-}
-```
-
----
-
-## 2. Bảng Tham Chiếu Thuộc Tính
-
-| Thuộc tính | Bắt buộc | Giá trị hợp lệ | Ghi chú |
-|---|---|---|---|
-| `id` | Có | Chuỗi không dấu, ví dụ: `"catalog-filter"` | Định danh duy nhất |
-| `service` | Không | `"catalog"`, `"commerce"`, `"users"`, `"auction"`, `"fulfillment"`, `"notification"`, `"log"`, `"wallet"` | Nếu bỏ trống, Gateway tự đoán qua URL |
-| `method` | Có | `"GET"`, `"POST"`, `"PUT"`, `"DELETE"`, `"PATCH"` | Không phân biệt hoa/thường |
-| `path` | Có | `"/gateway/api/v1/service/..."` | Hỗ trợ tham số: `{id}`, `{slug}`, `{id:guid}` |
-| `policy` | Không | `"public"`, `"authenticated"`, `"buyer"`, `"seller"`, `"staff"`, `"admin"` | Mặc định: `"public"` |
-| `statusCode` | Không | Số nguyên, ví dụ: `200`, `201`, `400`, `404`, `422` | Mặc định: `200` |
-| `responseType` | Không | `"single"`, `"paged"`, `"raw"`, `"error"` | Mặc định: `"single"` |
-| `message` | Không | Chuỗi thông điệp | Xuất hiện ở trường `message` trong response |
-| `request` | Không | Object JSON | Dùng làm Body mẫu hiển thị trên Swagger UI |
-| `response` | Không | Object hoặc Array JSON | Dữ liệu mock trả về |
-| `responseFile` | Không | Tên file hoặc đường dẫn | Đọc response từ file json bên ngoài |
-
----
-
-## 3. Cách Test Quyền Hạn (RBAC) Trên Swagger
-
-1. **Khi Service ở chế độ Mock**:
-   - Bạn chỉ cần bấm nút **Authorize** màu xanh góc trên Swagger.
-   - Nhập một trong các từ khóa: `admin`, `seller`, `staff`, `buyer`.
-   - Bấm **Authorize** -> Gọi API mock bình thường.
-   - Nếu bật `"AuthMode": "Bypass"` trong `gateway.runtime.json`, bạn thậm chí **không cần đăng nhập** (bấm execute trực tiếp).
-2. **Khi Service ở chế độ Real**:
-   - Gateway **bắt buộc** phải có Token JWT thật ký bởi Identity Server.
-   - Nếu nhập token giả (`admin`, chuỗi rác...), Gateway sẽ chặn ngay với lỗi **`401 Unauthorized`**.
+1. Tạo file mới trong thư mục `Mocks/` với đuôi `.mock.json` (ví dụ: `my-feature.mock.json`).
+2. Copy nội dung từ một trong 5 file mẫu (`auth-register.mock.json` hoặc `users-me.mock.json`).
+3. Cập nhật `path`, `method`, `request`, `response` phù hợp với nghiệp vụ.
+4. Mở Swagger UI (`http://localhost:8000/swagger`) $\rightarrow$ API mock mới sẽ tự động hiển thị và sẵn sàng test ngay mà không cần khởi động lại Gateway (Hot-Reload).

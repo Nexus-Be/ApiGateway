@@ -46,8 +46,9 @@ public sealed class MockEngineMiddleware
             ? resolution.EffectiveMode(context, def.Service, options.CurrentValue, runtimeManager)
             : runtimeManager.ResolveEffectiveMode(context, def.Service, configuredMode);
 
-        // If service is in Real mode, let the request pass through to the real backend / endpoints
-        if (effectiveMode == "Real")
+        // If service is in Real mode or already handled by a C# MVC Controller,
+        // let the request pass through to the controller for model binding and validation
+        if (effectiveMode == "Real" || context.GetEndpoint()?.Metadata.GetMetadata<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>() != null)
         {
             await _next(context);
             return;

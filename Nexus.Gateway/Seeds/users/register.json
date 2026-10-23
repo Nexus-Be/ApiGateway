@@ -1,9 +1,10 @@
 {
   "id": "11111111-1111-1111-1111-000000000099",
-  "displayName": "Người mua mới",
-  "email": "new@mcs.local",
+  "displayName": "John Doe",
+  "email": "john.doe@example.com",
   "roles": [
     "buyer"
   ],
-  "status": "Active"
+  "status": "PendingVerification",
+  "shopName": ""
 }

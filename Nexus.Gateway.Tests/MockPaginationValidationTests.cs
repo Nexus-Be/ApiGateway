@@ -17,7 +17,7 @@ public sealed class MockPaginationValidationTests
         using var app = new Factory();
         using var client = app.CreateClient();
 
-        using var response = await client.PostAsJsonAsync("/api/v1/catalog/search" + query, new { keyword = "keyboard" });
+        using var response = await client.GetAsync("/api/v1/catalog/products" + query);
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal("VAL_INVALID_INPUT", json.RootElement.GetProperty("errorCode").GetString());

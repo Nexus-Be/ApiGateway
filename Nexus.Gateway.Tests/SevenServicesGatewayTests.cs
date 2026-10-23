@@ -469,13 +469,6 @@ public sealed class SevenServicesGatewayTests
         var txContent = await txResp.Content.ReadAsStringAsync();
         using var txDoc = JsonDocument.Parse(txContent);
         Assert.True(txDoc.RootElement.GetProperty("data").GetProperty("items").GetArrayLength() > 0);
-
-        // 7. Declarative mock endpoint: /api/v1/wallet/quick-summary
-        var summaryResp = await client.GetAsync("/gateway/api/v1/wallet/quick-summary");
-        Assert.Equal(HttpStatusCode.OK, summaryResp.StatusCode);
-        var summaryContent = await summaryResp.Content.ReadAsStringAsync();
-        using var summaryDoc = JsonDocument.Parse(summaryContent);
-        Assert.Equal("5000000.00", summaryDoc.RootElement.GetProperty("data").GetProperty("balance").GetString());
     }
 }
 

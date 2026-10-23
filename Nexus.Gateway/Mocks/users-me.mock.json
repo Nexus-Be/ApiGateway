@@ -1,0 +1,21 @@
+{
+  "id": "users-me",
+  "service": "users",
+  "method": "GET",
+  "path": "/api/v1/users/me",
+  "description": "Retrieve authenticated user profile and roles",
+  "policy": "authenticated",
+  "statusCode": 200,
+  "responseType": "single",
+  "message": "User retrieved successfully.",
+  "response": {
+    "id": "11111111-1111-1111-1111-000000000004",
+    "displayName": "Alex Rivers",
+    "email": "buyer01@mcs.local",
+    "roles": [
+      "buyer"
+    ],
+    "status": "Active",
+    "shopName": ""
+  }
+}

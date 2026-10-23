@@ -1,0 +1,19 @@
+{
+  "id": "auth-resend-otp",
+  "service": "users",
+  "method": "POST",
+  "path": "/api/v1/auth/resend-otp",
+  "description": "Resend verification OTP code to user email address",
+  "policy": "public",
+  "statusCode": 200,
+  "responseType": "single",
+  "message": "Verification code has been resent to your email.",
+  "request": {
+    "email": "user@mcs.local"
+  },
+  "response": {
+    "success": true,
+    "message": "New OTP verification code has been dispatched to your email address.",
+    "email": "user@mcs.local"
+  }
+}

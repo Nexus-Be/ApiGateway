@@ -1,9 +1,10 @@
 {
   "id": "11111111-1111-1111-1111-000000000004",
-  "displayName": "Người mua 01",
+  "displayName": "Alex Rivers",
   "email": "buyer01@mcs.local",
   "roles": [
     "buyer"
   ],
-  "status": "Active"
+  "status": "Active",
+  "shopName": ""
 }
