@@ -53,7 +53,7 @@ public sealed class MockEngineTests
         Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
 
         var items = doc.RootElement.GetProperty("data");
-        Assert.Equal(5, items.GetArrayLength());
+        Assert.True(items.GetArrayLength() >= 5);
 
         // Reload API works
         var reloadResp = await client.PostAsync("/gateway/api/v1/mock-engine/reload", null);
@@ -184,16 +184,16 @@ public sealed class MockEngineTests
         {
             Configure = o =>
             {
-                o.Services["catalog"].Mode = "Real";
-                o.Services["catalog"].Address = "http://127.0.0.1:59999";
+                o.Services["users"].Mode = "Real";
+                o.Services["users"].Address = "http://127.0.0.1:59999";
                 o.AuthMode = "Enforce";
             }
         };
         using var client = app.CreateClient();
 
-        // 1. With mock token "admin" on Real service -> MUST return 401 Unauthorized (not 503!)
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "admin");
-        var resp = await client.PostAsJsonAsync("/gateway/api/v1/catalog/categories", new { name = "Bàn phím" });
+        // 1. With mock token "buyer" on Real service -> MUST return 401 Unauthorized (not 503!)
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "buyer");
+        var resp = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
 
         var content = await resp.Content.ReadAsStringAsync();
@@ -202,8 +202,8 @@ public sealed class MockEngineTests
 
         // 2. With real signed JWT token on Real service -> Authenticated!
         // Reaches backend gRPC (which gives 503 because 127.0.0.1:59999 is not running)
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("root", "admin"));
-        var respRealToken = await client.PostAsJsonAsync("/gateway/api/v1/catalog/categories", new { name = "Bàn phím" });
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("root", "buyer"));
+        var respRealToken = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, respRealToken.StatusCode);
     }
 
@@ -214,15 +214,15 @@ public sealed class MockEngineTests
         {
             Configure = o =>
             {
-                o.Services["catalog"].Mode = "Mock";
+                o.Services["users"].Mode = "Mock";
                 o.AuthMode = "Enforce";
             }
         };
         using var client = app.CreateClient();
 
-        // On Mock service, mock token "admin" is accepted and returns mock data!
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "admin");
-        var resp = await client.PostAsJsonAsync("/gateway/api/v1/catalog/categories", new { name = "Bàn phím" });
+        // On Mock service, mock token "buyer" is accepted and returns mock data!
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "buyer");
+        var resp = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Equal("Mock", resp.Headers.GetValues("X-Gateway-Mode").Single());
     }

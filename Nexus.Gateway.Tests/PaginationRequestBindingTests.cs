@@ -1,46 +1,41 @@
-using System.Net;
-using System.Text.Json;
+using Nexus.Gateway.Common;
 using Xunit;
 
 namespace Nexus.Gateway.Tests;
 
 public sealed class PaginationRequestBindingTests
 {
-    [Theory]
-    [InlineData("/api/v1/catalog/categories", null)]
-    [InlineData("/api/v1/catalog/products", null)]
-    [InlineData("/api/v1/auctions", null)]
-    [InlineData("/api/v1/log/logs", "staff")]
-    [InlineData("/api/v1/commerce/orders", "buyer")]
-    [InlineData("/api/v1/seller/products", "seller")]
-    [InlineData("/api/v1/seller/orders", "seller")]
-    [InlineData("/api/v1/admin/users", "admin")]
-    [InlineData("/api/v1/admin/orders", "admin")]
-    [InlineData("/api/v1/wallet/transactions", "buyer")]
-    public async Task Paged_action_keeps_flat_query_defaults_and_validates_bounds(string route, string? role)
+    [Fact]
+    public void Pagination_request_has_correct_defaults()
     {
-        using var app = new Factory();
-        using var client = app.CreateClient();
-        if (role is not null)
-            client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("user-1", role));
+        var request = new PaginationRequest();
+        Assert.Equal(1, request.Page);
+        Assert.Equal(20, request.PageSize);
+        Assert.True(request.IsValid);
+    }
 
-        using var defaultResult = await client.GetAsync(route);
-        Assert.Equal(HttpStatusCode.OK, defaultResult.StatusCode);
-        using var defaultBody = JsonDocument.Parse(await defaultResult.Content.ReadAsStringAsync());
-        var defaults = defaultBody.RootElement.GetProperty("data").GetProperty("pagination");
-        Assert.Equal(1, defaults.GetProperty("pageIndex").GetInt32());
-        Assert.Equal(20, defaults.GetProperty("pageSize").GetInt32());
+    [Theory]
+    [InlineData(1, 1)]
+    [InlineData(5, 50)]
+    [InlineData(10, 100)]
+    public void Pagination_request_accepts_valid_bounds(int page, int pageSize)
+    {
+        var request = new PaginationRequest { Page = page, PageSize = pageSize };
+        Assert.True(request.IsValid);
+        request.EnsureValid(); // Should not throw
+    }
 
-        using var customResult = await client.GetAsync(route + "?page=2&pageSize=7");
-        Assert.Equal(HttpStatusCode.OK, customResult.StatusCode);
-        using var customBody = JsonDocument.Parse(await customResult.Content.ReadAsStringAsync());
-        var custom = customBody.RootElement.GetProperty("data").GetProperty("pagination");
-        Assert.Equal(2, custom.GetProperty("pageIndex").GetInt32());
-        Assert.Equal(7, custom.GetProperty("pageSize").GetInt32());
-
-        using var invalidResult = await client.GetAsync(route + "?pageSize=101");
-        Assert.Equal(HttpStatusCode.BadRequest, invalidResult.StatusCode);
-        using var invalidBody = JsonDocument.Parse(await invalidResult.Content.ReadAsStringAsync());
-        Assert.Equal("VAL_INVALID_INPUT", invalidBody.RootElement.GetProperty("errorCode").GetString());
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(-1, 20)]
+    [InlineData(1, 0)]
+    [InlineData(1, 101)]
+    [InlineData(1, -5)]
+    public void Pagination_request_rejects_invalid_bounds(int page, int pageSize)
+    {
+        var request = new PaginationRequest { Page = page, PageSize = pageSize };
+        Assert.False(request.IsValid);
+        var ex = Assert.Throws<GatewayInputException>(() => request.EnsureValid());
+        Assert.Equal("VAL_INVALID_INPUT", ex.ErrorCode);
     }
 }

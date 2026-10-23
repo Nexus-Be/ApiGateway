@@ -35,30 +35,28 @@ public sealed class TraceConsistencyTests
         {
             Configure = options =>
             {
-                options.Services["catalog"].Mode = "Real";
-                options.Services["catalog"].Address = "http://127.0.0.1:1";
-                options.Services["catalog"].TimeoutSeconds = 1;
+                options.Services["users"].Mode = "Real";
+                options.Services["users"].Address = "http://127.0.0.1:1";
+                options.Services["users"].TimeoutSeconds = 1;
             }
         };
         using var client = app.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token());
 
-        using var response = await client.GetAsync("/api/v1/catalog/products");
+        using var response = await client.GetAsync("/api/v1/users/me");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(response.Headers.GetValues("X-Trace-Id").Single(), doc.RootElement.GetProperty("traceId").GetString());
     }
 
-    [Theory]
-    [InlineData("/api/v1/catalog/products")]
-    [InlineData("/api/v1/users/me")]
-    public async Task Mock_response_header_and_body_use_one_request_trace(string route)
+    [Fact]
+    public async Task Mock_response_header_and_body_use_one_request_trace()
     {
         using var app = new Factory();
         using var client = app.CreateClient();
-        if (route.Contains("users/me"))
-            client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token());
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token());
 
-        using var response = await client.GetAsync(route);
+        using var response = await client.GetAsync("/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.Equal(response.Headers.GetValues("X-Trace-Id").Single(), doc.RootElement.GetProperty("traceId").GetString());

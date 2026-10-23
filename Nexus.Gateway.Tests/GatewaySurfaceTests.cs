@@ -123,7 +123,7 @@ public sealed class GatewaySurfaceTests
         using var response = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Real", response.Headers.GetValues("X-Gateway-Mode").Single());
-        Assert.NotNull(stub.LastAuthorization);
+        Assert.NotNull(StubUsers.LastAuthorization);
     }
 
     private sealed class StubUsers : UsersApi.UsersApiBase

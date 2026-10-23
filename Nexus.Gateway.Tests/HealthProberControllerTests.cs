@@ -99,12 +99,15 @@ public sealed class HealthProberControllerTests
         using var app = new Factory();
         var proberManager = app.Services.GetRequiredService<IHealthProberManager>();
 
-        // Giả lập service catalog bị đánh dấu Unhealthy
-        var catalogState = proberManager.GetState("catalog")!;
-        catalogState.Status = ProberRunStatus.Unhealthy;
+        // Giả lập service users bị đánh dấu Unhealthy
+        var userState = proberManager.GetState("users")!;
+        userState.Status = ProberRunStatus.Unhealthy;
 
         using var client = app.CreateClient();
-        using var realReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/catalog/products");
+        using var realReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login")
+        {
+            Content = JsonContent.Create(new { username = "testuser", password = "Password123!" })
+        };
         realReq.Headers.Add("X-Mock-Mode", "Real");
 
         var response = await client.SendAsync(realReq);

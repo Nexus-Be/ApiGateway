@@ -31,7 +31,7 @@
     "AuthMode": "Enforce",
     "Services": {
       "users": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8001",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,

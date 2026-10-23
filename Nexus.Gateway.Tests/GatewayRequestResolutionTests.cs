@@ -69,14 +69,15 @@ public sealed class GatewayRequestResolutionTests
     {
         using var app = new Factory();
         using var client = app.CreateClient();
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/catalog/products");
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token());
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users/me");
         request.Headers.Add("X-Mock-Mode", "Real");
-        request.Headers.Add("X-Service-Mode-catalog", "Mock");
+        request.Headers.Add("X-Service-Mode-users", "Mock");
         using var first = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         Assert.Equal("Mock", first.Headers.GetValues("X-Gateway-Mode").Single());
 
-        using var second = await client.GetAsync("/api/v1/catalog/products");
+        using var second = await client.GetAsync("/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
         Assert.Equal("Mock", second.Headers.GetValues("X-Gateway-Mode").Single());
     }

@@ -1,0 +1,22 @@
+{
+  "id": "mock-catalog-products",
+  "service": "catalog",
+  "method": "GET",
+  "path": "/api/v1/catalog/products",
+  "description": "Sample paged products catalog for frontend development",
+  "policy": "public",
+  "statusCode": 200,
+  "responseType": "paged",
+  "response": {
+    "items": [
+      {
+        "id": "22222222-2222-2222-2222-000000000001",
+        "name": "Mechanical Gaming Keyboard",
+        "price": "1250000.00",
+        "currency": "VND",
+        "status": "Active"
+      }
+    ],
+    "total": 1
+  }
+}
