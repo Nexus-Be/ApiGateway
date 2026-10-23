@@ -1,7 +1,0 @@
-{
-  "code": "ProductCreated",
-  "serviceName": "catalog",
-  "category": "DataMutation",
-  "description": "Seller tạo sản phẩm mới",
-  "isEnabled": false
-}

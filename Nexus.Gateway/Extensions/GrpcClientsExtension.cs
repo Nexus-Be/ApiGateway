@@ -8,14 +8,11 @@ public static class GrpcClientsExtension
 {
     public static IServiceCollection AddGatewayGrpcClients(this IServiceCollection services)
     {
-        services.AddNamedGrpcClient<CatalogApi.CatalogApiClient>("catalog");
-        services.AddNamedGrpcClient<CommerceApi.CommerceApiClient>("commerce");
+        // Core User/Auth Service Client
         services.AddNamedGrpcClient<UsersApi.UsersApiClient>("users");
-        services.AddNamedGrpcClient<LogApi.LogApiClient>("log");
-        services.AddNamedGrpcClient<AuctionApi.AuctionApiClient>("auction");
-        services.AddNamedGrpcClient<FulfillmentApi.FulfillmentApiClient>("fulfillment");
-        services.AddNamedGrpcClient<NotificationApi.NotificationApiClient>("notification");
-        services.AddNamedGrpcClient<WalletApi.WalletApiClient>("wallet");
+
+        // NOTE (Team): Khi phát triển các Microservices tiếp theo (Catalog, Commerce, etc.),
+        // bổ sung contract tương ứng vào shop.proto và đăng ký AddNamedGrpcClient tại đây.
 
         return services;
     }

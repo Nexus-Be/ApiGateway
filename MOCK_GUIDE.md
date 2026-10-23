@@ -19,9 +19,17 @@
 Dành cho trường hợp: Bạn cần tạo một API mới tinh (ví dụ `GET /api/v1/catalog/promotions`) để Frontend gọi thử mà không cần đụng vào code C#.
 
 ### Bước 1: Tạo file JSON tại thư mục `Mocks/`
-Vào thư mục: `Nexus.Gateway/Mocks/{tên_service}/`  
+Vào thư mục: `Nexus.Gateway/Mocks/`  
 Tạo một file có đuôi bắt buộc là: `*.mock.json` (hoặc `*.def.json`).  
-*Ví dụ:* `Nexus.Gateway/Mocks/catalog/promotions.mock.json`
+*Ví dụ:* `Nexus.Gateway/Mocks/promotions.mock.json`
+
+> 💡 **5 File Mẫu Chuẩn Có Sẵn Để Tham Khảo**:
+> Trong thư mục `Nexus.Gateway/Mocks/` đã có sẵn 5 file mẫu chuẩn theo entity của `UserService` và `ApiResponseFactory`:
+> - `auth-register.mock.json` (`POST /api/v1/auth/register`) — Đăng ký tài khoản (`PendingVerification`).
+> - `auth-resend-otp.mock.json` (`POST /api/v1/auth/resend-otp`) — Gửi lại OTP (`OtpResponse`).
+> - `auth-verify-otp.mock.json` (`POST /api/v1/auth/verify-otp`) — Kích hoạt tài khoản (`Active`).
+> - `auth-login.mock.json` (`POST /api/v1/auth/login`) — Đăng nhập trả về JWT token dev (`LoginResponse`).
+> - `users-me.mock.json` (`GET /api/v1/users/me`) — Lấy profile cá nhân với quyền `policy: "authenticated"`.
 
 ---
 
@@ -121,7 +129,7 @@ Khi bạn muốn test xem giao diện xử lý ra sao khi API trả về lỗi 4
 
 # CÁCH 2: MOCK DỮ LIỆU CHO CONTROLLER C# CHÍNH THỨC (SEED FIXTURES)
 
-Dành cho Backend Developer: Khi bạn đã viết xong Action trong Controller (ví dụ `CatalogController.cs`), nhưng Backend microservice gRPC thật chưa code xong hoặc chưa bật database.
+Dành cho Backend Developer: Khi bạn đã viết xong Action trong Controller (ví dụ `ProductsController.cs`, `CartController.cs`), nhưng Backend microservice gRPC thật chưa code xong hoặc chưa bật database.
 
 ### Bước 1: Xem tên Operation trong Controller
 Trong Action Controller, bạn gọi dòng lệnh Dispatcher:

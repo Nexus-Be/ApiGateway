@@ -13,7 +13,7 @@ public interface IMockDataMapper
         string service,
         string operation,
         BackendOptions config,
-        MessageParser<T> parser,
+        MessageParser<T>? parser,
         CancellationToken cancellationToken) where T : class, IMessage<T>;
 
     Task<(string? JsonString, IResult? Failure)> MapMockPagedJsonAsync(
@@ -40,7 +40,7 @@ public sealed class MockDataMapper : IMockDataMapper
         string service,
         string operation,
         BackendOptions config,
-        MessageParser<T> parser,
+        MessageParser<T>? parser,
         CancellationToken cancellationToken) where T : class, IMessage<T>
     {
         if (config.MockDelayMs > 0)
@@ -67,19 +67,35 @@ public sealed class MockDataMapper : IMockDataMapper
                 context,
                 title: "Seed data not found",
                 status: StatusCodes.Status500InternalServerError,
-                detail: $"Seed data file for '{service}/{operation}' is missing.",
+                detail: $"Seed data file for '{service}/{operation}' is missing. Expected at: Seeds/{service}/{operation}.json or Seeds/{operation}/{operation}.json",
                 errorCode: "SEED_DATA_NOT_FOUND"
             );
             return (null, missing);
         }
 
         var json = await File.ReadAllTextAsync(fixturePath, cancellationToken);
-        var protoMessage = parser.ParseJson(json);
-        var formattedJson = JsonFormatter.Default.Format(protoMessage);
-        using var doc = JsonDocument.Parse(formattedJson);
-        var dataElement = doc.RootElement.Clone();
 
-        return (dataElement, null);
+        if (parser != null)
+        {
+            try
+            {
+                var protoMessage = parser.ParseJson(json);
+                var formattedJson = JsonFormatter.Default.Format(protoMessage);
+                using var doc = JsonDocument.Parse(formattedJson);
+                return (doc.RootElement.Clone(), null);
+            }
+            catch
+            {
+                // Fallback to direct JSON parsing if protobuf parse fails
+                using var doc = JsonDocument.Parse(json);
+                return (doc.RootElement.Clone(), null);
+            }
+        }
+        else
+        {
+            using var doc = JsonDocument.Parse(json);
+            return (doc.RootElement.Clone(), null);
+        }
     }
 
     public async Task<(string? JsonString, IResult? Failure)> MapMockPagedJsonAsync(
@@ -113,7 +129,7 @@ public sealed class MockDataMapper : IMockDataMapper
                 context,
                 title: "Seed data not found",
                 status: StatusCodes.Status500InternalServerError,
-                detail: $"Seed data file for '{service}/{operation}' is missing.",
+                detail: $"Seed data file for '{service}/{operation}' is missing. Expected at: Seeds/{service}/{operation}.json",
                 errorCode: "SEED_DATA_NOT_FOUND"
             );
             return (null, missing);
@@ -127,20 +143,18 @@ public sealed class MockDataMapper : IMockDataMapper
     {
         var candidates = new List<string>
         {
+            // 1. Feature / Service folders under Seeds/
             Path.Combine(_environment.ContentRootPath, "Seeds", service, $"{operation}.json"),
-            Path.Combine(_environment.ContentRootPath, "Mocks", service, $"{operation}.json")
+            Path.Combine(_environment.ContentRootPath, "Seeds", operation, $"{operation}.json"),
+            Path.Combine(_environment.ContentRootPath, "Seeds", "auth", $"{operation}.json"),
+            Path.Combine(_environment.ContentRootPath, "Seeds", "users", $"{operation}.json"),
+            // 2. Flat format under Seeds/
+            Path.Combine(_environment.ContentRootPath, "Seeds", $"{service}-{operation}.json"),
+            Path.Combine(_environment.ContentRootPath, "Seeds", $"{operation}.json"),
+            // 3. Fallback compatibility with Mocks/
+            Path.Combine(_environment.ContentRootPath, "Mocks", service, $"{operation}.json"),
+            Path.Combine(_environment.ContentRootPath, "Mocks", $"{operation}.json")
         };
-
-        if (service.Equals("user", StringComparison.OrdinalIgnoreCase))
-        {
-            candidates.Add(Path.Combine(_environment.ContentRootPath, "Seeds", "users", $"{operation}.json"));
-            candidates.Add(Path.Combine(_environment.ContentRootPath, "Mocks", "users", $"{operation}.json"));
-        }
-        else if (service.Equals("users", StringComparison.OrdinalIgnoreCase))
-        {
-            candidates.Add(Path.Combine(_environment.ContentRootPath, "Seeds", "user", $"{operation}.json"));
-            candidates.Add(Path.Combine(_environment.ContentRootPath, "Mocks", "user", $"{operation}.json"));
-        }
 
         return candidates.FirstOrDefault(File.Exists) ?? candidates[0];
     }

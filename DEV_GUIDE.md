@@ -46,7 +46,7 @@ Tạo `Nexus.Gateway/Seeds/catalog/brands.json` chứa payload gRPC giả lập 
 ```
 
 ### Bước 3: Viết Action trong Controller (Siêu tinh gọn)
-Trong `CatalogController.cs`, chỉ cần viết action ngắn gọn:
+Trong `ProductsController.cs` (hoặc Controller tương ứng theo nghiệp vụ), chỉ cần viết action ngắn gọn:
 
 ```csharp
 [HttpGet("catalog/brands")]

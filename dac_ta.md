@@ -585,11 +585,15 @@ src/Services/ApiGateway/
 │   ├── Common/                           # TẦNG DÙNG CHUNG (VALIDATION & HELPERS)
 │   │   └── ValidationHelpers.cs          # Validation helpers: Bad(), PageOk(), GuidOk(), Roles, Consts
 │   │
-│   ├── Controllers/                      # ĐẦU VÀO: 11 CONTROLLERS TIÊU CHUẨN [ApiController] ControllerBase
-│   │   ├── AuthController.cs             # Routes: /api/v1/auth/... (login, register)
-│   │   ├── UsersController.cs            # Routes: /api/v1/users/..., /api/v1/admin/users, roles
-│   │   ├── CatalogController.cs          # Routes: /api/v1/catalog/..., /api/v1/seller/products, inventory
-│   │   ├── CommerceController.cs         # Routes: /api/v1/commerce/cart, orders, seller/admin orders
+│   ├── Controllers/                      # ĐẦU VÀO: 15 CONTROLLERS TIÊU CHUẨN [ApiController] ControllerBase
+│   │   ├── AuthController.cs             # Routes: /api/v1/auth/... (login, register, otp)
+│   │   ├── UsersController.cs            # Routes: /api/v1/users/... (me, seller-upgrade)
+│   │   ├── AdminUsersController.cs       # Routes: /api/v1/admin/users, roles, permissions, approve seller
+│   │   ├── CartController.cs             # Routes: /api/v1/cart, /api/v1/commerce/cart (giỏ hàng)
+│   │   ├── OrdersController.cs           # Routes: /api/v1/orders, /api/v1/commerce/orders, seller/admin orders
+│   │   ├── ProductsController.cs         # Routes: /api/v1/products, /api/v1/catalog/products, seller products
+│   │   ├── CategoriesController.cs       # Routes: /api/v1/categories, /api/v1/catalog/categories
+│   │   ├── InventoryController.cs        # Routes: /api/v1/seller/inventory (quản lý tồn kho seller)
 │   │   ├── AuctionController.cs          # Routes: /api/v1/auctions/... (auctions, bids)
 │   │   ├── FulfillmentController.cs      # Routes: /api/v1/fulfillment/... (shipping, inventory, tracking)
 │   │   ├── NotificationController.cs     # Routes: /api/v1/notifications/... (list, read, preferences)
@@ -698,30 +702,28 @@ src/Services/ApiGateway/
 
 ---
 
-# 5. BẢNG TỔNG HỢP 11 CONTROLLERS & DANH MỤC 17 NHÓM ROUTE
+# 5. BẢNG TỔNG HỢP 15 CONTROLLERS & DANH MỤC CÁC NHÓM ROUTE
 
 Toàn bộ các endpoint trong Gateway đều bắt đầu bằng tiền tố duy nhất:
 $$\mathbf{/api/v1/...}$$
 
 | STT | Controller | File Code | Route Prefix | Quyền Hạn (RBAC) | Chức Năng Nghiệp Vụ Chính | Service Đích |
 |:---:|:---|:---|:---|:---|:---|:---:|
-| 1 | `AuthController` | `Controllers/AuthController.cs` | `/api/v1/auth` | Anonymous | Đăng ký tài khoản (`/register`), Đăng nhập lấy access token (`/login`). | `users` |
+| 1 | `AuthController` | `Controllers/AuthController.cs` | `/api/v1/auth` | Anonymous | Đăng ký tài khoản (`/register`), xác thực OTP (`/verify-otp`), gửi lại OTP (`/resend-otp`), đăng nhập (`/login`). | `users` |
 | 2 | `UsersController` | `Controllers/UsersController.cs` | `/api/v1/users/me` | Authenticated | Xem thông tin cá nhân (`/`), cập nhật hồ sơ, yêu cầu nâng cấp người bán (`/seller-upgrade`). | `users` |
-| 3 | `CatalogController` | `Controllers/CatalogController.cs` | `/api/v1/catalog` | Anonymous / Public | Xem danh mục (`/categories`), xem danh sách sản phẩm (`/products`), xem chi tiết sản phẩm (`/products/{id}`). Admin tạo/sửa/xóa danh mục. | `catalog` |
-| 4 | `CatalogController` | `Controllers/CatalogController.cs` | `/api/v1/seller` | Seller / Admin | Quản lý kho ảo seller (`/inventory`, `/inventory/adjust`), seller quản lý sản phẩm (`/products`). | `catalog` |
-| 5 | `CommerceController` | `Controllers/CommerceController.cs` | `/api/v1/commerce/cart` | Authenticated | Thao tác giỏ hàng: xem giỏ (`/`), thêm hàng (`/items`), sửa số lượng, xóa sản phẩm, xóa trắng giỏ. | `commerce` |
-| 6 | `CommerceController` | `Controllers/CommerceController.cs` | `/api/v1/commerce/orders` | Authenticated | Tạo đơn hàng checkout (`/`), xem danh sách đơn của tôi, xem chi tiết đơn hàng theo ID. | `commerce` |
-| 7 | `CommerceController` | `Controllers/CommerceController.cs` | `/api/v1/seller/orders` | Seller | Xem danh sách đơn hàng thuộc quyền quản lý của shop. | `commerce` |
-| 8 | `CommerceController` | `Controllers/CommerceController.cs` | `/api/v1/admin/orders` | Staff / Admin | Xem toàn bộ đơn hàng của toàn sàn thương mại điện tử. | `commerce` |
-| 9 | `UsersController` | `Controllers/UsersController.cs` | `/api/v1/admin` | Staff / Admin | Xem danh sách người dùng (`/users`), duyệt hồ sơ seller (`/sellers/{id}/approve`), gán role, xem roles/permissions. | `users` |
-| 10 | `LogController` | `Controllers/LogController.cs` | `/api/v1/log` | Staff / Admin | Tra cứu nhật ký hệ thống (`/logs`), xem chi tiết log, xem danh mục sự kiện log (`/event-types`), bật/tắt event type. | `log` |
-| 11 | `AuctionController` | `Controllers/AuctionController.cs` | `/api/v1/auctions` | Public / Seller / Auth | Xem danh sách đấu giá (`/`), xem chi tiết, seller tạo phiên đấu giá mới, người mua đặt giá trả (`/bids`), xem lịch sử giá bid. | `auction` |
-| 12 | `FulfillmentController` | `Controllers/FulfillmentController.cs`| `/api/v1/fulfillment` | Anonymous / Public | Tra cứu tồn kho kho bãi vật lý (`/inventory/{skuId}`), tính phí giao hàng (`/shipping/quote`), tra cứu mã vận đơn (`/shipments/{code}`). | `fulfillment` |
-| 13 | `NotificationController`| `Controllers/NotificationController.cs`| `/api/v1/notifications`| Authenticated | Xem danh sách thông báo cá nhân (`/`), đánh dấu đã đọc (`/read`), xem/cập nhật tùy chọn nhận thông báo (`/preferences`). | `notification` |
-| 14 | `WalletController` | `Controllers/WalletController.cs` | `/api/v1/wallet` | Authenticated | Quản lý ví điện tử: tra cứu số dư (`/balance`), nạp tiền (`/deposit`), rút tiền (`/withdraw`), chuyển tiền nội bộ (`/transfer`), xem lịch sử giao dịch. | `wallet` |
-| 15 | `GatewayControlController`| `Controllers/GatewayControlController.cs`| `/api/v1/gateway` | GatewayAdmin (chặn bypass)| Tra cứu trạng thái 8 services (`GET /modes`), đổi auth mode (`PUT /mode`), đổi mode Mock/Real từng service (`PUT /modes/{service}`). | *Nội bộ Gateway* |
-| 16 | `GatewayControlController`| `Controllers/GatewayControlController.cs`| `/api/v1/mock-engine`| GatewayAdmin (chặn bypass)| Xem danh sách declarative mock endpoints (`GET /definitions`), kích hoạt nạp lại mock nóng (`POST /reload`). | *Nội bộ Gateway* |
-| 17 | `HealthProberController` | `Controllers/HealthProberController.cs` | `/api/v1/gateway/prober`| GatewayAdmin (chặn bypass)| Tra cứu trạng thái Prober 8 services (`GET /status`), bật/tắt daemon từng service (`PUT /{service}`) hoặc bulk (`PUT /bulk`), kiểm tra sức khỏe thủ công tức thì (`POST /{service}/check`). | *Nội bộ Gateway* |
+| 3 | `AdminUsersController` | `Controllers/AdminUsersController.cs` | `/api/v1/admin` | Staff / Admin | Xem danh sách người dùng (`/users`), duyệt hồ sơ seller (`/sellers/{id}/approve`), gán role, xem roles/permissions. | `users` |
+| 4 | `CartController` | `Controllers/CartController.cs` | `/api/v1/cart`, `/api/v1/commerce/cart` | Authenticated | Thao tác giỏ hàng: xem giỏ, thêm hàng (`/items`), sửa số lượng, xóa sản phẩm, xóa trắng giỏ. | `commerce` |
+| 5 | `OrdersController` | `Controllers/OrdersController.cs` | `/api/v1/orders`, `/api/v1/commerce/orders` | Authenticated | Tạo đơn hàng checkout, xem danh sách đơn của tôi, xem chi tiết đơn hàng theo ID, seller/admin orders. | `commerce` |
+| 6 | `ProductsController` | `Controllers/ProductsController.cs` | `/api/v1/products`, `/api/v1/catalog/products` | Anonymous / Seller | Xem danh sách sản phẩm, xem chi tiết sản phẩm. Seller tạo/sửa/xóa sản phẩm (`/seller/products`). | `catalog` |
+| 7 | `CategoriesController` | `Controllers/CategoriesController.cs` | `/api/v1/categories`, `/api/v1/catalog/categories` | Anonymous / Admin | Xem danh mục sản phẩm. Admin tạo/sửa/xóa danh mục. | `catalog` |
+| 8 | `InventoryController` | `Controllers/InventoryController.cs` | `/api/v1/seller/inventory` | Seller | Quản lý kho ảo seller, điều chỉnh số lượng tồn kho ảo. | `catalog` |
+| 9 | `AuctionController` | `Controllers/AuctionController.cs` | `/api/v1/auctions` | Public / Seller / Auth | Xem danh sách đấu giá, xem chi tiết, seller tạo phiên đấu giá mới, người mua đặt giá trả (`/bids`), xem lịch sử giá bid. | `auction` |
+| 10 | `FulfillmentController` | `Controllers/FulfillmentController.cs`| `/api/v1/fulfillment` | Anonymous / Public | Tra cứu tồn kho kho bãi vật lý (`/inventory/{skuId}`), tính phí giao hàng (`/shipping/quote`), tra cứu mã vận đơn (`/shipments/{code}`). | `fulfillment` |
+| 11 | `NotificationController`| `Controllers/NotificationController.cs`| `/api/v1/notifications`| Authenticated | Xem danh sách thông báo cá nhân, đánh dấu đã đọc (`/read`), xem/cập nhật tùy chọn nhận thông báo (`/preferences`). | `notification` |
+| 12 | `LogController` | `Controllers/LogController.cs` | `/api/v1/log` | Staff / Admin | Tra cứu nhật ký hệ thống (`/logs`), xem chi tiết log, xem danh mục sự kiện log (`/event-types`), bật/tắt event type. | `log` |
+| 13 | `WalletController` | `Controllers/WalletController.cs` | `/api/v1/wallet` | Authenticated | Quản lý ví điện tử: tra cứu số dư (`/balance`), nạp tiền (`/deposit`), rút tiền (`/withdraw`), chuyển tiền nội bộ (`/transfer`), xem lịch sử giao dịch. | `wallet` |
+| 14 | `GatewayControlController`| `Controllers/GatewayControlController.cs`| `/api/v1/gateway`, `/api/v1/mock-engine` | GatewayAdmin (chặn bypass)| Tra cứu trạng thái 8 services (`GET /modes`), đổi auth mode (`PUT /mode`), đổi mode Mock/Real, quản lý mock definitions. | *Nội bộ Gateway* |
+| 15 | `HealthProberController` | `Controllers/HealthProberController.cs` | `/api/v1/gateway/prober`| GatewayAdmin (chặn bypass)| Tra cứu trạng thái Prober 8 services (`GET /status`), bật/tắt daemon từng service hoặc bulk, kiểm tra sức khỏe thủ công tức thì. | *Nội bộ Gateway* |
 
 ---
 

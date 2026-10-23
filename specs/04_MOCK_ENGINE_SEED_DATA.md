@@ -26,7 +26,7 @@ var protoMessage = parser.ParseJson(json);
 ## 2. DECLARATIVE MOCK ENGINE (`*.mock.json`)
 
 Dành cho các mock API động độc lập không cần viết code C#:
-- File đặt tại `Nexus.Gateway/Seeds/declarative/*.mock.json` hoặc `Nexus.Gateway/Mocks/declarative/*.mock.json`.
+- File đặt tại `Nexus.Gateway/Mocks/*.mock.json` (có sẵn 5 file mẫu chuẩn: `auth-register.mock.json`, `auth-resend-otp.mock.json`, `auth-verify-otp.mock.json`, `auth-login.mock.json`, `users-me.mock.json`).
 - Tự động nạp khi khởi động và tự động quét hot-reload khi dev sửa file JSON.
 - Tự động sinh tài liệu Swagger UI qua [MockEngineDocumentFilter.cs](../Nexus.Gateway/MockEngine/MockEngineDocumentFilter.cs).
 - Hỗ trợ tham số URL động (dynamic route params) như `/api/v1/catalog/products/{id}`.

@@ -1,6 +1,6 @@
 # Nexus API Gateway (.NET 8)
 
-HTTP gateway gồm **11 controller** và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`. Controller dispatch qua gRPC khi service ở `Real`, hoặc đọc fixture protobuf JSON trong `Nexus.Gateway/Seeds/` khi ở `Mock`. `Nexus.Gateway/Mocks/*.mock.json` là **declarative mock routes** riêng: phục vụ Mock, không tự tạo RPC hay route Real. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để thêm API và [MOCK_GUIDE.md](MOCK_GUIDE.md) để biết cách tạo dữ liệu mock trong 30 giây.
+HTTP gateway gồm **15 controller** và cấu hình **8 backend service**: `users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`. Controller dispatch qua gRPC khi service ở `Real`, hoặc đọc fixture protobuf JSON trong `Nexus.Gateway/Seeds/` khi ở `Mock`. `Nexus.Gateway/Mocks/*.mock.json` là **declarative mock routes** riêng: phục vụ Mock, không tự tạo RPC hay route Real. Xem [DEV_GUIDE.md](DEV_GUIDE.md) để thêm API và [MOCK_GUIDE.md](MOCK_GUIDE.md) để biết cách tạo dữ liệu mock trong 30 giây.
 
 ## Chạy và kiểm thử
 

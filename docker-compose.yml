@@ -1,28 +1,35 @@
-services:
-  redis:
-    image: redis:7-alpine
-    container_name: nexus-gateway-redis
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 3
+# =============================================================================
+# NEXUS API GATEWAY - DOCKER COMPOSE
+# =============================================================================
+# Chạy độc lập Gateway (kết nối tới cụm hạ tầng qua nexus-network hoặc host)
+# =============================================================================
 
+services:
   gateway:
     build:
       context: ./Nexus.Gateway
       dockerfile: Dockerfile
     container_name: nexus-apigateway
     ports:
-      - "8000:8000"
+      - "${GATEWAY_PORT:-8000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - Gateway__RedisConnectionString=redis:6379
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://host.docker.internal:4317
-    depends_on:
-      redis:
-        condition: service_healthy
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - Gateway__RedisConnectionString=${REDIS_CONNECTION_STRING:-redis:6379}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4317}
+      - Gateway__Services__users__Address=${USERS_SERVICE_URL:-http://user-service:8001}
+      - Gateway__Services__catalog__Address=${CATALOG_SERVICE_URL:-http://catalog-service:8002}
+      - Gateway__Services__commerce__Address=${COMMERCE_SERVICE_URL:-http://commerce-service:8003}
+      - Gateway__Services__log__Address=${LOG_SERVICE_URL:-http://log-service:8004}
+      - Gateway__Services__auction__Address=${AUCTION_SERVICE_URL:-http://auction-service:8005}
+      - Gateway__Services__fulfillment__Address=${FULFILLMENT_SERVICE_URL:-http://fulfillment-service:8006}
+      - Gateway__Services__notification__Address=${NOTIFICATION_SERVICE_URL:-http://notification-service:8007}
+      - Gateway__Services__wallet__Address=${WALLET_SERVICE_URL:-http://wallet-service:8008}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
+
+networks:
+  default:
+    name: nexus-network
