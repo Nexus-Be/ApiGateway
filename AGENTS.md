@@ -45,9 +45,61 @@ This project is indexed by GitNexus as **ApiGateway** (1302 symbols, 2728 relati
 
 ---
 
-# Quy Chuẩn Thông Báo Lỗi Toàn Hệ Thống (Mandatory Error Formatting Rules)
+# QUY CHUẨN VẬN HÀNH DÀNH CHO AI CODING AGENTS (API GATEWAY)
 
-Tất cả các thông báo lỗi (Error Messages, Exceptions, ProblemDetails, Validation Errors, Response Details) trong toàn bộ hệ thống Nexus Microservices và API Gateway **BẮT BUỘC** phải tuân theo 3 nguyên tắc sau:
+---
+
+## 🛑 NGUYÊN TẮC 1: BẮT BUỘC LẬP KẾ HOẠCH TRƯỚC KHI HÀNH ĐỘNG (PLAN-FIRST RULE)
+
+Mọi AI Agent khi nhận nhiệm vụ kỹ thuật tại ApiGateway **BẮT BUỘC PHẢI LẬP VÀ TRÌNH BÀY PLAN** trước khi thực hiện bất kỳ hành động sửa đổi mã nguồn, thêm/xóa file, refactor hay thay đổi cấu hình nào.
+
+Một Plan chuẩn bắt buộc phải có:
+1. **Mục tiêu (Objective)**: Tóm tắt chính xác điều cần làm.
+2. **Context & Files cần đọc**: Liệt kê các file nội bộ của ApiGateway cần đọc theo đúng ma trận đọc file tại Nguyên tắc 3.
+3. **Phân tích rủi ro & Phạm vi ảnh hưởng (Impact Analysis)**:
+   - Dùng GitNexus `impact` đánh giá blast radius các symbol bị ảnh hưởng.
+   - Cảnh báo rõ nếu mức độ rủi ro là HIGH hoặc CRITICAL.
+4. **Checklist các bước thực hiện (Step-by-Step Implementation)**: Từng bước logic, chi tiết.
+5. **Kế hoạch kiểm chứng (Verification)**: `dotnet test ApiGateway.sln -c Release`.
+
+---
+
+## 🧭 NGUYÊN TẮC 2: QUY TẮC PHẠM VI NỘI BỘ (INWARD-ONLY / SELF-CONTAINED)
+
+ApiGateway là một Git Repository độc lập (`ApiGateway.git`):
+- **TUYỆT ĐỐI CHỈ ĐƯỢC trỏ tới các tài nguyên nội bộ của ApiGateway**.
+- **TUYỆT ĐỐI KHÔNG ĐƯỢC trỏ ngược ra ngoài Root** (`../../../docs/...`) hay sang các Service khác (`../../Catalog/...`).
+- Toàn bộ tài liệu, hướng dẫn và cấu hình trong repo này phải 100% tự cung tự cấp (Self-contained).
+
+---
+
+## 📚 NGUYÊN TẮC 3: DANH MỤC FILE NỘI BỘ BẮT BUỘC PHẢI ĐỌC TẠI APIGATEWAY
+
+Khi bắt đầu làm việc tại ApiGateway, AI Agent **BẮT BUỘC PHẢI ĐỌC** các file nội bộ sau theo thứ tự:
+1. `specs/00_AGENT_MISSION_GUARDRAILS.md`: Bounded context gateway, port `8000`, 0 DB, rào chắn chống ảo giác.
+2. `specs/01_ARCHITECTURAL_BLUEPRINT.md`: Kiến trúc Pipeline 6 bước, Circuit Breaker, Health Prober, Redis Rate Limiting.
+3. `specs/02_GATEWAY_CONTROLLERS_ROUTING.md`: Danh mục 15 Controller, chuẩn viết Action siêu mỏng.
+4. `specs/03_GATEWAY_STATE_SECURITY.md`: Cấu hình Mode (`Mock`/`Real`), AuthMode (`Enforce`/`Bypass`).
+5. `specs/04_MOCK_ENGINE_SEED_DATA.md`: Cấu trúc dữ liệu Seed Fixture trong `Seeds/`.
+6. `MOCK_GUIDE.md`: Quy trình tạo Mock API chuẩn duy nhất (Controller Action + Seeds/).
+7. `DEV_GUIDE.md`: Hướng dẫn thêm API mới vào Gateway.
+8. `Nexus.Gateway/Contracts/shop.proto`: Hợp đồng Protobuf gRPC gốc của toàn hệ thống.
+9. `specs/05_DEV_VERIFICATION_CHECKLIST.md`: Checklist nghiệm thu: `dotnet test ApiGateway.sln -c Release`.
+
+---
+
+## 🔒 NGUYÊN TẮC 4: RÀO CHẮN BẤT BIẾN TẠI APIGATEWAY
+
+1. **CONTROLLER KHÔNG CHỨA LOGIC PHÂN NHÁNH MOCK/REAL**: Mọi điều phối đều qua `_dispatcher.DispatchAsync` / `DispatchPagedAsync`.
+2. **GATEWAY KHÔNG CHỨA DATABASE HOẶC STATEFUL LOGIC**: Gateway là Edge Proxy không trạng thái.
+3. **CẤU HÌNH PORT 8000 LÀ BẤT BIẾN**.
+4. **HỢP ĐỒNG PROTOBUF GỐC `Contracts/shop.proto`**: Không thay đổi tag number đã có.
+
+---
+
+## 💬 NGUYÊN TẮC 5: QUY CHUẨN THÔNG BÁO LỖI TOÀN HỆ THỐNG (MANDATORY ERROR RULES)
+
+Tất cả các thông báo lỗi (Error Messages, Exceptions, ProblemDetails, Validation Errors, Response Details) **BẮT BUỘC** phải tuân theo 3 nguyên tắc sau:
 1. **Ngôn ngữ (100% English)**: Toàn bộ thông báo lỗi phải được viết bằng tiếng Anh. Tuyệt đối không dùng tiếng Việt trong chuỗi thông báo lỗi trả về cho client.
 2. **Quy cách viết hoa (Sentence case)**: Viết hoa duy nhất chữ cái đầu câu, các từ tiếp theo viết thường (ngoại trừ tên riêng, từ viết tắt hoặc định danh kỹ thuật như `ID`, `OTP`, `JWT`, `URL`, `UUID`, `Email`...).
    - ✅ Đúng: `"Email is already registered in the system."`
@@ -61,3 +113,14 @@ Tất cả các thông báo lỗi (Error Messages, Exceptions, ProblemDetails, V
    - ❌ Sai: `"Invalid Email Address Provided"` (Không dùng Title Case)
 3. **Mã lỗi (Error Codes — SCREAMING_SNAKE_CASE)**: Mã lỗi luôn viết hoa toàn bộ và nối bằng dấu gạch dưới:
    - Ví dụ: `EMAIL_ALREADY_EXISTS`, `OTP_EXPIRED`, `OTP_INVALID`, `OTP_ALREADY_USED`, `USER_NOT_FOUND`, `VAL_INVALID_INPUT`, `UNAUTHORIZED`, `FORBIDDEN`.
+
+---
+
+## 🎯 NGUYÊN TẮC 6: ĐIỀU KIỆN HOÀN THÀNH NHIỆM VỤ (DEFINITION OF DONE)
+
+Một task tại ApiGateway chỉ hoàn tất khi:
+- [ ] Đã lập Plan chi tiết trước khi thực hiện.
+- [ ] Không chứa bất kỳ liên kết trỏ ngược ra ngoài ApiGateway.
+- [ ] `dotnet build ApiGateway.sln -c Release` thành công 100% (0 error).
+- [ ] `dotnet test ApiGateway.sln -c Release` vượt qua 100% các bài test (98/98 passed).
+- [ ] Trạng thái Git sạch, không commit file rác (`bin/`, `obj/`, `.vs/`, `.idea/`).

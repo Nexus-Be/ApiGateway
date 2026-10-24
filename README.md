@@ -23,7 +23,7 @@ Gateway tích hợp sẵn **Health Prober Daemon Engine** giám sát định k�
   - **Saga Rollback**: Bắn sự kiện `ServiceUnhealthyIntegrationEvent` lên RabbitMQ để hủy các giao dịch đang treo.
   - **Docker Auto-Recovery**: Tự động restart/recreate container `nexus-{service}-service` qua Docker socket (tối đa 3 lần chống lặp vô hạn).
 - **Log sự cố**: Lưu tại `logs/health/incident-YYYYMMDD-XXXX.log` với cơ chế xoay file tối đa `1000` dòng/file. Healthy không ghi file log.
-- **API Quản trị (Admin)**: `GET /api/v1/gateway/prober/status`, `PUT /api/v1/gateway/prober/{service}`, `PUT /api/v1/gateway/prober/bulk`, và `POST /api/v1/gateway/prober/{service}/check` (kiểm tra thủ công tức thì). Chi tiết xem [docs/HEALTH_AND_LOGGING_ARCHITECTURE.md](../../../docs/HEALTH_AND_LOGGING_ARCHITECTURE.md).
+- **API Quản trị (Admin)**: `GET /api/v1/gateway/prober/status`, `PUT /api/v1/gateway/prober/{service}`, `PUT /api/v1/gateway/prober/bulk`, và `POST /api/v1/gateway/prober/{service}/check` (kiểm tra thủ công tức thì). Chi tiết xem [specs/01_ARCHITECTURAL_BLUEPRINT.md](specs/01_ARCHITECTURAL_BLUEPRINT.md).
 
 ## Service mode và auth mode là hai trục khác nhau
 
