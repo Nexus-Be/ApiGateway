@@ -1,98 +1,89 @@
 # Hướng Dẫn Kiến Trúc & Thiết Lập Các Microservices (SETUP_GUIDE_SERVICES.md)
-
+> **Trạng thái triển khai (2026-10-24):** ⚠️ Một phần — Gateway có 4/15 controller chứa action (16 action), **1/8** gRPC client (`users`), `shop.proto` chỉ có `UsersApi` 5 rpc, 11 controller là stub 0 action. Các bước trong tài liệu này là **hướng dẫn mục tiêu** cho service backend; phần nào chưa có trong code đều được ghi rõ ❌/⚠️.
+> **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
+> **Cập nhật lần cuối:** 2026-10-24.
 Tài liệu này cung cấp toàn bộ quy trình thiết lập, chuẩn giao tiếp và các bước cần thực hiện để sẵn sàng kết nối các backend microservices với **Nexus API Gateway**.
-
 ---
-
 ## 1. Bản Đồ Phân Bổ Cổng Mạng (Port Map) & Quy Hoạch 8 Services
-
-Gateway làm đầu mối duy nhất cho Frontend gọi vào ở cổng `8000`. Toàn bộ 8 Microservices chạy độc lập từ cổng `8001` đến `8008`:
-
-| STT | Tên Service | Port | Database | Nhiệm vụ chính | Trạng thái Gateway |
-|:---:|:---|:---:|:---|:---|:---:|
-| **0** | **Nexus.Gateway** | **8000** | *(Redis: 6379)* | Edge Proxy, JWT/RBAC, RateLimit, MockEngine, OpenTelemetry | ✅ Hoàn thành 100% |
-| **1** | **Users Service** | **8001** | `usermanagement_db` (5433) | Đăng ký, đăng nhập, phát hành JWT, User Profile, RBAC, Duyệt Seller | Sẵn sàng kết nối |
-| **2** | **Catalog Service** | **8002** | `category_db` (5434) | Quản lý danh mục, sản phẩm, tồn kho kho ảo của Seller | Sẵn sàng kết nối |
-| **3** | **Commerce Service** | **8003** | `commerce_db` (5435) | Giỏ hàng, tạo đơn hàng, quản lý đơn hàng Seller/Admin, Điều phối Checkout Saga | Sẵn sàng kết nối |
-| **4** | **Log Service** | **8004** | `log_db` (5436) | Lưu vết nhật ký tập trung và sự kiện qua RabbitMQ event consumer | Sẵn sàng kết nối |
-| **5** | **Auction Service** | **8005** | `auction_db` (5437) | Phiên đấu giá, trả giá (bid), đồng hồ đếm ngược | Sẵn sàng kết nối |
-| **6** | **Fulfillment Service**| **8006** | `fulfillment_db` (5438) | Tồn kho vật lý kho bãi, tính phí vận chuyển, tra cứu mã vận đơn | Sẵn sàng kết nối |
-| **7** | **Notification Service**| **8007** | `notification_db` (5439)| Gửi thông báo, lịch sử thông báo, cài đặt thông báo người dùng | Sẵn sàng kết nối |
-| **8** | **Wallet Service** | **8008** | `wallet_db` (5440) | Ví điện tử riêng biệt, số dư, nạp/rút tiền, chuyển tiền, thanh toán đơn hàng | Sẵn sàng kết nối |
-
+Gateway làm đầu mối duy nhất cho Frontend gọi vào ở cổng `8000` (bất biến — `Dockerfile EXPOSE 8000`, `launchSettings.json`, `ASPNETCORE_URLS=http://+:8000`). Toàn bộ 8 Microservices chạy độc lập từ cổng `8001` đến `8008`.
+Cột **Trạng thái phía Gateway** dưới đây là phần **đã kiểm chứng trong repo này**; cột Database là **quy hoạch** của monorepo, repo gateway không chứa DB nào (0 `DbContext`, 0 `DbSet`).
+| STT | Tên Service | Port | Database *(quy hoạch)* | Nhiệm vụ chính | Trạng thái phía Gateway | Bằng chứng |
+|:---:|:---|:---:|:---|:---|:---|:---|
+| **0** | **Nexus.Gateway** | **8000** | *(Redis: 6379)* | Edge Proxy, JWT/RBAC, RateLimit, MockEngine, OpenTelemetry | ⚠️ Một phần | 4/15 controller có action (16 action), 1/8 gRPC client |
+| **1** | **Users Service** | **8001** | `usermanagement_db` (5433) | Đăng ký, đăng nhập, phát hành JWT, User Profile, RBAC, Duyệt Seller | ✅ CÓ (client + proto + 5 action) | `Extensions/GrpcClientsExtension.cs`, `Contracts/shop.proto`, `AuthController`, `UsersController` |
+| **2** | **Catalog Service** | **8002** | `category_db` (5434) | Danh mục, sản phẩm, tồn kho ảo | ❌ CHƯA CÓ client/rpc — controller `Products`/`Categories`/`Inventory` là stub 0 action | `Controllers/{Products,Categories,Inventory}Controller.cs` |
+| **3** | **Commerce Service** | **8003** | `commerce_db` (5435) | Giỏ hàng, đơn hàng, Checkout Saga | ❌ CHƯA CÓ client/rpc — controller `Cart`/`Orders` stub | `Controllers/{Cart,Orders}Controller.cs` |
+| **4** | **Log Service** | **8004** | `log_db` (5436) | Nhật ký tập trung, event consumer | ❌ CHƯA CÓ client/rpc — controller `Log` stub | `Controllers/LogController.cs` |
+| **5** | **Auction Service** | **8005** | `auction_db` (5437) | Phiên đấu giá, bid | ❌ CHƯA CÓ client/rpc — controller `Auction` stub | `Controllers/AuctionController.cs` |
+| **6** | **Fulfillment Service**| **8006** | `fulfillment_db` (5438) | Tồn kho vật lý, phí ship, vận đơn | ❌ CHƯA CÓ client/rpc — controller `Fulfillment` stub | `Controllers/FulfillmentController.cs` |
+| **7** | **Notification Service**| **8007** | `notification_db` (5439)| Thông báo, cài đặt thông báo | ❌ CHƯA CÓ client/rpc — controller `Notification` stub | `Controllers/NotificationController.cs` |
+| **8** | **Wallet Service** | **8008** | `wallet_db` (5440) | Ví điện tử, số dư, nạp/rút | ❌ CHƯA CÓ client/rpc — controller `Wallet` stub | `Controllers/WalletController.cs` |
+> ⚠️ **Đính chính**: bản cũ ghi Gateway "✅ Hoàn thành 100%". Không đúng — 11/15 controller rỗng và 7/8 service chưa có client gRPC, nên **chỉ luồng `users` (auth + profile) chạy được end-to-end**.
 ---
-
 ## 2. Các Việc Đã Hoàn Thiện Tại Gateway
-
-Gateway có các thành phần nền tảng sau; chạy lại `dotnet test ApiGateway.sln -c Release` để kiểm tra phiên bản hiện tại. Tests Gateway không chứng minh các backend đã triển khai/tích hợp đầy đủ:
-1. **REST sang gRPC Translation**: Khai báo 8 gRPC Clients typed an toàn theo contract `shop.proto`.
-2. **Mock Engine**: Hỗ trợ chạy Mock độc lập từng service mà không cần backend chạy thật.
-3. **Cô lập trạng thái Real vs Mock theo từng Service**: Bạn có thể bật 1 service bất kỳ sang `Real` (ví dụ `catalog: Real`) để code và test, trong khi 7 service còn lại vẫn chạy `Mock` bình thường.
-4. **Authentication & RBAC**: Kiểm tra JWT Token chặt chẽ (chặn mock token khi service ở chế độ Real). `AuthMode: Bypass` chỉ dành cho Development, request Mock đủ điều kiện và không áp dụng cho control-plane.
-5. **IETF Standard Errors**: Trả mã lỗi Problem Details theo chuẩn quốc tế RFC 9110 & RFC 6585.
-6. **Observability**: Tích hợp sẵn OpenTelemetry 1.18.0 Tracing và Metrics (hỗ trợ đẩy OTLP ra Jaeger/Prometheus).
-7. **Health Prober Daemon, Circuit Breaker & Self-Healing**: Chủ động giám sát sức khỏe 8 backend services (Interval 60s, Timeout 30s, Retries 5, StartPeriod 60s). Tự động ngắt mạch trong 0ms khi Unhealthy (Circuit Breaker Fast-Fail), kích hoạt Saga Rollback Event lên RabbitMQ và tự động khôi phục container qua Docker Engine.
-
+Chạy `dotnet test ApiGateway.sln -c Release` để lấy số liệu thật; tài liệu này **không** trích dẫn con số pass cố định (quy mô hiện tại: 62 attribute `[Fact]`/`[Theory]` trên 19 file). Tests Gateway không chứng minh các backend đã triển khai/tích hợp đầy đủ.
+1. **REST sang gRPC Translation**: ⚠️ MỘT PHẦN — **1/8** client typed được đăng ký: `AddNamedGrpcClient<UsersApi.UsersApiClient>("users")` (`Extensions/GrpcClientsExtension.cs`). Bản cũ ghi "8 gRPC Clients typed" là **sai**.
+2. **Mock Engine**: ✅ CÓ — hai cơ chế chạy song song: seed fixture (`Dispatching/MockDataMapper.cs`, 9 file trong `Seeds/`) và declarative mock (`MockEngine/MockEngineMiddleware.cs`, 6 file `Mocks/*.mock.json`).
+3. **Cô lập trạng thái Real vs Mock theo từng Service**: ⚠️ MỘT PHẦN — đổi mode hoạt động (`Services/GatewayRuntimeManager.cs`, hot-reload `gateway.runtime.json`), nhưng chỉ `users` có client; bật `catalog: Real` **không** gọi được Catalog.
+4. **Authentication & RBAC**: ✅ CÓ — kiểm tra JWT chặt chẽ, chặn mock token khi service `Real` (`Security/MockSecurityAdapterMiddleware.cs:45`, `Security/SecurityConfiguration.cs`). `AuthMode: Bypass` chỉ Development và không áp dụng cho control-plane. ⚠️ Không service nào **phát** JWT (`rpc Login` chưa implement ở User service).
+5. **IETF Standard Errors**: ✅ CÓ — `Middleware/GatewayExceptionHandler.cs` map sang Problem Details RFC 9110 (`ApiErrorResponse`, `errorCode` SCREAMING_SNAKE_CASE).
+6. **Observability**: ✅ CÓ — `OpenTelemetry.* 1.18.0` trong `Nexus.Gateway.csproj:20-23`; `AddGatewayTelemetry` bật AspNetCore/HttpClient/Grpc.Net.Client + `BackendDispatcher` source, exporter OTLP chỉ khi có `OTEL_EXPORTER_OTLP_ENDPOINT`. ⚠️ Không có instrumentation EF Core/Redis/MassTransit ở gateway (0 package tương ứng). Grafana Tempo/Jaeger/Prometheus **không** nằm trong `docker-compose.yml` của repo này.
+7. **Health Prober Daemon & Circuit Breaker**: ⚠️ MỘT PHẦN — prober ✅ (`HealthProber/HealthProberManager.cs`, mặc định `Disabled`, Interval 60s / Timeout 30s / FailureThreshold 5 / StartPeriod 60s), circuit breaker ✅ (`Dispatching/GatewayDispatcher.cs:103-113,164-176` trả 503 `DOWNSTREAM_UNHEALTHY`).
+   - ❌ **Saga Rollback chưa có**: `HealthProber/SagaRollbackPublisher.cs` chỉ ghi warning log, **không** publish RabbitMQ (gateway có 0 package MassTransit).
+   - ⚠️ **Docker auto-recovery không chạy trong container**: `HealthProber/DockerContainerRecoveryService.cs` gọi CLI `docker restart`; compose có mount `/var/run/docker.sock` nhưng image `mcr.microsoft.com/dotnet/aspnet:8.0` **không cài docker CLI**.
 ---
-
 ## 3. Các Phần Còn Lại Cho Gateway (Nếu Muốn Mở Rộng Thêm Trong Tương Lai)
-
-Cần hoàn thiện RPC, triển khai backend và test tích hợp cho từng service trước khi bật Real trong môi trường dùng chung. Những hướng mở rộng sau chưa được đảm bảo bởi Gateway hiện tại:
-- **Output Caching**: Thêm cache Redis cho các endpoint đọc công khai ít thay đổi (ví dụ: `GET /api/v1/catalog/categories`).
-- **BFF (Backend for Frontend)**: Ghép dữ liệu đa nguồn nếu một màn hình mobile cần gộp thông tin từ cả Catalog, Commerce và Wallet.
-
+Cần hoàn thiện RPC, triển khai backend và test tích hợp cho từng service trước khi bật Real trong môi trường dùng chung:
+- ❌ **11 controller stub** cần viết action (`AdminUsers`, `Auction`, `Cart`, `Categories`, `Fulfillment`, `Inventory`, `Log`, `Notification`, `Orders`, `Products`, `Wallet`).
+- ❌ **7 gRPC client** còn thiếu + mở rộng `Contracts/shop.proto` ngoài `UsersApi`.
+- ❌ **Output Caching**: cache Redis cho endpoint đọc công khai ít thay đổi (ví dụ `GET /api/v1/catalog/categories` — hiện chưa có action).
+- ❌ **BFF (Backend for Frontend)**: ghép dữ liệu đa nguồn cho màn hình mobile.
 ---
-
 ## 4. Các Bước Thiết Lập Cho Từng Microservice Backend
-
-Khi bắt tay vào code hoặc hoàn thiện từng service backend (`Users`, `Catalog`, `Commerce`, `Wallet`...), hãy làm theo các bước chuẩn sau:
-
+Khi bắt tay vào code hoặc hoàn thiện từng service backend (`Users`, `Catalog`, `Commerce`, `Wallet`...), hãy làm theo các bước sau.
+> ⚠️ **Lưu ý phạm vi**: repo gateway là **self-contained**; các bước dưới đây hướng dẫn sửa code ở **repo backend** tương ứng, không phải tạo file trong repo này.
 ### Bước 1: Hạ Tầng Database & RabbitMQ (Docker Compose)
-Chạy docker-compose để dựng toàn bộ DB và RabbitMQ:
+⚠️ **`docker-compose.yml` của repo này chỉ định nghĩa service `gateway`** (port `${GATEWAY_PORT:-8000}:8000`, mount docker socket, network `nexus-network`) — **không** có Postgres/RabbitMQ/Tempo/Grafana.
+Hạ tầng DB + RabbitMQ phải chạy từ stack của monorepo hoặc từ repo backend tương ứng:
 ```bash
-docker compose up -d
+# Từ thư mục gốc monorepo, dùng compose của hạ tầng (không phải compose của gateway)
+docker compose -f <infra-compose>.yml up -d
 ```
-Kiểm tra RabbitMQ Management UI tại: `http://localhost:15672` (user/password theo file `.env`).
-
+Kiểm tra RabbitMQ Management UI tại `http://localhost:15672` (user/password **lấy từ biến môi trường**, xem Bước 4).
 ### Bước 2: Đồng Bộ Proto Contract
-File `Contracts/shop.proto` tại `Nexus.Gateway/Contracts/shop.proto` là **Nguồn sự thật duy nhất (Single Source of Truth)**.
-- Khi tạo mới một service backend (ví dụ `WalletService`), copy file `shop.proto` này vào thư mục `Contracts/` của service đó.
-- Đảm bảo file `.csproj` của service backend khai báo:
-  ```xml
-  <Protobuf Include="Contracts/shop.proto" GrpcServices="Server" />
-  ```
-
+⚠️ **Không có "nguồn sự thật duy nhất"**: hiện tồn tại nhiều bản `shop.proto` trong monorepo với nội dung khác nhau (khác hash). `Nexus.Gateway/Contracts/shop.proto` chỉ khai báo `csharp_namespace = "ShoppingCart.Contracts.V1"`, `package shoppingcart.v1` và **duy nhất** `service UsersApi` (5 rpc: `Register`, `Login`, `VerifyOtp`, `ResendOtp`, `GetProfile`).
+Quy tắc thực tế:
+- Muốn thêm service mới ⇒ **thêm service vào `shop.proto`** (rpc mới) rồi đăng ký client ở `Extensions/GrpcClientsExtension.cs`.
+- **Không tự đổi tag/field number** của message đang dùng (phá vỡ tương thích wire).
+- Đồng bộ đúng một bản proto cho service backend; không giả định bản gateway là bản chuẩn cho tất cả.
+Khai báo trong `.csproj` của service backend:
+```xml
+<Protobuf Include="Contracts/shop.proto" GrpcServices="Server" />
+```
 ### Bước 3: Implement gRPC Service Server
-Trong service backend, kế thừa từ lớp base do gRPC sinh ra, ví dụ với `WalletService`:
+> ⚠️ **Đặc tả mục tiêu, chưa triển khai.** `WalletApi`/`Wallet`/`UserRequest` **không tồn tại** trong `Contracts/shop.proto` hiện tại — ví dụ dưới đây là mẫu để triển khai *sau khi* bổ sung rpc (Bước 2), không phải API đang chạy.
+Ví dụ minh họa cách kế thừa lớp base do gRPC sinh ra:
 ```csharp
+// Đặc tả mục tiêu — class base chỉ tồn tại sau khi thêm service vào shop.proto
 public class WalletGrpcService : WalletApi.WalletApiBase
 {
     private readonly IWalletService _walletService;
     public WalletGrpcService(IWalletService walletService) => _walletService = walletService;
-
-    public override async Task<Wallet> GetWallet(UserRequest request, ServerCallContext context)
+    public override async Task<WalletReply> GetWallet(WalletRequest request, ServerCallContext context)
     {
         var data = await _walletService.GetByUserIdAsync(request.UserId);
-        return new Wallet
-        {
-            Id = data.Id.ToString(),
-            UserId = data.UserId,
-            Balance = data.Balance.ToString("0.00"),
-            Currency = data.Currency,
-            Status = data.Status
-        };
+        return new WalletReply { Id = data.Id.ToString(), UserId = data.UserId, Balance = data.Balance.ToString("0.00") };
     }
 }
 ```
-Và đăng ký trong `Program.cs` của service:
+Đăng ký trong `Program.cs` của service:
 ```csharp
 builder.Services.AddGrpc();
-// ...
 app.MapGrpcService<WalletGrpcService>();
 ```
-
+Mẫu **đang chạy thật** để tham chiếu: `UsersApi` — client phía gateway gọi `RegisterAsync`/`LoginAsync`/`VerifyOtpAsync`/`ResendOtpAsync`/`GetProfileAsync` (`AuthController.cs`, `UsersController.cs`).
 ### Bước 4: Thiết Lập RabbitMQ & MassTransit Event Bus
-Tất cả các service backend dùng phiên bản MassTransit đã chốt **8.4.1**:
+Phiên bản MassTransit thống nhất trong các `.csproj` backend hiện tại là **8.3.0** (không phải 8.4.1):
 ```csharp
 builder.Services.AddMassTransit(x =>
 {
@@ -102,116 +93,99 @@ builder.Services.AddMassTransit(x =>
         cfg.Host("localhost", 5672, "/", h =>
         {
             h.Username(builder.Configuration["RabbitMq:User"] ?? "guest");
-            h.Password(builder.Configuration["RabbitMq:Password"] ?? "MatkhaucuaTui123@");
+            // KHÔNG hardcode mật khẩu trong code/tài liệu: lấy từ secret/env
+            h.Password(builder.Configuration["RabbitMq:Password"]
+                ?? throw new InvalidOperationException("RabbitMq:Password is not configured."));
         });
         cfg.ConfigureEndpoints(context);
     });
 });
 ```
-
+> ⚠️ Mật khẩu RabbitMQ **không** được ghi trong tài liệu này. Bản cũ hardcode `MatkhaucuaTui123@` — nếu mật khẩu đó còn tồn tại ở bất kỳ repo nào phải coi là **đã lộ** và đổi ngay.
 ### Bước 5: Thiết Lập Saga Điều Phối Thanh Toán (Checkout & Wallet Saga)
-Khi tách riêng Ví điện tử khỏi Commerce, luồng Saga thanh toán diễn ra như sau:
+> ❌ **Đặc tả mục tiêu, chưa triển khai.** Không có Saga State Machine nào trong code hiện tại; gateway chỉ có `SagaRollbackPublisher` **ghi log**.
+Luồng mục tiêu:
 ```
-1. Client gửi POST /api/v1/commerce/orders qua Gateway -> CommerceService tạo Order (Status = Pending).
+1. Client gửi POST /api/v1/commerce/orders qua Gateway -> CommerceService tạo Order (Pending).
 2. CommerceService bắn event OrderSubmitted lên RabbitMQ.
-3. CatalogService lắng nghe -> Giữ kho ảo (ReserveStock). Bắn StockReservedEvent.
-4. WalletService lắng nghe -> Trừ tiền trong ví khách hàng (DeductBalance). Bắn PaymentCompletedEvent.
-5. CommerceService nhận PaymentCompletedEvent -> Cập nhật Order (Status = Confirmed / Paid).
-6. [BÙ TRỪ NẾU LỖI]: Nếu WalletService trừ tiền thất bại (không đủ tiền) -> Bắn PaymentFailedEvent -> CatalogService nhả kho (ReleaseStock) và CommerceService hủy đơn (OrderCancelled).
+3. CatalogService giữ kho ảo (ReserveStock) -> StockReservedEvent.
+4. WalletService trừ tiền (DeductBalance) -> PaymentCompletedEvent.
+5. CommerceService cập nhật Order (Confirmed/Paid).
+6. [BÙ TRỪ] Wallet trừ tiền thất bại -> PaymentFailedEvent -> Catalog nhả kho (ReleaseStock), Commerce hủy đơn.
 ```
-### Bước 6: Thiết Lập Distributed Tracing (OpenTelemetry) — Đúng 1 Dòng Code (Zero-Touch)
-Để toàn bộ luồng gọi từ Gateway xuyên qua service của bạn được vẽ cây vết (Flame Graph) tự động trên Grafana Tempo:
-
-1. **Thêm các Package NuGet sau vào file `.csproj` của service con**:
+### Bước 6: Thiết Lập Distributed Tracing (OpenTelemetry) — Zero-Touch cho Dev
+> ⚠️ Đây là **quy ước mục tiêu** cho service backend; gateway dùng implementation riêng làm mẫu tham chiếu: `Extensions/TelemetryExtension.cs` → `AddGatewayTelemetry(IConfiguration)` (gọi tại `Program.cs:17`), đăng ký AspNetCore + HttpClient + `Grpc.Net.Client` + source nghiệp vụ, exporter OTLP chỉ bật khi có endpoint.
+1. **Thêm package vào `.csproj` service con**:
    ```xml
    <ItemGroup>
      <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
      <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
      <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.18.0" />
      <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
-     <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.11" /> <!-- Nếu dùng EF Core -->
+     <PackageReference Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.0.0-beta.11" /> <!-- nếu dùng EF Core -->
    </ItemGroup>
    ```
-
-2. **Tạo file Extension dùng chung `ObservabilityExtensions.cs` trong service của bạn**:
+2. **Tạo extension dùng chung trong repo của service đó** (tên hàm hiện chưa đồng nhất giữa các repo — thống nhất trước khi copy):
    ```csharp
-   using OpenTelemetry.Resources;
-   using OpenTelemetry.Trace;
-
-   namespace Common.Observability;
-
-   public static class ObservabilityExtensions
+   public static IServiceCollection AddServiceObservability(
+       this IServiceCollection services, IConfiguration configuration, string serviceName)
    {
-       public static IServiceCollection AddServiceObservability(this IServiceCollection services, IConfiguration configuration, string serviceName)
-       {
-           var otlpEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? configuration["Otel:Endpoint"] ?? "http://localhost:4317";
-
-           services.AddOpenTelemetry()
-               .ConfigureResource(r => r.AddService(serviceName))
-               .WithTracing(t =>
-               {
-                   t.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddSource("Grpc.Net.Client")
-                    .AddSource("MassTransit"); // Tự động bắt event RabbitMQ
-
-                   if (!string.IsNullOrEmpty(otlpEndpoint))
-                   {
-                       t.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
-                   }
-               });
-
-           return services;
-       }
+       var otlpEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? configuration["Otel:Endpoint"];
+       services.AddOpenTelemetry()
+           .ConfigureResource(r => r.AddService(serviceName))
+           .WithTracing(t =>
+           {
+               t.AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddSource("Grpc.Net.Client")
+                .AddSource("MassTransit");
+               if (!string.IsNullOrEmpty(otlpEndpoint))
+                   t.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint));
+           });
+       return services;
    }
    ```
-
-3. **Gọi đúng 1 dòng trong `Program.cs` của service con**:
+3. **1 dòng trong `Program.cs`** của service con:
    ```csharp
-   var builder = WebApplication.CreateBuilder(args);
-
-   // ĐĂNG KÝ 1 DÒNG NÀY (Dev nghiệp vụ không cần viết code tracing gì thêm):
    builder.Services.AddServiceObservability(builder.Configuration, "Catalog.Api");
-
-   // Tiếp tục code DI, gRPC và DB bình thường...
    ```
-
+> ⚠️ Không có endpoint OTLP ⇒ exporter **không** được bật (không có span nào rời khỏi process). Tempo/Grafana cũng không nằm trong compose của repo này.
 ### Bước 7: Nhận Thông Tin Định Danh Người Dùng từ Gateway (x-user-id & x-user-roles)
-Gateway đã đảm nhiệm toàn bộ việc giải mã và xác thực JWT Bearer Token. Khi gọi gRPC xuống service con, Gateway tự động gắn các headers sau vào gRPC Metadata:
-- `x-user-id`: Mã UUID định danh của người dùng (`sub` claim).
-- `x-user-roles`: Danh sách vai trò (`admin,seller,buyer`...)
-- `x-user-email`: Email người dùng.
-- `x-trace-id`: Trace ID nhất quán.
-
-**Service backend KHÔNG CẦN phân giải lại JWT token**, chỉ cần lấy trực tiếp:
+Gateway đảm nhiệm giải mã và xác thực JWT Bearer Token. Khi gọi gRPC xuống service con, `Dispatching/GrpcServiceCaller.cs:62-89` gắn các metadata sau:
+- `x-user-id`: UUID người dùng (`sub` claim) — `:76`
+- `x-user-roles`: danh sách vai trò, phân tách bởi dấu phẩy — `:82`
+- `x-user-email`: email người dùng — `:89`
+- `x-trace-id`: Trace ID nhất quán — `:68`
+- `Idempotency-Key`: chuyển tiếp nguyên văn nếu client gửi — `:62` (⚠️ chưa validate định dạng UUID)
+> ⚠️ Hiện các metadata này chỉ thực sự được gửi cho client `users` (client duy nhất đã đăng ký).
+**Service backend KHÔNG CẦN phân giải lại JWT token**, chỉ cần đọc trực tiếp:
 ```csharp
-public override async Task<UserProfile> GetProfile(UserRequest request, ServerCallContext context)
+public override async Task<UserProfile> GetProfile(UserProfileRequest request, ServerCallContext context)
 {
     var userId = context.RequestHeaders.Get("x-user-id")?.Value ?? request.UserId;
     var roles = context.RequestHeaders.Get("x-user-roles")?.Value;
-    // Thực thi nghiệp vụ ngay với userId đã được xác thực an toàn!
+    // Xác thực đã xong ở Gateway — nhưng ĐỪNG tin header nếu service có thể bị gọi trực tiếp.
 }
 ```
-
-
+> ⚠️ Tin tuyệt đối header chỉ an toàn khi service **không** expose port ra ngoài. 8 backend service hiện **không** có authentication riêng, nên phải chặn truy cập trực tiếp ở network layer.
 ---
-
 ## 5. Quy Trình Test Khi Bạn Code Xong Một Service
-
-1. Khởi động Service của bạn tại port tương ứng (ví dụ Wallet Service tại port `8008`).
-2. Mở file `Nexus.Gateway/gateway.runtime.json` (hỗ trợ Hot-Reload tức thì, không cần khởi động lại Gateway):
+1. Khởi động service của bạn ở port tương ứng (ví dụ `8002` cho Catalog).
+2. Mở `Nexus.Gateway/gateway.runtime.json` (nạp với `reloadOnChange: true` ⇒ hot-reload, không cần restart):
    ```json
-   "wallet": {
+   "catalog": {
      "Mode": "Real",
-     "Address": "http://localhost:8008"
+     "Address": "http://localhost:8002"
    }
    ```
-   *(Hoặc cấu hình mặc định trong `appsettings.Development.json`).*
-3. Bật Gateway (nếu chưa chạy: `./run-dev.sh` hoặc `dotnet run --project Nexus.Gateway`).
-4. Mở Swagger Gateway `http://localhost:8000/swagger`, gọi thử API `/api/v1/wallet/balance`:
-   - Gateway sẽ tự động chuyển tiếp cuộc gọi gRPC sang backend thật của bạn tại port `8008`.
-   - Các API khác (Catalog, Users, Commerce...) vẫn được Gateway phục vụ bằng Seed mock data mượt mà từ thư mục `Seeds/`!
-
+3. ⚠️ **Chỉ service `users` chạy được `Real`** hiện tại. Với service khác phải làm Bước 2 (thêm rpc + client) và viết action trong controller tương ứng (hiện là stub 0 action), nếu không sẽ nhận lỗi vì không có client/không có action.
+4. Bật Gateway (nếu chưa chạy: `./run-dev.sh` hoặc `dotnet run --project Nexus.Gateway`) ⇒ `http://localhost:8000`.
+5. Endpoint **đang chạy thật** để test nhanh:
+   - `POST http://localhost:8000/api/v1/auth/register` (Mock: `Seeds/auth/register.json`)
+   - `POST http://localhost:8000/api/v1/auth/login` (Mock: `Seeds/auth/login.json`; Real: chưa chạy vì `rpc Login` chưa implement)
+   - `GET http://localhost:8000/api/v1/users/me` (cần token hợp lệ)
+   - Quản trị: `GET /api/v1/gateway/modes`, `PUT /api/v1/gateway/mode`, `GET /api/v1/gateway/prober/status`
+6. ⚠️ Các API khác **không** "được phục vụ bằng Seed mock data" như bản cũ mô tả: chỉ `auth` (4 file) và `users` (5 file) có seed; route của 11 controller stub trả **404** trừ khi có `Mocks/*.mock.json` khớp (6 file: `auth-login`, `auth-register`, `auth-resend-otp`, `auth-verify-otp`, `catalog-products`, `users-me`).
+7. Swagger: `http://localhost:8000/swagger` chỉ hiển thị **16 action** của 4 controller có action.
 ---
-
 Chúc bạn code backend thuận lợi và hiệu quả!

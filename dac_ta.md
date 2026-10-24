@@ -1,12 +1,11 @@
 # ĐẶC TẢ KỸ THUẬT & KIẾN TRÚC TOÀN DIỆN API GATEWAY (.NET 8)
 ## HỆ SINH THÁI MICROSERVICES NEXUS
-
+> **Trạng thái triển khai (2026-10-24):** ⚠️ Một phần — 15 file controller nhưng chỉ **4 controller có action (16 action)**, 11 controller là stub 10 dòng; **1/8** gRPC client (`users`); `Contracts/shop.proto` chỉ có `UsersApi` 5 rpc; 62 test attribute trên 19 file.
+> **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
+> **Cập nhật lần cuối:** 2026-10-24.
 > **Dành cho độc giả**: Tài liệu này đóng vai trò là bản đặc tả kỹ thuật hoàn chỉnh (Master Technical Specification). Bất kỳ ai — từ lập trình viên Frontend, Backend, DevOps, Solution Architect đến các AI Coding Agent — khi đọc tài liệu này đều sẽ hiểu rõ: **Gateway làm được những gì, cấu tạo gồm những thành phần nào, nguyên lý hoạt động chi tiết của từng tính năng (Mock, CORS, Rate Limit, Auth, gRPC Translation...), và cách vận hành trong thực tế.**
-
 ---
-
 # MỤC LỤC TỔNG QUAN
-
 1. [Tổng Quan Vai Trò & Năng Lực Cốt Lõi Của ApiGateway](#1-tổng-quan-vai-trò--năng-lực-cốt-lõi-của-apigateway)
 2. [Kiến Trúc 3 Khối Độc Lập (3-Tier Decoupling Architecture)](#2-kiến-trúc-3-khối-độc-lập-3-tier-decoupling-architecture)
 3. [Giải Thích Chi Tiết Từng Tính Năng & Cơ Chế Hoạt Động](#3-giải-thích-chi-tiết-từng-tính-năng--cơ-chế-hoạt-động)
@@ -23,16 +22,12 @@
    - [3.11. Chiến Lược Phòng Thủ Xác Thực Dữ Liệu 3 Tầng (3-Tier Validation Defense-in-Depth)](#311-chiến-lược-phòng-thủ-xác-thực-dữ-liệu-3-tầng-3-tier-validation-defense-in-depth)
    - [3.12. Tính Năng Health Prober Daemon, Giám Sát Sức Khỏe & Tự Động Hồi Phục (Self-Healing)](#312-tính-năng-health-prober-daemon-giám-sát-sức-khỏe--tự-động-hồi-phục-self-healing)
 4. [Bản Đồ Cấu Trúc Mã Nguồn & Phân Bổ Trách Nhiệm](#4-bản-đồ-cấu-trúc-mã-nguồn--phân-bổ-trách-nhiệm)
-5. [Bảng Tổng Hợp 11 Controllers & Danh Mục 17 Nhóm Route](#5-bảng-tổng-hợp-11-controllers--danh-mục-17-nhóm-route)
+5. [Bảng Tổng Hợp 15 Controllers & Danh Mục 17 Nhóm Route](#5-bảng-tổng-hợp-15-controllers--danh-mục-17-nhóm-route)
 6. [Quy Trình 3 Bước Thêm API Mới Dành Cho Developer](#6-quy-trình-3-bước-thêm-api-mới-dành-cho-developer)
-7. [Bảo Đảm Chất Lượng & Kết Quả Kiểm Thử Tự Động (120/120 Tests)](#7-bảo-đảm-chất-lượng--kết-quả-kiểm-thử-tự-động-120120-tests)
-
+7. [Bảo Đảm Chất Lượng & Kiểm Thử Tự Động (62 Test Attribute / 19 File)](#7-bảo-đảm-chất-lượng--kiểm-thử-tự-động-62-test-attribute--19-file)
 ---
-
 # 1. TỔNG QUAN VAI TRÒ & NĂNG LỰC CỐT LÕI CỦA APIGATEWAY
-
 Trong kiến trúc Microservices của hệ sinh thái Nexus, **ApiGateway** đóng vai trò là **Edge Reverse Proxy** (Cổng vào biên duy nhất) đứng phía trước toàn bộ 8 Microservices nội bộ:
-
 ```
 [ Khách Hàng: Web Browser / Next.js / Mobile App ]
                        │
@@ -48,42 +43,38 @@ Trong kiến trúc Microservices của hệ sinh thái Nexus, **ApiGateway** đ�
 UsersService    CatalogService  CommerceService  LogService     AuctionService ... (+ Fulfillment, Notification, Wallet)
 (Cổng 8001)     (Cổng 8002)     (Cổng 8003)      (Cổng 8004)    (Cổng 8005)        (Cổng 8006, 8007, 8008)
 ```
-
 ### 1.1. Tại sao hệ thống cần ApiGateway?
 Nếu không có Gateway, các ứng dụng Client (Frontend, Mobile) sẽ phải kết nối trực tiếp đến từng cổng của 8 service khác nhau. Điều này gây ra:
 - **Lỗ hổng bảo mật**: Lộ toàn bộ sơ đồ mạng và cổng nội bộ ra Internet.
 - **Rối loạn xác thực**: Từng service backend phải tự cài đặt bộ kiểm tra JWT, CORS và Rate Limiting lặp đi lặp lại.
 - **Bất đồng bộ giao thức**: Frontend chỉ hiểu HTTP/REST JSON, trong khi các microservices backend giao tiếp hiệu năng cao bằng gRPC Protobuf v3.
 - **Khó khăn khi phát triển giao diện (FE bị block)**: Nếu Backend chưa code xong hoặc chưa dựng database, Frontend hoàn toàn bị tê liệt vì không có API để test.
-
 ### 1.2. Những gì ApiGateway làm được (Bảng Tóm Tắt Năng Lực):
-1. **Cổng vào tập trung duy nhất (Single Point of Entry)**: Toàn bộ request ngoại vi đều bắt đầu bằng tiền tố thống nhất: `/api/v1/{service}/...` tại cổng `8000`.
-2. **Chuyển đổi giao thức thông minh (Protocol Translation)**: Tiếp nhận RESTful JSON từ Client, tự động chuyển thành lời gọi gRPC nhị phân gửi xuống backend, nhận kết quả Protobuf và format ngược lại thành JSON chuẩn.
-3. **Môi trường phát triển độc lập (Mock Engine tích hợp)**: Frontend có thể chạy và tương tác với toàn bộ 8 services với dữ liệu seed mẫu mà không cần bật bất kỳ backend service hay database nào.
-4. **Chuyển đổi trạng thái Gateway linh hoạt (`Standard` vs `Bypass`)**: Hỗ trợ chuyển sang chế độ `Bypass` giúp Frontend dev test giao diện không cần đăng nhập hay truyền token.
-5. **Hot-Reload Mock $\leftrightarrow$ Real theo từng service**: Cho phép bật 1 service backend thật (ví dụ `catalog: Real`), trong khi 7 service còn lại vẫn chạy `Mock` mượt mà.
-6. **Bảo mật và phân quyền biên (Edge Security & RBAC)**: Xác thực JWT Bearer token và kiểm soát quyền hạn 5 vai trò (`buyer`, `seller`, `staff`, `admin`, `gateway-admin`).
-7. **Bảo vệ hệ thống bằng Rate Limiting phân tán**: Tích hợp Redis để chặn các cuộc tấn công DoS, brute force và giới hạn tần suất gọi cho từng IP / User.
-8. **Chính sách CORS chuẩn mực**: Ngăn ngừa lỗi Cross-Origin trên trình duyệt, cho phép cấu hình linh hoạt danh sách domain Frontend được phép truy cập.
-9. **Chống treo hệ thống và tràn bộ nhớ**: Giới hạn payload tối đa 64KB (Kestrel Request Size Limit) và áp đặt thời gian timeout 65s (chống tấn công Slowloris).
-10. **Chuẩn hóa phản hồi & lỗi quốc tế**: Đóng gói mọi kết quả vào envelope `ApiResponse<T>` chuẩn REST và ánh xạ lỗi sang `Problem Details RFC 9110 / RFC 6585`.
-11. **Quan sát phân tán (Observability)**: Tích hợp OpenTelemetry 1.18.0, tự động gắn `x-trace-id` (W3C TraceContext) xuyên suốt toàn bộ vòng đời của request.
-
+1. **Cổng vào tập trung duy nhất (Single Point of Entry)** — ✅ CÓ: mọi request ngoại vi vào cổng `8000` với tiền tố `/api/v1/...` (`Properties/launchSettings.json`, `Dockerfile EXPOSE 8000`). ⚠️ Nhưng tiền tố **không** đồng nhất `/api/v1/{service}/...`: route thật gồm `/api/v1/auth/*`, `/api/v1/users/me`, `/api/v1/gateway/*`, `/api/v1/mock-engine/*`, `/api/v1/catalog/products`, `/api/v1/commerce/orders`, `/api/v1/wallet`...
+2. **Chuyển đổi giao thức thông minh (Protocol Translation)** — ⚠️ MỘT PHẦN: cơ chế REST → gRPC có thật (`Dispatching/GrpcServiceCaller.cs`, `Dispatching/GatewayDispatcher.cs`), nhưng **chỉ 1/8 service** có client (`UsersApi.UsersApiClient` đăng ký bởi `Extensions/GrpcClientsExtension.cs`). 7 service còn lại chưa có rpc trong `Contracts/shop.proto` nên không thể gọi thật.
+3. **Môi trường phát triển độc lập (Mock Engine tích hợp)** — ⚠️ MỘT PHẦN: có **hai** cơ chế mock chạy song song: (a) seed fixture đọc theo từng request (`Dispatching/MockDataMapper.cs`) với **9 file** trong `Seeds/` chỉ cho `auth` (4) và `users` (5); (b) declarative mock `Mocks/*.mock.json` (**6 file**) do `MockEngine/MockEngineMiddleware.cs` phục vụ khi route **không** khớp action nào. **Không** có seed cho `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`.
+4. **Chuyển đổi trạng thái Gateway linh hoạt** — ✅ CÓ: cấu hình `Gateway:AuthMode` với giá trị `Enforce` / `Standard`; `Bypass` (và `Mock`, `MockBypass`) **chỉ hợp lệ ở Development** (`GatewayOptions.IsValid`). Tên cũ `GatewayMode` chỉ còn là alias đọc-legacy. Ở `Bypass`, Frontend test giao diện không cần đăng nhập, trừ control-plane (xem mục 3.2).
+5. **Hot-Reload Mock $\leftrightarrow$ Real theo từng service** — ⚠️ MỘT PHẦN: đổi mode từng service qua `PUT /api/v1/gateway/modes/{service}` hoặc sửa `gateway.runtime.json` (nạp với `reloadOnChange: true`) đều có hiệu lực tức thì, **nhưng** bật `catalog: Real` hiện không gọi được vì chưa có client/rpc Catalog.
+6. **Bảo mật và phân quyền biên (Edge Security & RBAC)** — ✅ CÓ: JWT Bearer (`Microsoft.AspNetCore.Authentication.JwtBearer 8.0.10`) + 6 policy `GatewayPolicies.{Authenticated, Customer, Seller, Staff, Admin, GatewayAdmin}` (`Security/SecurityConfiguration.cs:156-161`). ⚠️ Không service nào **phát** JWT (`rpc Login` mới chỉ có ở phía client).
+7. **Bảo vệ hệ thống bằng Rate Limiting phân tán** — ✅ CÓ: `Middleware/RedisRateLimitMiddleware.cs` + StackExchange.Redis 2.8.24; policy thật: `api`, `auth-strict`, `auth-login`, `user-frequent`.
+8. **Chính sách CORS chuẩn mực** — ✅ CÓ: `GatewayOptions.CorsOrigins/CorsMethods/CorsHeaders/CorsAllowCredentials`, cấu hình trong `appsettings.json`.
+9. **Chống treo hệ thống và tràn bộ nhớ** — ✅ CÓ: `Program.cs:9` `MaxRequestBodySize = 64 * 1024`; `Extensions/CoreServicesExtension.cs:93-97` RequestTimeout 65s.
+10. **Chuẩn hóa phản hồi & lỗi quốc tế** — ✅ CÓ: `Responses/ApiResponse.cs` + `Responses/ApiErrorResponse.cs`; `Middleware/GatewayExceptionHandler.cs:61-80` map 14 nhánh lỗi sang `errorCode` SCREAMING_SNAKE_CASE.
+11. **Quan sát phân tán (Observability)** — ✅ CÓ: OpenTelemetry 1.18.0 (`Extensions/TelemetryExtension.cs`, gọi tại `Program.cs:17`), gắn `x-trace-id` xuống upstream (`Dispatching/GrpcServiceCaller.cs:68`). ⚠️ Không có instrumentation EF Core / Redis / MassTransit; không có Tempo/Grafana trong `docker-compose.yml` của repo này.
 ---
-
 # 2. KIẾN TRÚC 3 KHỐI ĐỘC LẬP (3-TIER DECOUPLING ARCHITECTURE)
-
 Để khắc phục hoàn toàn tình trạng code bị dồn cục, khó bảo trì, hệ thống Gateway được chia tách thành **3 khối độc lập** với ranh giới trách nhiệm cực kỳ rành mạch:
-
 ```
 [ Client Request: /api/v1/... ]
                 │
                 ▼
 ┌────────────────────────────────────────────────────────────────────────┐
 │ 1. KHỐI ĐẦU VÀO (INPUT TIER) — Controllers/ & Dtos/                    │
-│    - Gồm 10 Controllers tiêu chuẩn kế thừa [ApiController]             │
-│      ControllerBase gom nhóm theo 8 microservices.                     │
-│    - Tiếp nhận DTOs (trong Dtos/{Service}/*Requests.cs).               │
+│    - Gồm 15 Controllers kế thừa [ApiController] ControllerBase,      │
+│      nhưng CHỈ 4 controller có action (16 action); 11 file còn lại   │
+│      là stub 10 dòng chứa 1 dòng TODO.                               │
+│    - Tiếp nhận DTOs: hiện chỉ có 4 thư mục Dtos/{Auth,Users,           │
+│      GatewayControl,HealthProber}.                                     │
 │    - Model binding kiểm tra định dạng; action kiểm tra input đặc thù.    │
 │    - Không chứa if/else Mock/Real; gọi DispatchAsync/DispatchPagedAsync. │
 │    - Validation riêng có thể throw GatewayInputException.              │
@@ -115,23 +106,15 @@ Nếu không có Gateway, các ứng dụng Client (Frontend, Mobile) sẽ phả
                 ▼
 [ Client Response JSON ]
 ```
-
 ---
-
 # 3. GIẢI THÍCH CHI TIẾT TỪNG TÍNH NĂNG & CƠ CHẾ HOẠT ĐỘNG
-
 Dưới đây là phần mô tả chuyên sâu cách thức hoạt động của từng tính năng bên trong Gateway:
-
 ---
-
 ## 3.1. Tính Năng Mock Engine & Seed Fixtures (Phát Triển Độc Lập)
-
 ### Vấn đề thực tế:
 Trong các dự án Microservices, việc Frontend phải chờ Backend code xong API, tạo database và dựng môi trường mới có thể bắt đầu làm việc là nguyên nhân hàng đầu gây chậm trễ tiến độ dự án.
-
 ### Giải pháp của Gateway:
 Gateway tích hợp sẵn một **Hệ Thống Mock Kép (Dual Mock Engine)**:
-
 ```
                           ┌────────────────────────┐
                           │   Client Gửi Request   │
@@ -154,9 +137,8 @@ Gateway tích hợp sẵn một **Hệ Thống Mock Kép (Dual Mock Engine)**:
                                       ▼
                       Bọc vào ApiResponseFactory chuẩn
 ```
-
 1. **Static Protobuf Fixtures (`Seeds/{service}/{operation}.json`)**:
-   - Khi một service ở chế độ Mock, `MockDataMapper` sẽ đọc file JSON tương ứng (ví dụ: `Seeds/catalog/products.json`).
+   - Khi một service ở chế độ Mock, `MockDataMapper` sẽ đọc file JSON tương ứng. ⚠️ **Hiện chỉ có seed cho `auth` và `users`** (ví dụ thật: `Seeds/auth/login.json`, `Seeds/users/profile.json`); `Seeds/catalog/products.json` **không tồn tại** (thư mục `Seeds/products/` chỉ có `README.md`).
    - **Cơ chế thẩm định hợp đồng nghiêm ngặt (Strict Contract Verification)**:
      ```csharp
      var protoMessage = parser.ParseJson(json);
@@ -164,94 +146,81 @@ Gateway tích hợp sẵn một **Hệ Thống Mock Kép (Dual Mock Engine)**:
      Dữ liệu JSON mẫu bắt buộc phải được ép qua trình phân tích của Protobuf. Nếu dev viết sai kiểu dữ liệu (ví dụ: gõ string vào trường số nguyên), hệ thống sẽ báo lỗi khi parse fixture. Proto3 cho phép một số trường vắng mặt nhận giá trị mặc định; parse hợp lệ không bảo đảm fixture đúng nghiệp vụ hoặc backend thật. Hãy có test contract/mock và test tích hợp backend.
    - **Giả lập độ trễ mạng (`MockDelayMs`)**: Có thể cấu hình giả lập độ trễ mạng (ví dụ 500ms) để Frontend kiểm tra hiệu ứng Loading / Spinner của giao diện.
    - **Giả lập mã lỗi (`MockStatus`)**: Có thể cấu hình trả về mã lỗi 503 để Frontend kiểm tra màn hình hiển thị lỗi mạng.
-
 2. **Dynamic Declarative Mock Engine (`*.mock.json`)**:
    - Cho phép dev tạo nhanh các API REST mock động chỉ bằng cách tạo một file JSON trong thư mục `Nexus.Gateway/Mocks/**/*.mock.json` mà **không cần viết bất kỳ dòng code C# nào**.
    - Hỗ trợ tham số URL động (ví dụ: `/api/v1/catalog/products/{id}`).
    - Tự động quét file và nạp nóng (Hot-Reload qua `FileSystemWatcher`).
    - Tự động sinh tài liệu trên Swagger UI qua `MockEngineDocumentFilter`.
-
 ---
-
-## 3.2. Tính Năng Chuyển Đổi Trạng Thái Gateway (Standard vs Bypass Mode)
-
+## 3.2. Tính Năng Chuyển Đổi Trạng Thái Auth (Enforce vs Bypass Mode)
+> ⚠️ **Đính chính thuật ngữ**: trục cấu hình thật là `Gateway:AuthMode` (`Nexus.Gateway/GatewayOptions.cs:38`) với các giá trị `Enforce` (mặc định, tương đương tên cũ `Standard`), `Standard`, và `Bypass`/`Mock`/`MockBypass` (**chỉ Development**, `GatewayOptions.IsValid`). `GatewayMode` (`GatewayOptions.cs:42`) chỉ còn là **alias đọc-legacy** — bản cũ gọi tên "GatewayMode" cho cả trục là sai.
 ### Vấn đề thực tế:
-Các API kinh doanh như xem giỏ hàng (`/commerce/cart`), thông tin cá nhân (`/users/me`), hay lịch sử đơn hàng đều yêu cầu đăng nhập và có token JWT mang vai trò tương ứng. Khi Frontend dev đang code giao diện, việc token bị hết hạn hoặc phải login đi login lại để lấy token test rất mất thời gian.
-
+Các API kinh doanh như xem giỏ hàng (`/api/v1/commerce/cart`), thông tin cá nhân (`/api/v1/users/me`), hay lịch sử đơn hàng đều yêu cầu đăng nhập và có token JWT mang vai trò tương ứng. Khi Frontend dev đang code giao diện, việc token bị hết hạn hoặc phải login đi login lại để lấy token test rất mất thời gian.
 ### Giải pháp của Gateway:
-Gateway cung cấp **Cơ chế 2 Trạng Thái Gateway (Gateway Mode State)**:
-
+Gateway cung cấp **Cơ chế 2 Trạng Thái Auth (`Gateway:AuthMode`)**:
 ```
                        ┌──────────────────────────────┐
                        │  Client Request Đến Gateway  │
                        └──────────────┬───────────────┘
                                       │
-                         [Kiểm tra GatewayMode]
+                         [Kiểm tra Gateway:AuthMode]
                                       │
                    ┌──────────────────┴──────────────────┐
                    ▼                                     ▼
-      [ Mode: "Standard" (Mặc định) ]         [ Mode: "Bypass" (Development) ]
+   [ AuthMode: "Enforce" (Mặc định) ]        [ AuthMode: "Bypass" (Development) ]
                    │                                     │
        Bắt buộc phải có JWT Token hợp lệ      Nếu gọi API Mock: Bỏ qua kiểm tra auth,
        trên header Authorization: Bearer.     tự động gán danh tính giả lập tương ứng.
        Không có token -> 401 Unauthorized.    ────────────────────────────────────────
-       Sai quyền -> 403 Forbidden.            Ngoại lệ: /gateway/... và /mock-engine/
-                                              vẫn bắt buộc Token Admin thật.
+       Sai quyền -> 403 Forbidden.            Ngoại lệ: /api/v1/gateway/... và
+                                              /api/v1/mock-engine/... vẫn bắt buộc
+                                              Token Admin thật.
 ```
-
-1. **Trạng Thái Mặc Định (`"Standard"`)**:
+1. **Trạng Thái Mặc Định (`"Enforce"`, tên cũ `"Standard"` — tương đương)**:
    - Mọi quy tắc an ninh hoạt động bình thường và nghiêm ngặt.
    - Chưa đăng nhập (không gửi header Authorization) $\rightarrow$ Chặn với mã `401 Unauthorized`.
-   - Đăng nhập qua `POST /api/v1/auth/login` lấy token gửi vào request $\rightarrow$ Thành công `200 OK`.
+   - Đăng nhập qua `POST /api/v1/auth/login` lấy token gửi vào request $\rightarrow$ Thành công `200 OK`. ⚠️ Ở chế độ `Real` luồng này còn phụ thuộc `rpc Login` phía User service (chưa implement).
    - Token không đủ quyền (ví dụ buyer gọi endpoint staff) $\rightarrow$ Chặn với mã `403 Forbidden`.
-
 2. **Trạng Thái Mock Bypass (`"Bypass"` — Dành riêng cho Development)**:
-   - Khi bật `Bypass`, lập trình viên có thể click test trên Swagger UI hoặc gọi từ code Frontend tới **bất kỳ API Mock nào mà không cần đăng nhập hay mang token**.
-   - Middleware `MockSecurityAdapterMiddleware` sẽ tự động phát hiện quyền hạn yêu cầu của API và cấp phát một danh tính giả lập `ClaimsPrincipal` tương ứng (ví dụ: tự động gắn claim `role = seller` khi gọi `/api/v1/seller/inventory`).
-   - **Rào chắn an toàn tối thượng (`[DisableMockAuthorizationBypass]`)**: Các API điều khiển hệ thống (`/api/v1/gateway/...` và `/mock-engine/...`) tuyệt đối không thể bypass, bắt buộc phải có token quản trị viên thật với role `gateway-admin`.
-   - Trên môi trường `Production`, chế độ Bypass bị vô hiệu hóa hoàn toàn trong code.
-
+   - Khi bật `Bypass`, lập trình viên có thể click test trên Swagger UI hoặc gọi từ code Frontend tới **API Mock** mà không cần đăng nhập hay mang token.
+   - Middleware `Security/MockSecurityAdapterMiddleware.cs` tự động phát hiện quyền hạn yêu cầu của API và cấp phát danh tính giả lập `ClaimsPrincipal` tương ứng (ví dụ: gắn claim vai trò khi gọi route thuộc nhóm quản trị — ví dụ route stub thật `api/v1/catalog/inventory`; route `/api/v1/seller/inventory` **không tồn tại** trong repo này).
+   - **Rào chắn an toàn tối thượng (`[DisableMockAuthorizationBypass]`)**: Các API điều khiển hệ thống (`/api/v1/gateway/...` và `/api/v1/mock-engine/...`) tuyệt đối không thể bypass, bắt buộc phải có token quản trị viên thật với role `gateway-admin` — xem `GatewayControlController.cs:16`, `HealthProberController.cs:18`.
+   - Trên môi trường `Production`, chế độ `Bypass`/`Mock`/`MockBypass` bị **vô hiệu hóa hoàn toàn**: `GatewayOptions.IsValid(development: false)` từ chối cấu hình (`ValidateOnStart`), và `appsettings.json` (production) đặt `AuthMode: "Enforce"`, `AllowMockTokenAuth: false`, `AllowAnonymousMockAuthInDevelopment: false`.
 ---
-
 ## 3.3. Tính Năng Chuyển Đổi Mock $\leftrightarrow$ Real Cho Từng Service (Hot-Reload)
-
 ### Vấn đề thực tế:
 Khi một lập trình viên Backend hoàn thành xong `CatalogService:8002`, họ muốn kiểm thử tích hợp thực tế với Gateway, nhưng các service khác (`UserService`, `CommerceService`) vẫn chưa hoàn thành hoặc chưa bật.
-
 ### Giải pháp của Gateway:
-Gateway cho phép cô lập trạng thái Mock/Real độc lập cho từng service trong số 8 services:
-
+Gateway cho phép cô lập trạng thái Mock/Real độc lập cho từng service trong số 8 services (⚠️ **chỉ `users` thực thi được `Real`** vì là service duy nhất có gRPC client; 7 service còn lại đổi sang `Real` sẽ không có client để gọi):
 | Cách Chuyển Đổi | Thao Tác Thực Hiện | Tác Động |
 |:---|:---|:---|
-| **Qua File Runtime (Hot-Reload)** | Sửa file [gateway.runtime.json](src/Services/ApiGateway/Nexus.Gateway/gateway.runtime.json):<br>`"catalog": { "Mode": "Real", "Address": "http://localhost:8002" }` | Có hiệu lực tức thì cho toàn bộ request tiếp theo, **KHÔNG CẦN restart Gateway**. |
+| **Qua File Runtime (Hot-Reload)** | Sửa file [gateway.runtime.json](Nexus.Gateway/gateway.runtime.json):<br>`"catalog": { "Mode": "Real", "Address": "http://localhost:8002" }` | Có hiệu lực tức thì cho toàn bộ request tiếp theo, **KHÔNG CẦN restart Gateway**. |
 | **Qua API Quản Trị** | Gửi request `PUT /api/v1/gateway/modes/catalog`<br>Body: `{"mode": "Real"}` | Gateway tự động cập nhật bộ nhớ và ghi đè vào file runtime. |
 | **Qua Request Header (Dev)** | Gửi header HTTP trên request riêng lẻ:<br>`X-Service-Mode-catalog: Real` | Chỉ ép buộc chuyển sang Real cho duy nhất request đó, không ảnh hưởng tới người khác. |
-
 ---
-
 ## 3.4. Tính Năng CORS (Cross-Origin Resource Sharing)
-
 ### Vấn đề thực tế:
 Khi ứng dụng Frontend chạy tại `http://localhost:3000` (React/Next.js) gọi API sang Gateway chạy tại `http://localhost:8000`, trình duyệt web sẽ tự động chặn request theo chính sách bảo mật Same-Origin Policy nếu Gateway không cấu hình CORS chuẩn.
-
 ### Cách Gateway xử lý CORS:
-Triển khai trong [EdgeMiddlewareConfiguration.cs](src/Services/ApiGateway/Nexus.Gateway/Security/EdgeMiddlewareConfiguration.cs):
+Triển khai trong [EdgeMiddlewareConfiguration.cs](Nexus.Gateway/Security/EdgeMiddlewareConfiguration.cs):
 - **Cấu hình nguồn cho phép (`CorsOrigins`)**: Đọc từ cấu hình `Gateway:CorsOrigins` (hỗ trợ nhiều origin như `http://localhost:3000`, `http://localhost:5173`).
 - **Phương thức cho phép (`CorsMethods`)**: Cho phép đầy đủ các động từ RESTful: `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `OPTIONS`.
 - **Headers cho phép (`CorsHeaders`)**: Hỗ trợ toàn bộ header chuẩn và các custom header như `Authorization`, `Content-Type`, `Idempotency-Key`, `X-Trace-Id`, `X-Gateway-Mode`, `X-Service-Mode-*`.
 - **Exposed Headers**: Công khai các header phản hồi quan trọng để JavaScript trên trình duyệt có thể đọc được: `X-Trace-Id`, `X-Gateway-Mode`, `Retry-After`.
 - **Hỗ trợ Preflight (OPTIONS Request)**: Tự động trả về HTTP `204 No Content` cho các preflight request của trình duyệt trước khi thực thi lệnh ghi dữ liệu.
-
 ---
-
 ## 3.5. Tính Năng Distributed Rate Limiting (Giới Hạn Tần Suất Gọi Qua Redis)
-
 ### Vấn đề thực tế:
 Nếu một Client gửi liên tục hàng nghìn request mỗi giây (do lỗi lặp vô tận từ Frontend, bị kẻ xấu tấn công DoS, hoặc quét dữ liệu), hệ thống backend sẽ nhanh chóng bị nghẽn mạng và sập cơ sở dữ liệu.
-
 ### Cách Gateway xử lý Rate Limiting:
-Triển khai qua [RedisRateLimitMiddleware.cs](src/Services/ApiGateway/Nexus.Gateway/Middleware/RedisRateLimitMiddleware.cs):
-
+✅ **CÓ** — triển khai qua [RedisRateLimitMiddleware.cs](Nexus.Gateway/Middleware/RedisRateLimitMiddleware.cs) (StackExchange.Redis 2.8.24, Lua `INCR` + `EXPIRE` ⇒ fixed window):
+| Thành phần | Giá trị thật | Bằng chứng |
+|:---|:---|:---|
+| Policy đang cấu hình | `api`, `auth-strict`, `auth-login`, `user-frequent` | `appsettings.json:39,43,47` |
+| Partition | `sub` claim, fallback `RemoteIpAddress`, cuối cùng `anonymous` | `RedisRateLimitMiddleware.cs:67-68` |
+| Ngưỡng mặc định | 100 request / 60 giây | `GatewayOptions.PermitLimit/WindowSeconds` |
+| Phản hồi khi vượt | 429 + `Retry-After` + `errorCode: RATE_LIMIT_EXCEEDED` + type RFC 6585 §4 | `RedisRateLimitMiddleware.cs:110-118` |
+| Fail-open | Chỉ khi Development **và** `RedisFailOpenInDevelopment = true` | `:49,80,86` |
 ```
 Client Request
       │
@@ -265,26 +234,20 @@ Client Request
       │                           - Đính kèm Header: Retry-After: <số giây>
       │                           - Trả JSON chuẩn ApiErrorResponse RFC 6585
 ```
-
 - **Phân vùng giới hạn (Partitioning)**:
   - Nếu đã đăng nhập: Giới hạn theo mã định danh người dùng (`sub` claim trong JWT).
   - Nếu là khách vãng lai: Giới hạn theo địa chỉ IP thực của Client (`RemoteIpAddress`).
 - **Thuật toán Sliding/Fixed Window**: Đếm số lượt gọi trong một cửa sổ thời gian (mặc định: tối đa `100` requests trong `60` giây).
 - **Chính sách Fail-Open ở Development**: Nếu trong môi trường lập trình local mà Redis chưa được bật hoặc gặp sự cố kết nối, Gateway sẽ tự động **cho request đi qua và ghi log cảnh báo**, tuyệt đối không chặn đứng công việc của lập trình viên.
-
 ---
-
 ## 3.6. Tính Năng Bảo Mật, JWT Authentication & Phân Quyền RBAC
-
 ### Quy trình xác thực JWT Bearer:
 1. Client gửi request mang header `Authorization: Bearer <token>`.
 2. Gateway kiểm tra chữ ký token bằng thuật toán HMAC-SHA256 với Secret Key bí mật (chuỗi an toàn tối thiểu 32 ký tự).
 3. Gateway kiểm định tính hợp lệ của các trường: Nhà phát hành (`iss`), đối tượng phục vụ (`aud`), và thời hạn sống (`exp`).
 4. Nếu hợp lệ, Gateway nạp thông tin danh tính thành `ClaimsPrincipal` và chuyển tiếp header `Authorization` nguyên vẹn vào gRPC metadata khi gọi xuống các microservices backend.
-
-### Ma trận phân quyền 5 vai trò (RBAC Matrix):
+### Ma trận phân quyền RBAC (6 policy thật):
 Hệ thống áp dụng mô hình phân quyền có tính kế thừa:
-
 ```
 [ anonymous ] (Chưa đăng nhập)
       │
@@ -303,41 +266,41 @@ Hệ thống áp dụng mô hình phân quyền có tính kế thừa:
                   ▼
           [ gateway-admin ] (Quản trị viên kỹ thuật Gateway)
 ```
-
-- **`buyer`**: Xem/sửa giỏ hàng của chính mình, đặt đơn hàng, nạp/rút ví của mình, đặt giá đấu giá.
-- **`seller`**: Đăng bán sản phẩm, điều chỉnh kho ảo của shop, tạo phiên đấu giá, xem đơn hàng của shop mình.
-- **`staff`**: Xem danh sách toàn bộ người dùng sàn, duyệt/từ chối đơn đăng ký làm seller, xem toàn bộ đơn hàng sàn, tra cứu nhật ký kiểm toán.
-- **`admin`**: Tạo tài khoản admin/staff, gán role cho user, cấu hình danh mục sản phẩm, cấu hình bật/tắt event kiểm toán.
-- **`gateway-admin`**: Đổi trạng thái Mock/Real các service, bật/tắt chế độ Bypass, nạp lại mock definitions nóng.
-
+Các **policy thật** đăng ký trong `Security/SecurityConfiguration.cs:156-161` — đối chiếu với `Security/GatewayAuthorization.cs:5-11`:
+| Policy | Điều kiện thật trong code | Ý nghĩa nghiệp vụ (mục tiêu) | Trạng thái |
+|:---|:---|:---|:---|
+| `authenticated` | `RequireAuthenticatedUser().RequireClaim("sub")` | Mọi user đã đăng nhập — dùng cho `GET /api/v1/users/me` | ✅ CÓ — đang dùng |
+| `customer` | `RequireAuthenticatedUser().RequireClaim("sub")` | Buyer thao tác tài nguyên của chính mình | ✅ CÓ (policy) — ⚠️ chưa action nào dùng |
+| `seller` | `RequireRole("seller", "admin")` | Người bán + admin | ✅ CÓ (policy) — ⚠️ chưa action nào dùng |
+| `staff` | `RequireRole("staff", "admin")` | Nhân viên vận hành | ✅ CÓ (policy) — ⚠️ chưa action nào dùng |
+| `admin` | `RequireRole("admin")` | Quản trị viên toàn sàn | ✅ CÓ (policy) — ⚠️ chưa action nào dùng |
+| `gateway-admin` | `RequireRole("admin")` | Control-plane Gateways | ✅ CÓ — đang dùng (GatewayControl, HealthProber) |
+> ⚠️ **Đính chính 2 điểm của bản cũ**:
+> 1. `buyer` **không phải** một role/policy được kiểm tra — policy `customer` chỉ yêu cầu claim `sub`, bất kỳ ai đăng nhập đều qua. Tên `buyer` chỉ xuất hiện ở 2 chỗ: `Gateway:DefaultMockRole` (danh tính giả lập) và danh sách mock token trong `SecurityConfiguration.IsMockToken`.
+> 2. `gateway-admin` là **tên policy**, không phải role JWT: quyền thực tế được kiểm bằng `RequireRole("admin")` — tức mọi token có role `admin` đều qua được control-plane, **không** có role `gateway-admin` riêng trong code.
+>
+> Ghi chú khác: `sub` là claim bắt buộc của policy `authenticated`; `SecurityConfiguration.cs:35` đặt `MapInboundClaims = false` và `:46` đặt `RoleClaimType = "role"` — token thiếu `sub` hoặc dùng tên claim role khác (`http://schemas.microsoft.com/ws/2008/06/identity/claims/role`) sẽ bị từ chối dù chữ ký hợp lệ.
 ---
-
 ## 3.7. Tính Năng Chuyển Đổi Giao Thức REST $\rightarrow$ gRPC (Protocol Translation)
-
 ### Tại sao lại dùng mô hình lai này?
 - **Phía ngoài (Client $\rightarrow$ Gateway)**: Trình duyệt web và ứng dụng di động hỗ trợ tốt nhất với giao thức **RESTful JSON** (dễ debug, dễ tích hợp trên mọi nền tảng).
 - **Phía trong (Gateway $\rightarrow$ Microservices)**: Giao tiếp giữa các server nội bộ cần tốc độ cao, độ trễ thấp và băng thông nhỏ, do đó **gRPC trên HTTP/2 nhị phân** là sự lựa chọn vượt trội.
-
-### Cơ chế hoạt động:
-Khi Client gọi `POST /api/v1/commerce/orders`:
-1. `CommerceController` nhận `CheckoutRequestDto` từ JSON request body.
-2. `GatewayDispatcher` kích hoạt `GrpcServiceCaller`.
-3. `GrpcServiceCaller` tạo đối tượng Protobuf `CreateOrderRequest`, đóng gói nhị phân và gửi qua HTTP/2 Multiplexing tới `CommerceService:8003`.
-4. `CommerceService` xử lý và trả về Protobuf `Order`.
-5. `GatewayDispatcher` sử dụng `JsonFormatter.Default` chuyển đối tượng Protobuf thành `JsonElement`.
-6. `ApiResponseFactory` bọc `JsonElement` đó vào `ApiResponse<Order>` và gửi trả về Client với mã HTTP `201 Created`.
-
+### Cơ chế hoạt động (trên luồng DUY NHẤT đang chạy được: `users`):
+Luồng thật, đã đối chiếu code — `POST /api/v1/auth/login`:
+1. `AuthController.Login` (`AuthController.cs:106`) nhận body DTO, gọi `_client.LoginAsync(...)` với `UsersApi.UsersApiClient`.
+2. `Extensions/GrpcClientsExtension.cs` là nơi **duy nhất** đăng ký typed client (`"users"`), nên chỉ service `users` có `GrpcServiceCaller` thật để gọi.
+3. Khi service ở mode `Real`, `GrpcServiceCaller` gắn metadata `x-trace-id`, `x-user-id`, `x-user-roles`, `x-user-email`, `Idempotency-Key` (`GrpcServiceCaller.cs:62-89`) rồi gọi qua HTTP/2 tới địa chỉ trong `Gateway:Services:users:Address`.
+4. Kết quả Protobuf được `GatewayDispatcher` chuyển thành JSON và `ApiResponseFactory` bọc vào `ApiResponse<T>`.
+5. Khi service ở mode `Mock`, bước 2-4 được thay bằng `MockDataMapper` đọc seed `Seeds/auth/login.json` (hoặc `Seeds/users/login.json`).
+> ❌ **Ví dụ Commerce trong bản cũ là đặc tả mục tiêu, chưa triển khai**: `CommerceController` không tồn tại (file thật là `Controllers/OrdersController.cs`, stub 0 action), `CreateOrderRequest`/`Order` không có trong `shop.proto`, và `Gateway:Services:commerce` hiện **không** có client để gọi. `POST /api/v1/commerce/orders` sẽ trả 404 (không action) trừ khi có `Mocks/` khai báo route tương ứng.
 ---
-
 ## 3.8. Tính Năng Bảo Vệ Kestrel Server & Request Timeouts
-
 1. **Giới Hạn Kích Thước Body Request (64KB Limit)**:
-   - Được cấu hình tại [Program.cs](src/Services/ApiGateway/Nexus.Gateway/Program.cs):
+   - Được cấu hình tại [Program.cs](Nexus.Gateway/Program.cs):
      ```csharp
      builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 64 * 1024);
      ```
    - Mục đích: Gateway chỉ phục vụ các API nghiệp vụ dữ liệu JSON thông thường. Việc chặn request vượt quá 64KB giúp ngăn chặn các đợt tấn công cố tình gửi file rác khổng lồ làm cạn kiệt RAM của Gateway.
-
 2. **Áp Đặt Thời Gian Chờ Xử Lý (Request Timeout 65s)**:
    - Cấu hình qua middleware `RequestTimeouts`:
      ```csharp
@@ -348,11 +311,8 @@ Khi Client gọi `POST /api/v1/commerce/orders`:
      });
      ```
    - Nếu một backend service bị treo hoặc database bị deadlock quá thời gian cho phép, Gateway sẽ chủ động cắt kết nối và trả về mã HTTP `504 Gateway Timeout`, không để kết nối bị treo vĩnh viễn gây cạn kiệt thread pool (chống tấn công Slowloris).
-
 ---
-
 ## 3.9. Tính Năng Xử Lý Lỗi Tập Trung & Chuẩn Hóa Phản Hồi (RFC 9110 / RFC 6585)
-
 ### Envelope Phản Hồi Thành Công Đơn Lẻ (`ApiResponse<T>`):
 ```json
 {
@@ -360,16 +320,15 @@ Khi Client gọi `POST /api/v1/commerce/orders`:
   "statusCode": 200,
   "message": "User retrieved successfully.",
   "data": {
-    "id": "usr_9981",
+    "id": "11111111-1111-1111-1111-000000000004",
     "fullName": "Nguyen Van A",
     "email": "vana@example.com",
     "status": "Active"
   },
-  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
-  "timestamp": "2026-10-07T08:25:00Z"
+  "traceId": "0HNPGT7G285Q2",
+  "timestamp": "2026-10-24T08:25:00Z"
 }
 ```
-
 ### Envelope Phản Hồi Phân Trang (`ApiResponse<PagedData<T>>`):
 ```json
 {
@@ -377,7 +336,7 @@ Khi Client gọi `POST /api/v1/commerce/orders`:
   "statusCode": 200,
   "data": {
     "items": [
-      { "id": "101", "name": "Bàn phím cơ", "price": "1250000.00" }
+      { "id": "22222222-2222-2222-2222-000000000001", "name": "Bàn phím cơ", "price": "1250000.00" }
     ],
     "pagination": {
       "pageIndex": 1,
@@ -392,7 +351,6 @@ Khi Client gọi `POST /api/v1/commerce/orders`:
   "timestamp": "2026-10-07T08:25:00Z"
 }
 ```
-
 ### Envelope Phản Hồi Thất Bại (`ApiErrorResponse`):
 Được tạo qua `IApiResponseFactory` bởi exception handler hoặc hook tương ứng (MVC model binding, auth, rate-limit). Cấu trúc theo tinh thần Problem Details với `errorCode` và `errors` mở rộng; **không** lấy ví dụ `ApiResponse<T>.Error()` của dự án khác làm contract cho Gateway:
 ```json
@@ -409,7 +367,6 @@ Khi Client gọi `POST /api/v1/commerce/orders`:
   "timestamp": "2026-10-07T08:25:00Z"
 }
 ```
-
 #### Bảng Ánh Xạ Mã Lỗi gRPC Sang HTTP Status Code:
 | Mã Lỗi gRPC (`StatusCode`) | Mã Lỗi HTTP | Ý Nghĩa Nghiệp Vụ |
 |:---|:---:|:---|
@@ -421,24 +378,41 @@ Khi Client gọi `POST /api/v1/commerce/orders`:
 | `FailedPrecondition` | **422 Unprocessable Content** | Điều kiện nghiệp vụ phía backend chưa thỏa (ví dụ xóa category đang có hàng). |
 | `DeadlineExceeded` | **504 Gateway Timeout** | Backend xử lý quá hạn cho phép. |
 | `Unavailable` | **503 Service Unavailable** | Service backend chưa bật hoặc bị sự cố mạng. |
-
+| `Aborted` | **409 Conflict** | Giao dịch bị hủy do xung đột (map chung nhánh với `AlreadyExists`). |
+| `ResourceExhausted` | **429 Too Many Requests** | Vượt giới hạn tài nguyên/tần suất của upstream. |
+| `Unimplemented` | **501 Not Implemented** | Upstream chưa hỗ trợ rpc này (**hiện trạng 7/8 service**). |
+| `StatusCode` khác | **502 Bad Gateway** | Upstream trả mã không mong đợi. |
+Bảng trên khớp chính xác `Middleware/GatewayExceptionHandler.cs:61-80` (mỗi nhánh trả kèm `errorCode`):
+| gRPC status | HTTP | `errorCode` |
+|:---|:---:|:---|
+| `InvalidArgument` | 400 | `VAL_INVALID_INPUT` |
+| `Unauthenticated` | 401 | `AUTH_UNAUTHENTICATED` |
+| `PermissionDenied` | 403 | `AUTH_FORBIDDEN` |
+| `NotFound` | 404 | `NOT_FOUND` |
+| `AlreadyExists` / `Aborted` | 409 | `CONFLICT` |
+| `FailedPrecondition` | 422 | `FAILED_PRECONDITION` |
+| `ResourceExhausted` | 429 | `RATE_LIMIT_EXCEEDED` |
+| `Unimplemented` | 501 | `NOT_IMPLEMENTED` |
+| `Unavailable` | 503 | `SERVICE_UNAVAILABLE` |
+| `DeadlineExceeded` | 504 | `GATEWAY_TIMEOUT` |
+| khác | 502 | `BAD_GATEWAY` |
+| `OperationCanceledException` | 504 | `GATEWAY_TIMEOUT` |
+| `BadHttpRequestException` | theo `StatusCode` | `BAD_REQUEST` |
+| ngoại lệ khác | 500 | `INTERNAL_ERROR` |
+| circuit breaker (service Unhealthy) | 503 | `DOWNSTREAM_UNHEALTHY` (`Dispatching/GatewayDispatcher.cs:103-113`) |
 ---
-
 ## 3.10. Tính Năng Phân Tán Trace & Giám Sát (OpenTelemetry Tracing)
-
 - Gateway tích hợp **OpenTelemetry 1.18.0** theo chuẩn quốc tế W3C TraceContext.
 - Mỗi request khi đi vào Gateway được gán một định danh theo dõi duy nhất: `traceId`.
 - Gateway tự động sinh `Activity` mang tên `${service}.${operation}` gắn kèm các tags chẩn đoán:
   - `backend.service`: Tên service tiếp nhận (ví dụ: `catalog`, `commerce`).
   - `backend.mode`: Trạng thái xử lý (`Mock` hoặc `Real`).
-- Header `x-trace-id` được tự động chuyển tiếp qua gRPC Metadata xuống toàn bộ các backend microservices, giúp lập trình viên có thể truy vết toàn bộ hành trình của một request từ Frontend $\rightarrow$ Gateway $\rightarrow$ Service $\rightarrow$ RabbitMQ $\rightarrow$ Database trên Jaeger hoặc Zipkin.
-
+- Header `x-trace-id` được chuyển tiếp qua gRPC Metadata xuống backend (`Dispatching/GrpcServiceCaller.cs:68`) — nhưng **chỉ khi client tương ứng đã đăng ký** (hiện chỉ `users`).
+- ⚠️ **Đính chính**: exporter duy nhất được cấu hình là **OTLP**, và chỉ bật khi `OTEL_EXPORTER_OTLP_ENDPOINT` (hoặc `Otel:Endpoint`) có giá trị (`Extensions/TelemetryExtension.cs`). Repo **không** cấu hình Jaeger hay Zipkin; Jaeger/Zipkin/Tempo/Grafana đều **không** nằm trong `docker-compose.yml` của repo này.
+- ⚠️ Gateway **không** có instrumentation RabbitMQ/EF Core nên không thể hiển thị chặng `Service → RabbitMQ → Database`; những chặng đó phụ thuộc việc backend tự bật OTel (xem Nguyên tắc 7 của `AGENTS.md` monorepo: package OTel hiện chỉ có ở Gateway/Log/Wallet).
 ---
-
 ## 3.11. Chiến Lược Phòng Thủ Xác Thực Dữ Liệu 3 Tầng (3-Tier Validation Defense-in-Depth)
-
 Hệ thống Nexus phân định rạch ròi 3 tầng phòng vệ dữ liệu (Separation of Concerns), ngăn ngừa Gateway bị quá tải bởi các quy tắc nghiệp vụ domain riêng lẻ:
-
 ```
 [ Client Request ]
        │
@@ -480,24 +454,21 @@ Hệ thống Nexus phân định rạch ròi 3 tầng phòng vệ dữ liệu (S
 │   + CHECK constraints (CHECK (available >= 0), CHECK (price >= 0)).    │
 │   + NOT NULL, UNIQUE (email, username, slug, idempotency_key).        │
 │   + Khóa ngoại (FOREIGN KEY) bảo toàn quan hệ bảng.                    │
-│ * Đảm bảo tối cao: Dù request đi qua Gateway, gọi gRPC nội bộ giữa     │
-│   các service, hay từ RabbitMQ Consumer, dữ liệu luôn toàn vẹn 100%.   │
+│ * Đảm bảo tối cao (MỤC TIÊU): Dù request đi qua Gateway, gọi gRPC nội   │
+│   bộ giữa các service, hay từ RabbitMQ Consumer, dữ liệu vẫn toàn vẹn. │
+│   ⚠️ Tầng 3 (Database Constraints) phụ thuộc DB của backend, KHÔNG nằm  │
+│   trong repo Gateway này (gateway có 0 DbContext/0 DbSet).             │
 └────────────────────────────────────────────────────────────────────────┘
 ```
-
 ---
-
 ## 3.12. Tính Năng Health Prober Daemon, Giám Sát Sức Khỏe & Tự Động Hồi Phục (Self-Healing)
-
 Nhằm đảm bảo tính sẵn sàng cao (High Availability) cho toàn bộ hệ sinh thái Microservices, API Gateway tích hợp sẵn **Health Prober Daemon Engine** chạy nền, đóng vai trò là một External Prober chủ động giám sát trạng thái của 8 backend services (`users`, `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`).
-
 ### 3.12.1. Bốn Tham Số Điều Khiển Chuẩn (Configuration Standards)
 Hệ thống điều khiển quy trình kiểm tra sức khỏe thông qua 4 tham số chuẩn (cấu hình qua `appsettings.json` hoặc biến môi trường `Gateway__HealthProber__...`):
 - **Interval (Chu kỳ kiểm tra)**: Mặc định `60s` (1 phút). Khoảng cách thời gian giữa hai lần gõ cửa kiểm tra service.
 - **Timeout (Thời gian chờ tối đa)**: Mặc định `30s`. Thời gian tối đa chờ phản hồi HTTP/gRPC từ service; nếu quá 30s coi như lần probe thất bại.
 - **Retries / FailureThreshold (Ngưỡng thất bại)**: Mặc định `5 lần`. Số lần kiểm tra thất bại liên tiếp trước khi chuyển trạng thái sang `Unhealthy`.
 - **StartPeriod (Thời gian ân hạn khởi động)**: Mặc định `60s` (1 phút). Khi container mới khởi động lại, trong 60s đầu tiên nếu probe thất bại sẽ không tính vào số lần Retries (để container có thời gian khởi tạo runtime và kết nối DB).
-
 ### 3.12.2. State Machine Quản Lý Vòng Đời Trạng Thái (Health State Machine)
 Mỗi service được quản lý bởi một State Machine chặt chẽ:
 ```
@@ -513,10 +484,10 @@ Mỗi service được quản lý bởi một State Machine chặt chẽ:
                                                                 [ UNHEALTHY ]
                                                                       │
                               ┌───────────────────────────────────────┴───────────────────────┐
-                              │ 1. Circuit Breaker Fast-Fail: Chặn ngay request tới service   │
-                              │ 2. Kích hoạt Saga Rollback: Bắn Event lên RabbitMQ            │
-                              │ 3. Docker Auto-Recovery: Xóa & Recreate Container             │
-                              │ 4. Ghi log sự cố vào File theo cơ chế giới hạn dòng          │
+                              │ 1. Circuit Breaker Fast-Fail: Chặn ngay request tới service ✅ │
+                              │ 2. "Saga Rollback": CHỈ ghi warning log, KHÔNG bắn RabbitMQ ❌ │
+                              │ 3. Docker Auto-Recovery: gọi CLI `docker restart` ⚠️           │
+                              │ 4. Ghi log sự cố vào File theo cơ chế giới hạn dòng ✅         │
                               └───────────────────────────────────────┬───────────────────────┘
                                                                       ▼
                                                            [ RECOVERING (Recreated) ]
@@ -524,7 +495,6 @@ Mỗi service được quản lý bởi một State Machine chặt chẽ:
                                                                       ▼
                                                            [ STARTING (Grace Period 60s) ]
 ```
-
 ### 3.12.3. Chiến Lược Phân Tầng Lưu Vết Log Sự Cố (Incident File Logging & Batching)
 - **Với các lần check Healthy bình thường:** Tuyệt đối **không ghi ra file log** để tránh làm nghẽn Disk I/O và gây rác log (Log Pollution). Gateway lưu trữ 30 mẫu kiểm tra gần nhất trong **In-Memory Ring Buffer** phục vụ API truy vấn tức thì và đẩy metrics OpenTelemetry.
 - **Khi xảy ra sự cố (Degraded 1/5 - 4/5 và Unhealthy 5/5):**
@@ -532,18 +502,18 @@ Mỗi service được quản lý bởi một State Machine chặt chẽ:
   - **Cơ chế giới hạn dòng trên mỗi file (`MaxLinesPerLogFile = 1000`)**: Khi file log đạt đủ 1000 dòng, hệ thống tự động ngắt và mở file mới (`incident-YYYYMMDD-0002.log`).
 - **Định hướng tương lai cho Code Agent / Developer khi triển khai `LogService` tập trung (Port 8004, `log_db`):**
   - Khi triển khai gom log tập trung về `LogService`, Gateway áp dụng cơ chế **Gom cụm tối thiểu 1000 dòng log (Batching Sink)** mới gửi bulk sang LogService qua HTTP `POST /api/v1/log/batch` hoặc RabbitMQ. Tuyệt đối không gửi từng dòng log đơn lẻ qua mạng.
-
 ### 3.12.4. Phản Ứng Tự Động Khi Service Rơi Vào Trạng Thái Unhealthy
 1. **Circuit Breaker Fast-Fail Tại `GatewayDispatcher`:**
    - Khi service ở trạng thái `Unhealthy` hoặc `Recovering`, Gateway lập tức ngắt mạch trong 0ms, không đẩy request xuống mạng gRPC.
    - Trả về mã lỗi chuẩn RFC 9110: **HTTP 503 Service Unavailable** (`errorCode: "DOWNSTREAM_UNHEALTHY"`).
-2. **Kích Hoạt Saga Rollback Toàn Bộ:**
-   - Gateway publish sự kiện `ServiceUnhealthyIntegrationEvent` lên RabbitMQ để các orchestrator (như Checkout Saga của CommerceService) lập tức hủy và bù trừ (compensate) các giao dịch đang treo liên quan đến service bị sập.
-3. **Docker Container Auto-Recovery (Tự Động Recreate Container):**
-   - Gateway giao tiếp với Docker Engine qua socket `/var/run/docker.sock`, tự động gọi `Stop` $\rightarrow$ `Remove` $\rightarrow$ `Recreate` container tương ứng (`nexus-{service}-service`).
-   - Sau khi container được tạo lại, chuyển trạng thái sang `Recovering` $\rightarrow$ `Starting` (ân hạn 60s).
-   - **Chống lặp vô hạn (CrashLoopBackOff Protection):** Giới hạn tối đa 3 lần tự động restart liên tiếp (`MaxAutoRecoverAttempts = 3`). Nếu vượt quá, Prober ngừng restart và bắn cảnh báo khẩn cấp `CRITICAL_INTERVENTION_NEEDED`.
-
+2. **Kích Hoạt "Saga Rollback" — ❌ CHƯA CÓ (đặc tả mục tiêu):**
+   - Bản cũ mô tả Gateway publish `ServiceUnhealthyIntegrationEvent` lên RabbitMQ. **Sai với code hiện tại**: `HealthProber/SagaRollbackPublisher.cs` chỉ gọi `_logger.LogWarning("[SAGA ROLLBACK TRIGGERED] Published ServiceUnhealthyIntegrationEvent ...")` rồi `return Task.CompletedTask;`, kèm comment `// Khi có MassTransit IBus, gọi _bus.Publish(evt, cancellationToken).`
+   - Repo Gateway có **0** package MassTransit/RabbitMQ (`Nexus.Gateway.csproj`), nên không thể publish. Sự kiện `ServiceUnhealthyIntegrationEvent(string ServiceName, DateTime OccurredAt, string Reason)` mới chỉ là record nội bộ.
+3. **Docker Container Auto-Recovery — ⚠️ MỘT PHẦN, không chạy được trong container:**
+   - `HealthProber/DockerContainerRecoveryService.cs` kiểm tra `File.Exists("/var/run/docker.sock")` rồi gọi **CLI** qua `ProcessStartInfo { FileName = "docker", Arguments = $"restart {containerName}" }` — tức `docker restart`, **không** phải `Stop → Remove → Recreate` bằng Docker Engine API như bản cũ mô tả.
+   - `docker-compose.yml` **có** mount `/var/run/docker.sock:/var/run/docker.sock`, nhưng image runtime `mcr.microsoft.com/dotnet/aspnet:8.0` (`Dockerfile`) **không cài docker CLI** ⇒ trong container lời gọi `docker` sẽ thất bại (exception bị `catch` và trả `false`, chỉ ghi warning). Nếu chạy `dotnet run` trực tiếp trên máy host có docker CLI thì nhánh này mới thực thi được.
+   - Tên container do `GetContainerName` map tĩnh (ví dụ `users`→`nexus-user-service`, `catalog`→`nexus-catalog-service`) — khớp quy ước `nexus-{service}-service`.
+   - **Chống lặp vô hạn**: `HealthProber:AutoRecoverContainer = true`, `MaxAutoRecoverAttempts = 3` có trong `appsettings.json`. ⚠️ Cảnh báo `CRITICAL_INTERVENTION_NEEDED` chỉ là **chuỗi log mục tiêu** — không có hằng số/exception nào mang tên này trong code.
 ### 3.12.5. Danh Mục Endpoint Quản Trị Health Prober
 Được phân quyền nghiêm ngặt theo chính sách `[Authorize(GatewayPolicies.GatewayAdmin)]` và chặn hoàn toàn bypass:
 - `GET /api/v1/gateway/prober/status`: Tra cứu trạng thái toàn bộ 8 services, số lần lỗi liên tiếp, và danh sách các mẫu check gần nhất.
@@ -551,211 +521,212 @@ Mỗi service được quản lý bởi một State Machine chặt chẽ:
 - `PUT /api/v1/gateway/prober/{service}`: Bật hoặc tắt prober daemon của 1 service (hỗ trợ tùy chỉnh interval, threshold).
 - `PUT /api/v1/gateway/prober/bulk`: Bật hoặc tắt hàng loạt toàn bộ 8 prober daemons cùng lúc.
 - `POST /api/v1/gateway/prober/{service}/check`: **API kiểm tra sức khỏe thủ công tức thì (Manual Check on demand)** — thực thi probe ngay lập tức và trả về latency (ms), HTTP status code và kết quả.
-
 ---
-
 # 4. BẢN ĐỒ CẤU TRÚC MÃ NGUỒN & PHÂN BỔ TRÁCH NHIỆM
-
 ```
 src/Services/ApiGateway/
-├── ApiGateway.sln                        # Visual Studio / Rider Solution file
+├── ApiGateway.sln                        # Solution file (2 project: Nexus.Gateway + Nexus.Gateway.Tests)
 ├── ADR.md                                # Ghi chép quyết định kiến trúc (Architecture Decision Records)
+├── AGENTS.md / CLAUDE.md                 # Quy chuẩn vận hành cho AI Agent (2 file giống hệt nhau)
 ├── CONFIG_REFERENCE.md                   # Cẩm nang tra cứu cấu hình & biến môi trường
-├── PLAN.md                               # Kế hoạch phát triển và tiến trình kiểm thử
+├── DEV_GUIDE.md                          # Hướng dẫn thêm API mới vào Gateway
+├── MOCK_GUIDE.md                         # Quy trình tạo Mock API (Controller Action + Seeds + Mocks)
+├── PLAN.md                               # Kế hoạch phát triển (tài liệu LỊCH SỬ, số liệu cũ đã lỗi thời)
 ├── README.md                             # Hướng dẫn nhanh cài đặt và khởi chạy
 ├── SETUP_GUIDE_SERVICES.md               # Hướng dẫn kết nối 8 microservices backend
 ├── dac_ta.md                             # Bản đặc tả kỹ thuật toàn diện này
-├── input.md                              # Quy chuẩn dữ liệu đầu vào & format response
+├── input.md                              # Mẫu JSON envelope request/response + bảng mã lỗi
 ├── global.json                           # Cố định phiên bản .NET SDK (8.0.x)
-├── docker-compose.yml                    # Khởi động nhanh Gateway kèm Redis
-├── run-dev.sh / run-dev.ps1              # 1-Click script khởi chạy môi trường Development
+├── docker-compose.yml                    # CHỈ định nghĩa service `gateway` (KHÔNG kèm Redis/Tempo/Grafana)
+├── Dockerfile                            # aspnet:8.0 runtime, EXPOSE 8000, KHÔNG cài docker CLI
+├── .env / .env.example                   # Biến môi trường local (.env bị gitignore, .env.example được track)
+├── run-dev.sh / run-dev.ps1              # Script khởi chạy Development: `dotnet run --urls http://127.0.0.1:8000`
+├── .github/workflows/ci-cd.yml           # CI build + push Docker image khi push/PR vào `main`
 │
 ├── Nexus.Gateway/                        # PROJECT CHÍNH (ASP.NET Core 8 Web API / Gateway)
-│   ├── Program.cs                        # Khởi động ứng dụng siêu tinh gọn (< 35 dòng)
+│   ├── Program.cs                        # Khởi động ứng dụng siêu tinh gọn (30 dòng)
 │   ├── BackendDispatcher.cs              # Cầu nối tương thích ủy quyền sang IGatewayDispatcher
-│   ├── GatewayOptions.cs                 # Lớp cấu hình strongly-typed (CORS, RateLimit, Services...)
-│   ├── Dockerfile                        # File đóng gói Docker Image cho production
-│   ├── appsettings.json                  # Cấu hình gốc (Base/Production)
-│   ├── appsettings.Development.json      # Cấu hình môi trường Development (mặc định Mock bật)
-│   ├── gateway.runtime.json              # Cấu hình runtime động (hot-reload mode Real/Mock)
+│   ├── GatewayOptions.cs                 # Cấu hình strongly-typed (CORS, RateLimit, Services, AuthMode...)
+│   ├── appsettings.json                  # Cấu hình gốc — ⚠️ BỊ GITIGNORE (.gitignore:81), không commit
+│   ├── appsettings.Development.json      # Cấu hình Development — ⚠️ cũng bị gitignore
+│   ├── appsettings.example.json          # Bản mẫu được track (JWT key = <REPLACE_WITH_...>)
+│   ├── appsettings.Development.example.json
+│   ├── gateway.runtime.json              # Cấu hình runtime động (hot-reload) — ĐƯỢC TRACK trong git
+│   ├── gateway.runtime.example.json
+│   ├── Properties/launchSettings.json    # Profile `http` → http://localhost:8000, env Development
 │   │
 │   ├── Contracts/
-│   │   └── shop.proto                    # Nguồn sự thật duy nhất (Single Source of Truth) định nghĩa gRPC proto
+│   │   └── shop.proto                    # Chỉ có `service UsersApi` (5 rpc) — KHÔNG phải nguồn sự thật duy nhất
 │   │
 │   ├── Common/                           # TẦNG DÙNG CHUNG (VALIDATION & HELPERS)
-│   │   └── ValidationHelpers.cs          # Validation helpers: Bad(), PageOk(), GuidOk(), Roles, Consts
+│   │   ├── ValidationHelpers.cs          # Bad(), PageOk(), GuidOk(), Roles, Consts
+│   │   ├── GatewayInputException.cs      # Ngoại lệ input, errorCode mặc định VAL_INVALID_INPUT
+│   │   ├── MoneyPrecision.cs             # Tiện ích giữ độ chính xác số tiền
+│   │   └── Converters/PascalCaseJsonStringEnumConverter.cs  # Enum → chuỗi PascalCase
 │   │
-│   ├── Controllers/                      # ĐẦU VÀO: 15 CONTROLLERS TIÊU CHUẨN [ApiController] ControllerBase
-│   │   ├── AuthController.cs             # Routes: /api/v1/auth/... (login, register, otp)
-│   │   ├── UsersController.cs            # Routes: /api/v1/users/... (me, seller-upgrade)
-│   │   ├── AdminUsersController.cs       # Routes: /api/v1/admin/users, roles, permissions, approve seller
-│   │   ├── CartController.cs             # Routes: /api/v1/cart, /api/v1/commerce/cart (giỏ hàng)
-│   │   ├── OrdersController.cs           # Routes: /api/v1/orders, /api/v1/commerce/orders, seller/admin orders
-│   │   ├── ProductsController.cs         # Routes: /api/v1/products, /api/v1/catalog/products, seller products
-│   │   ├── CategoriesController.cs       # Routes: /api/v1/categories, /api/v1/catalog/categories
-│   │   ├── InventoryController.cs        # Routes: /api/v1/seller/inventory (quản lý tồn kho seller)
-│   │   ├── AuctionController.cs          # Routes: /api/v1/auctions/... (auctions, bids)
-│   │   ├── FulfillmentController.cs      # Routes: /api/v1/fulfillment/... (shipping, inventory, tracking)
-│   │   ├── NotificationController.cs     # Routes: /api/v1/notifications/... (list, read, preferences)
-│   │   ├── LogController.cs              # Routes: /api/v1/log/... (logs, event types)
-│   │   ├── WalletController.cs           # Routes: /api/v1/wallet/... (balance, deposit, withdraw, transfer)
-│   │   ├── GatewayControlController.cs   # Routes: /api/v1/gateway/..., /mock-engine/... (control plane)
-│   │   └── HealthProberController.cs     # Routes: /api/v1/gateway/prober/... (status, toggle, bulk, manual check)
+│   ├── Controllers/                      # 15 FILE controller, nhưng CHỈ 4 FILE CÓ ACTION (16 action)
+│   │   ├── AuthController.cs             # ✅ 4 action: POST register, verify-otp, resend-otp, login
+│   │   ├── UsersController.cs            # ✅ 1 action: GET /api/v1/users/me
+│   │   ├── GatewayControlController.cs   # ✅ 6 action: gateway/modes, gateway/mode, gateway/modes/{service}, gateway/modes, mock-engine/definitions, mock-engine/reload
+│   │   ├── HealthProberController.cs     # ✅ 5 action: gateway/prober/status (+/{service}), PUT {service}, PUT bulk, POST check
+│   │   ├── AdminUsersController.cs       # ❌ stub 10 dòng, 0 action — route api/v1/admin/users
+│   │   ├── CartController.cs             # ❌ stub — route api/v1/commerce/cart
+│   │   ├── OrdersController.cs           # ❌ stub — route api/v1/commerce/orders
+│   │   ├── ProductsController.cs         # ❌ stub — route api/v1/catalog/products
+│   │   ├── CategoriesController.cs       # ❌ stub — route api/v1/catalog/categories
+│   │   ├── InventoryController.cs        # ❌ stub — route api/v1/catalog/inventory
+│   │   ├── AuctionController.cs          # ❌ stub — route api/v1/auction
+│   │   ├── FulfillmentController.cs      # ❌ stub — route api/v1/fulfillment
+│   │   ├── NotificationController.cs     # ❌ stub — route api/v1/notification
+│   │   ├── LogController.cs              # ❌ stub — route api/v1/log
+│   │   └── WalletController.cs           # ❌ stub — route api/v1/wallet
 │   │
-│   ├── Dtos/                             # CÁC DTO ĐƯỢC TÁCH BIỆT RÀNH MẠCH THEO SERVICE
+│   ├── Dtos/                             # CHỈ có 4 thư mục (không phải 11 như bản cũ)
 │   │   ├── Auth/                         # AuthRequests.cs, AuthResponses.cs
-│   │   ├── Users/                        # UserRequests.cs, UserResponses.cs
-│   │   ├── Catalog/                      # CatalogRequests.cs, CatalogResponses.cs
-│   │   ├── Commerce/                     # CommerceRequests.cs, CommerceResponses.cs
-│   │   ├── Auction/                      # AuctionRequests.cs, AuctionResponses.cs
-│   │   ├── Fulfillment/                  # FulfillmentRequests.cs, FulfillmentResponses.cs
-│   │   ├── Notification/                 # NotificationRequests.cs, NotificationResponses.cs
-│   │   ├── Log/                          # LogRequests.cs, LogResponses.cs
-│   │   ├── Wallet/                       # WalletRequests.cs, WalletResponses.cs
+│   │   ├── Users/                        # UserResponses.cs (KHÔNG có UserRequests.cs)
 │   │   ├── GatewayControl/               # GatewayControlRequests.cs, GatewayControlResponses.cs
-│   │   └── HealthProber/                 # HealthProberDtos.cs (ToggleDto, BulkDto, StatusDto)
+│   │   └── HealthProber/                 # HealthProberDtos.cs
 │   │
-│   ├── HealthProber/                     # ENGINE GIÁM SÁT SỨC KHỎE & HỒI PHỤC (PROBER DAEMON)
-│   │   ├── HealthProberOptions.cs        # Cấu hình Interval 60s, Timeout 30s, Retries 5, MaxLines 1000
-│   │   ├── ProberRunStatus.cs            # State Machine: Disabled, Starting, Healthy, Degraded, Unhealthy, Recovering
-│   │   ├── ServiceHealthState.cs         # Ring Buffer 30 mẫu gần nhất, biến đếm lỗi liên tiếp
-│   │   ├── HealthCheckSample.cs          # DTO lưu vết từng mẫu kiểm tra (latency, status code, error)
-│   │   ├── IHealthProberManager.cs       # Interface quản trị vòng đời các Prober Daemon
-│   │   ├── HealthProberManager.cs        # Background Service điều khiển chu kỳ thăm dò & kích hoạt sự cố
-│   │   ├── IHealthIncidentLogger.cs      # Interface ghi vết sự cố sức khỏe
-│   │   ├── FileRollingHealthIncidentLogger.cs # Ghi log Unhealthy ra file logs/health/, xoay file mỗi 1000 dòng
-│   │   ├── IDockerContainerRecoveryService.cs # Interface khôi phục container Docker
-│   │   ├── DockerContainerRecoveryService.cs  # Tự động restart/recreate container qua Docker socket
-│   │   ├── ISagaRollbackPublisher.cs     # Interface phát sự kiện Saga Rollback
-│   │   ├── SagaRollbackPublisher.cs      # Publish ServiceUnhealthyIntegrationEvent lên RabbitMQ
-│   │   └── HealthProberExtensions.cs     # Đăng ký DI cho toàn bộ khối Health Prober
+│   ├── HealthProber/                     # ENGINE GIÁM SÁT SỨC KHỎE (PROBER DAEMON)
+│   │   ├── HealthProberOptions.cs        # Interval 60s, Timeout 30s, FailureThreshold 5, MaxLines 1000
+│   │   ├── ProberRunStatus.cs            # Disabled, Starting, Healthy, Degraded, Unhealthy, Recovering
+│   │   ├── ServiceHealthState.cs         # Ring Buffer 30 mẫu gần nhất + đếm lỗi liên tiếp
+│   │   ├── HealthCheckSample.cs          # Mẫu kiểm tra (latency, status code, error)
+│   │   ├── IHealthProberManager.cs       # Interface quản trị vòng đời prober
+│   │   ├── HealthProberManager.cs        # Background service; prober mặc định `Disabled`
+│   │   ├── IHealthIncidentLogger.cs      # Interface ghi vết sự cố
+│   │   ├── FileRollingHealthIncidentLogger.cs # Ghi log sự cố logs/health/, xoay file mỗi 1000 dòng
+│   │   ├── IDockerContainerRecoveryService.cs # Interface khôi phục container
+│   │   ├── DockerContainerRecoveryService.cs  # ⚠️ Gọi CLI `docker restart` (image không có docker CLI)
+│   │   ├── ISagaRollbackPublisher.cs     # Interface phát sự kiện rollback
+│   │   ├── SagaRollbackPublisher.cs      # ❌ CHỈ ghi warning log, KHÔNG publish RabbitMQ
+│   │   └── HealthProberExtensions.cs     # Đăng ký DI cho Health Prober
 │   │
-│   ├── Dispatching/                      # PHẦN GIỮA: THE DISPATCHING CORE (ĐIỀU PHỐI KHÔNG IF/ELSE Ở CONTROLLER)
-│   │   ├── IModeEvaluator.cs / ModeEvaluator.cs       # Đánh giá mode Mock/Real, hot-reload & header override
-│   │   ├── IMockDataMapper.cs / MockDataMapper.cs     # Đọc Seed JSON, kiểm định hợp đồng qua Protobuf Parser
-│   │   ├── IGrpcServiceCaller.cs / GrpcServiceCaller.cs # Forward metadata (JWT, Idempotency-Key, TraceId) & gọi gRPC
-│   │   └── IGatewayDispatcher.cs / GatewayDispatcher.cs # Bộ điều phối chính kết hợp 3 khối trên
+│   ├── Dispatching/                      # PHẦN GIỮA: DISPATCHING CORE (không if/else Mock/Real ở controller)
+│   │   ├── ModeEvaluator.cs              # IModeEvaluator + ModeEvaluator: đánh giá mode, header override
+│   │   ├── MockDataMapper.cs             # IMockDataMapper + MockDataMapper: đọc Seed JSON mỗi request
+│   │   ├── GrpcServiceCaller.cs          # IGrpcServiceCaller + GrpcServiceCaller: forward metadata & gọi gRPC
+│   │   └── GatewayDispatcher.cs          # IGatewayDispatcher + GatewayDispatcher + circuit breaker 503
 │   │
 │   ├── Extensions/                       # MỞ RỘNG DI & PIPELINE TẬP TRUNG
-│   │   ├── ConfigurationExtensions.cs    # Cấu hình Options & logging
-│   │   ├── CoreServicesExtension.cs      # Đăng ký Controller, Dispatching core, Redis, ExceptionHandler
-│   │   ├── GrpcClientsExtension.cs       # Đăng ký 8 typed gRPC clients
-│   │   ├── PipelineExtensions.cs         # Cấu hình Middleware pipeline chuẩn REST
+│   │   ├── ConfigurationExtensions.cs    # Nạp 3 file JSON (reloadOnChange) + biến môi trường + ValidateOnStart
+│   │   ├── CoreServicesExtension.cs      # Controller, Dispatching, Redis, ExceptionHandler, RequestTimeout 65s
+│   │   ├── GrpcClientsExtension.cs       # ⚠️ CHỈ đăng ký 1 typed client: UsersApi ("users") — không phải 8
+│   │   ├── LoggingExtensions.cs          # Serilog + PeriodicBatchingSink → GatewayBatchLogSink
+│   │   ├── PipelineExtensions.cs         # Middleware pipeline chuẩn REST + custom headers
 │   │   ├── SwaggerExtension.cs           # Swagger UI + Bearer Auth + MockEngineDocumentFilter
-│   │   └── TelemetryExtension.cs         # Cấu hình OpenTelemetry tracing & metrics
+│   │   └── TelemetryExtension.cs         # AddGatewayTelemetry (OTel 1.18.0)
+│   │
+│   ├── Logging/
+│   │   ├── GatewayBatchLogSink.cs        # ⚠️ POST /api/v1/log/batch (endpoint KHÔNG tồn tại), bỏ qua kết quả
+│   │   └── LogBatchOptions.cs            # SaveBatchSnapshots, BatchDirectory, RemoteEndpoint
 │   │
 │   ├── Middleware/
-│   │   ├── GatewayExceptionHandler.cs    # Xử lý ngoại lệ tập trung, map gRPC RpcException sang HTTP RFC 9110
-│   │   └── RedisRateLimitMiddleware.cs   # Giới hạn tần suất gọi phân tán bằng Redis (Fixed Window)
+│   │   ├── GatewayExceptionHandler.cs    # Map RpcException → HTTP RFC 9110 + errorCode
+│   │   └── RedisRateLimitMiddleware.cs   # Rate limit phân tán bằng Redis (Fixed Window)
 │   │
-│   ├── MockEngine/
-│   │   ├── IMockEngine.cs                # Interface quản lý nạp, khớp và hot-reload mock definitions
-│   │   ├── MockEngine.cs                 # Triển khai MockEngine đọc file *.mock.json, FileSystemWatcher debounce
-│   │   ├── MockEndpointDefinition.cs     # Schema POCO của một mock endpoint khai báo động
-│   │   ├── MockRouteMatcher.cs           # Thuật toán so khớp URL động (hỗ trợ tham số URL {id}, regex)
-│   │   ├── MockRouteMatch.cs             # Kết quả sau khi so khớp route
-│   │   ├── MockEngineMiddleware.cs       # Middleware chặn request trước và phục vụ dữ liệu mock
-│   │   └── MockEngineDocumentFilter.cs   # Tự động đẩy các mock endpoint động lên Swagger UI
+│   ├── MockEngine/                       # MOCK KHAI BÁO (declarative)
+│   │   ├── IMockEngine.cs
+│   │   ├── MockEngine.cs                 # Đọc *.mock.json, FileSystemWatcher debounce
+│   │   ├── MockEndpointDefinition.cs     # POCO của một mock endpoint
+│   │   ├── MockRouteMatcher.cs           # So khớp URL động ({id}, regex)
+│   │   ├── MockRouteMatch.cs
+│   │   ├── MockEngineMiddleware.cs       # Chỉ phục vụ route KHÔNG khớp ControllerActionDescriptor
+│   │   └── MockEngineDocumentFilter.cs   # Đẩy mock endpoint động lên Swagger UI
 │   │
-│   ├── Seeds/                            # DỮ LIỆU SEED CHUẨN HÓA THEO SERVICE & ENTITY
-│   │   ├── users/                        # Fixtures JSON cho UserService (login, register, profile, roles...)
-│   │   ├── catalog/                      # Fixtures JSON cho CatalogService (products, categories, inventory...)
-│   │   ├── commerce/                     # Fixtures JSON cho CommerceService (cart, orders, checkout...)
-│   │   ├── log/                          # Fixtures JSON cho LogService (system logs, event types...)
-│   │   ├── auction/                      # Fixtures JSON cho AuctionService (auctions, bids...)
-│   │   ├── fulfillment/                  # Fixtures JSON cho FulfillmentService (inventory, shipping quotes...)
-│   │   ├── notification/                 # Fixtures JSON cho NotificationService (notifications, preferences...)
-│   │   ├── wallet/                       # Fixtures JSON cho WalletService (balance, deposit, withdraw, transfer...)
-│   │   └── declarative/                  # Các file *.mock.json khai báo endpoint độc lập
+│   ├── Mocks/                            # 6 file *.mock.json (+ README.md)
+│   │   ├── auth-login.mock.json / auth-register.mock.json / auth-resend-otp.mock.json / auth-verify-otp.mock.json
+│   │   ├── catalog-products.mock.json
+│   │   └── users-me.mock.json
+│   │
+│   ├── Seeds/                            # CHỈ 2 thư mục có dữ liệu thật (9 file JSON)
+│   │   ├── auth/                         # login.json, register.json, resend-otp.json, verify-otp.json
+│   │   ├── users/                        # login.json, profile.json, register.json, resend-otp.json, verify-otp.json
+│   │   ├── cart/README.md                # placeholder, KHÔNG có JSON
+│   │   ├── orders/README.md              # placeholder
+│   │   ├── products/README.md            # placeholder
+│   │   └── README.md
 │   │
 │   ├── Responses/                        # ĐẦU RA: UNIFIED OUTPUT FACTORY
-│   │   ├── ApiResponse.cs                # Envelope định dạng phản hồi thành công chuẩn REST
-│   │   ├── ApiErrorResponse.cs           # Envelope định dạng lỗi theo chuẩn IETF RFC 9110 / RFC 6585
-│   │   ├── PagedData.cs                  # Envelope dữ liệu phân trang
-│   │   ├── PaginationMetadata.cs         # Metadata phân trang (pageIndex, pageSize, totalPages, hasNext...)
-│   │   ├── IApiResponseFactory.cs        # Interface factory tạo response
-│   │   ├── ApiResponseFactory.cs         # Triển khai factory chuẩn hóa response & tự động resolve TraceId
-│   │   └── HttpContextUserExtensions.cs  # Tiện ích đọc ClaimsPrincipal (sub, role) chuyển sang UserRequest
+│   │   ├── ApiResponse.cs                # Envelope thành công (success/statusCode/data/traceId/timestamp)
+│   │   ├── ApiErrorResponse.cs           # Envelope lỗi RFC 9110
+│   │   ├── PagedData.cs                  # items + pagination
+│   │   ├── PaginationMetadata.cs         # pageIndex/pageSize/totalCount/totalPages/hasPrevious/hasNext
+│   │   ├── IApiResponseFactory.cs
+│   │   ├── ApiResponseFactory.cs         # Factory chuẩn hoá response + resolve TraceId
+│   │   └── HttpContextUserExtensions.cs  # Đọc ClaimsPrincipal (sub, role...)
 │   │
 │   ├── Security/
-│   │   ├── GatewayAuthorization.cs       # Định nghĩa các Policy phân quyền RBAC & đánh dấu Bypass
-│   │   ├── GatewaySecurityHelper.cs      # Helper kiểm tra trạng thái Mock/Real của request, resolve policy
-│   │   ├── SecurityConfiguration.cs      # Cấu hình xác thực JWT Bearer, token validation, Mock token handler
-│   │   ├── MockSecurityAdapterMiddleware.cs # Middleware cấp danh tính giả lập (ClaimsPrincipal) khi test mock
-│   │   └── EdgeMiddlewareConfiguration.cs   # Đăng ký CORS và RateLimiter built-in của ASP.NET Core
+│   │   ├── GatewayAuthorization.cs       # Policy RBAC & attribute [DisableMockAuthorizationBypass]
+│   │   ├── GatewayRequestResolution.cs   # Resolve policy/quyền yêu cầu của request
+│   │   ├── GatewaySecurityHelper.cs      # Helper Mock/Real, resolve policy
+│   │   ├── SecurityConfiguration.cs      # JWT Bearer, token validation, 6 policy GatewayPolicies
+│   │   ├── MockSecurityAdapterMiddleware.cs # Cấp ClaimsPrincipal giả lập khi test mock
+│   │   └── EdgeMiddlewareConfiguration.cs   # CORS + RateLimiter built-in + attribute BackendTag/GatewayRateLimit
 │   │
-│   └── Services/
-│       ├── IGatewayRuntimeManager.cs     # Interface quản lý runtime mode (Mock/Real, AuthMode)
-│       └── GatewayRuntimeManager.cs      # Quản lý trạng thái Real/Mock theo service, ghi file gateway.runtime.json
+│   ├── Services/
+│   │   ├── IGatewayRuntimeManager.cs     # GetAuthMode/SetAuthModeAsync/GetServiceModes/Set(Bulk)ServiceMode...
+│   │   └── GatewayRuntimeManager.cs      # Quản lý Mock/Real theo service, ghi đè gateway.runtime.json
+│   │
+│   └── logs/                             # ⚠️ log runtime (9 file batch-*.json đang bị COMMIT vào git)
 │
-└── Nexus.Gateway.Tests/                  # PROJECT KIỂM THỬ TỰ ĐỘNG (111/111 PASS 100%)
-    ├── Factory.cs                        # Custom WebApplicationFactory dựng TestServer in-memory
-    ├── ApiResponseFactoryTests.cs        # Unit tests kiểm tra định dạng envelope response & error
-    ├── GatewayTests.cs                   # Integration tests kiểm tra Kestrel limits, timeouts, Redis failover
-    ├── GatewaySurfaceTests.cs            # Tests kiểm tra toàn bộ bề mặt API các service
-    ├── MockEngineTests.cs                # Tests kiểm tra thuật toán matcher, route precedence, dynamic mocks
-    ├── SevenServicesGatewayTests.cs      # Tests kiểm tra chi tiết cả 8 microservices ở 2 chế độ Standard & Bypass
-    ├── HealthProberUnitTests.cs          # Tests kiểm tra State Machine, Ring Buffer và File Rolling xoay 1000 dòng
-    ├── HealthProberControllerTests.cs    # Tests kiểm tra API quản trị Prober, Manual Check & Circuit Breaker
-    └── EnumConversionTests.cs            # Tests kiểm tra chuyển đổi Enum 2 chiều PascalCase String và bắt lỗi 400
+└── Nexus.Gateway.Tests/                  # 19 file test / 62 test attribute ([Fact] 49 + [Theory] 13)
+    ├── Factory.cs                        # Helper khởi tạo WebApplicationFactory (không chứa test)
+    ├── GatewayTests.cs / SevenServicesGatewayTests.cs / GatewaySurfaceTests.cs
+    ├── MockEngineTests.cs / MockPaginationValidationTests.cs / BulkModesAtomicityTests.cs
+    ├── HealthProberControllerTests.cs / HealthProberUnitTests.cs
+    ├── EndpointRateLimitingTests.cs / RedisRateLimitMiddlewareRegressionTests.cs
+    ├── ApiResponseFactoryTests.cs / ModelBindingResponseTests.cs / PaginationRequestBindingTests.cs
+    ├── EnumConversionTests.cs / MoneyPrecisionHttpTests.cs / TraceConsistencyTests.cs
+    └── GatewayInputExceptionTests.cs / GatewayRequestResolutionTests.cs
 ```
-
----
-
 # 5. BẢNG TỔNG HỢP 15 CONTROLLERS & DANH MỤC CÁC NHÓM ROUTE
-
 Toàn bộ các endpoint trong Gateway đều bắt đầu bằng tiền tố duy nhất:
 $$\mathbf{/api/v1/...}$$
-
-| STT | Controller | File Code | Route Prefix | Quyền Hạn (RBAC) | Chức Năng Nghiệp Vụ Chính | Service Đích |
-|:---:|:---|:---|:---|:---|:---|:---:|
-| 1 | `AuthController` | `Controllers/AuthController.cs` | `/api/v1/auth` | Anonymous | Đăng ký tài khoản (`/register`), xác thực OTP (`/verify-otp`), gửi lại OTP (`/resend-otp`), đăng nhập (`/login`). | `users` |
-| 2 | `UsersController` | `Controllers/UsersController.cs` | `/api/v1/users/me` | Authenticated | Xem thông tin cá nhân (`/`), cập nhật hồ sơ, yêu cầu nâng cấp người bán (`/seller-upgrade`). | `users` |
-| 3 | `AdminUsersController` | `Controllers/AdminUsersController.cs` | `/api/v1/admin` | Staff / Admin | Xem danh sách người dùng (`/users`), duyệt hồ sơ seller (`/sellers/{id}/approve`), gán role, xem roles/permissions. | `users` |
-| 4 | `CartController` | `Controllers/CartController.cs` | `/api/v1/cart`, `/api/v1/commerce/cart` | Authenticated | Thao tác giỏ hàng: xem giỏ, thêm hàng (`/items`), sửa số lượng, xóa sản phẩm, xóa trắng giỏ. | `commerce` |
-| 5 | `OrdersController` | `Controllers/OrdersController.cs` | `/api/v1/orders`, `/api/v1/commerce/orders` | Authenticated | Tạo đơn hàng checkout, xem danh sách đơn của tôi, xem chi tiết đơn hàng theo ID, seller/admin orders. | `commerce` |
-| 6 | `ProductsController` | `Controllers/ProductsController.cs` | `/api/v1/products`, `/api/v1/catalog/products` | Anonymous / Seller | Xem danh sách sản phẩm, xem chi tiết sản phẩm. Seller tạo/sửa/xóa sản phẩm (`/seller/products`). | `catalog` |
-| 7 | `CategoriesController` | `Controllers/CategoriesController.cs` | `/api/v1/categories`, `/api/v1/catalog/categories` | Anonymous / Admin | Xem danh mục sản phẩm. Admin tạo/sửa/xóa danh mục. | `catalog` |
-| 8 | `InventoryController` | `Controllers/InventoryController.cs` | `/api/v1/seller/inventory` | Seller | Quản lý kho ảo seller, điều chỉnh số lượng tồn kho ảo. | `catalog` |
-| 9 | `AuctionController` | `Controllers/AuctionController.cs` | `/api/v1/auctions` | Public / Seller / Auth | Xem danh sách đấu giá, xem chi tiết, seller tạo phiên đấu giá mới, người mua đặt giá trả (`/bids`), xem lịch sử giá bid. | `auction` |
-| 10 | `FulfillmentController` | `Controllers/FulfillmentController.cs`| `/api/v1/fulfillment` | Anonymous / Public | Tra cứu tồn kho kho bãi vật lý (`/inventory/{skuId}`), tính phí giao hàng (`/shipping/quote`), tra cứu mã vận đơn (`/shipments/{code}`). | `fulfillment` |
-| 11 | `NotificationController`| `Controllers/NotificationController.cs`| `/api/v1/notifications`| Authenticated | Xem danh sách thông báo cá nhân, đánh dấu đã đọc (`/read`), xem/cập nhật tùy chọn nhận thông báo (`/preferences`). | `notification` |
-| 12 | `LogController` | `Controllers/LogController.cs` | `/api/v1/log` | Staff / Admin | Tra cứu nhật ký hệ thống (`/logs`), xem chi tiết log, xem danh mục sự kiện log (`/event-types`), bật/tắt event type. | `log` |
-| 13 | `WalletController` | `Controllers/WalletController.cs` | `/api/v1/wallet` | Authenticated | Quản lý ví điện tử: tra cứu số dư (`/balance`), nạp tiền (`/deposit`), rút tiền (`/withdraw`), chuyển tiền nội bộ (`/transfer`), xem lịch sử giao dịch. | `wallet` |
-| 14 | `GatewayControlController`| `Controllers/GatewayControlController.cs`| `/api/v1/gateway`, `/api/v1/mock-engine` | GatewayAdmin (chặn bypass)| Tra cứu trạng thái 8 services (`GET /modes`), đổi auth mode (`PUT /mode`), đổi mode Mock/Real, quản lý mock definitions. | *Nội bộ Gateway* |
-| 15 | `HealthProberController` | `Controllers/HealthProberController.cs` | `/api/v1/gateway/prober`| GatewayAdmin (chặn bypass)| Tra cứu trạng thái Prober 8 services (`GET /status`), bật/tắt daemon từng service hoặc bulk, kiểm tra sức khỏe thủ công tức thì. | *Nội bộ Gateway* |
-
+> ⚠️ **Đính chính quan trọng**: bảng dưới đây liệt kê **15 file controller có thật**, nhưng **chỉ 4 file có action (tổng 16 action)**. 11 file còn lại là stub đúng 10 dòng, chứa một dòng `// TODO (Team)` và **0 action** — mọi route ghi trong cột "Chức Năng Nghiệp Vụ" của các file đó là **đặc tả mục tiêu, chưa triển khai**. Cột `Trạng thái`/`Bằng chứng` phản ánh đúng code hiện tại.
+| STT | Controller | File Code | Route Prefix (thật) | Quyền Hạn (RBAC) | Chức Năng Nghiệp Vụ | Service Đích | Trạng thái | Bằng chứng |
+|:---:|:---|:---|:---|:---|:---|:---:|:---|:---|
+| 1 | `AuthController` | `Controllers/AuthController.cs` | `/api/v1/auth` | `[AllowAnonymous]` | Đăng ký (`POST /register`), xác thực OTP (`POST /verify-otp`), gửi lại OTP (`POST /resend-otp`), đăng nhập (`POST /login`). | `users` | ✅ CÓ — 4 action | `AuthController.cs:14-17,29,61,84,106`; `[EnableRateLimiting("auth-strict")]` |
+| 2 | `UsersController` | `Controllers/UsersController.cs` | `/api/v1` + action `users/me` | `[Authorize("authenticated")]` | **Chỉ** xem hồ sơ cá nhân (`GET /api/v1/users/me`). Cập nhật hồ sơ / `seller-upgrade` | `users` | ⚠️ MỘT PHẦN — 1/3 action; 2 action kia ❌ | `UsersController.cs:12-15,27-28` |
+| 3 | `AdminUsersController` | `Controllers/AdminUsersController.cs` | `/api/v1/admin/users` | *(chưa khai báo)* | Đặc tả mục tiêu: duyệt seller, gán role, xem roles/permissions | `users` | ❌ CHƯA CÓ — stub 10 dòng, 0 action | `AdminUsersController.cs` (10 dòng) |
+| 4 | `CartController` | `Controllers/CartController.cs` | `/api/v1/commerce/cart` | *(chưa khai báo)* | Đặc tả mục tiêu: xem giỏ, thêm/sửa/xóa item, xóa trắng giỏ | `commerce` | ❌ CHƯA CÓ — stub | `CartController.cs` (10 dòng) |
+| 5 | `OrdersController` | `Controllers/OrdersController.cs` | `/api/v1/commerce/orders` | *(chưa khai báo)* | Đặc tả mục tiêu: checkout, danh sách/chi tiết đơn, seller/admin orders | `commerce` | ❌ CHƯA CÓ — stub | `OrdersController.cs` (10 dòng) |
+| 6 | `ProductsController` | `Controllers/ProductsController.cs` | `/api/v1/catalog/products` | *(chưa khai báo)* | Đặc tả mục tiêu: danh sách/chi tiết sản phẩm; seller CRUD | `catalog` | ❌ CHƯA CÓ — stub | `ProductsController.cs` (10 dòng) |
+| 7 | `CategoriesController` | `Controllers/CategoriesController.cs` | `/api/v1/catalog/categories` | *(chưa khai báo)* | Đặc tả mục tiêu: xem danh mục; admin CRUD danh mục | `catalog` | ❌ CHƯA CÓ — stub | `CategoriesController.cs` (10 dòng) |
+| 8 | `InventoryController` | `Controllers/InventoryController.cs` | `/api/v1/catalog/inventory` | *(chưa khai báo)* | Đặc tả mục tiêu: quản lý kho ảo seller, điều chỉnh tồn kho | `catalog` | ❌ CHƯA CÓ — stub | `InventoryController.cs` (10 dòng); route cũ `/api/v1/seller/inventory` trong tài liệu là **sai** |
+| 9 | `AuctionController` | `Controllers/AuctionController.cs` | `/api/v1/auction` | *(chưa khai báo)* | Đặc tả mục tiêu: danh sách/chi tiết phiên, tạo phiên, đặt bid | `auction` | ❌ CHƯA CÓ — stub | `AuctionController.cs` (10 dòng); route cũ `/api/v1/auctions` là **sai** |
+| 10 | `FulfillmentController` | `Controllers/FulfillmentController.cs`| `/api/v1/fulfillment` | *(chưa khai báo)* | Đặc tả mục tiêu: tồn kho vật lý, phí ship, tra mã vận đơn | `fulfillment` | ❌ CHƯA CÓ — stub | `FulfillmentController.cs` (10 dòng) |
+| 11 | `NotificationController`| `Controllers/NotificationController.cs`| `/api/v1/notification` | *(chưa khai báo)* | Đặc tả mục tiêu: danh sách thông báo, đánh dấu đã đọc, preferences | `notification` | ❌ CHƯA CÓ — stub | `NotificationController.cs` (10 dòng); route cũ `/api/v1/notifications` là **sai** (thiếu `s` trong code) |
+| 12 | `LogController` | `Controllers/LogController.cs` | `/api/v1/log` | *(chưa khai báo)* | Đặc tả mục tiêu: tra cứu nhật ký, chi tiết log, event types | `log` | ❌ CHƯA CÓ — stub | `LogController.cs` (10 dòng) |
+| 13 | `WalletController` | `Controllers/WalletController.cs` | `/api/v1/wallet` | *(chưa khai báo)* | Đặc tả mục tiêu: số dư, nạp/rút, chuyển tiền, lịch sử giao dịch | `wallet` | ❌ CHƯA CÓ — stub | `WalletController.cs` (10 dòng) |
+| 14 | `GatewayControlController`| `Controllers/GatewayControlController.cs`| `/api/v1` + action `gateway/*`, `mock-engine/*` | `GatewayAdmin` + `[DisableMockAuthorizationBypass]` | `GET gateway/modes`, `PUT gateway/mode`, `PUT gateway/modes/{service}`, `PUT gateway/modes`, `GET mock-engine/definitions`, `POST mock-engine/reload` | *Nội bộ Gateway* | ✅ CÓ — 6 action | `GatewayControlController.cs:13-17,34,42,58,74,101,120` |
+| 15 | `HealthProberController` | `Controllers/HealthProberController.cs` | `/api/v1` + action `gateway/prober/*` | `GatewayAdmin` + `[DisableMockAuthorizationBypass]` | `GET gateway/prober/status`, `GET .../status/{service}`, `PUT .../{service}`, `PUT .../bulk`, `POST .../{service}/check` | *Nội bộ Gateway* | ✅ CÓ — 5 action | `HealthProberController.cs:15-19,33,51,79,110,124` |
+**Tổng kết kiểm chứng**: 15 file · 4 file có action · **16 action** (5 `[HttpGet]`, 6 `[HttpPost]`, 5 `[HttpPut]`) · 11 stub × 10 dòng · 0 action ở 11 file stub.
 ---
-
 # 6. QUY TRÌNH 3 BƯỚC THÊM API MỚI DÀNH CHO DEVELOPER
-
-Nhờ kiến trúc 3 khối độc lập và bộ điều phối `GatewayDispatcher`, quy trình bổ sung một API mới diễn ra cực kỳ nhanh chóng và không làm xáo trộn mã nguồn:
-
+Nhờ kiến trúc 3 khối độc lập và bộ điều phối `GatewayDispatcher`, quy trình bổ sung một API mới diễn ra nhanh chóng và không làm xáo trộn mã nguồn.
+> ⚠️ **Ví dụ dưới đây là ĐẶC TẢ MỤC TIÊU, CHƯA TRIỂN KHAI**: `service CatalogApi`, `rpc ListBrands`, message `BrandPage`/`Brand`/`PageRequest` **không tồn tại** trong `Nexus.Gateway/Contracts/shop.proto` hiện tại (file chỉ có `service UsersApi` với 5 rpc: `Register`, `Login`, `VerifyOtp`, `ResendOtp`, `GetProfile`). Không có `CatalogApiClient` nào được sinh ra. Tên file controller thật cũng **không** phải `CatalogController.cs` (xem Bước 3).
 ### Bước 1: Khai báo Contract trong `Contracts/shop.proto`
-Thêm RPC method và message tương ứng trong file Protobuf:
+Thêm service/rpc mới vào file Protobuf hiện có (`Nexus.Gateway/Contracts/shop.proto`, `csharp_namespace = "ShoppingCart.Contracts.V1"`, `package shoppingcart.v1`). Ví dụ **mục tiêu** nếu muốn thêm nhóm Catalog:
 ```protobuf
+// Đặc tả mục tiêu — service này CHƯA tồn tại trong shop.proto
 service CatalogApi {
-  // Thêm mới RPC method
   rpc ListBrands(PageRequest) returns (BrandPage);
 }
-
 message BrandPage {
   repeated Brand items = 1;
   int32 total = 2;
 }
-
 message Brand {
   string id = 1;
   string name = 2;
   string logo_url = 3;
 }
 ```
-*(Ngay sau khi lưu file, trình biên dịch `protoc` sẽ tự động sinh mã C# cho `BrandPage`, `Brand`, `CatalogApiClient`).*
-
+*(Sau khi thêm, `Grpc.Tools 2.66.0` sinh mã C# cho `BrandPage`, `Brand`, `CatalogApiClient` lúc build. `Nexus.Gateway.csproj:27` khai báo `<Protobuf Include="Contracts/shop.proto" GrpcServices="Both" />`.)*
 ---
-
 ### Bước 2: Tạo File Seed Mẫu Tại `Seeds/catalog/brands.json`
-Tạo file JSON mẫu chứa dữ liệu phản hồi tại `Nexus.Gateway/Seeds/catalog/brands.json`:
+Tạo file JSON mẫu tại `Nexus.Gateway/Seeds/catalog/brands.json`:
 ```json
 {
   "items": [
@@ -765,13 +736,14 @@ Tạo file JSON mẫu chứa dữ liệu phản hồi tại `Nexus.Gateway/Seeds
   "total": 2
 }
 ```
-*(File này sẽ được Protobuf MessageParser tự động thẩm định schema, bảo đảm không bao giờ sai lệch với Backend).*
-
+*(Đường dẫn này **chưa tồn tại**: `Seeds/` hiện chỉ có `auth/` (4 file), `users/` (5 file) và 3 thư mục placeholder `cart/`, `orders/`, `products/` chỉ chứa README. `Seeds/**/*.json` được copy ra output qua `Nexus.Gateway.csproj:29`.)*
+⚠️ Cơ chế đọc seed: `Dispatching/MockDataMapper.cs` đọc file bằng `File.ReadAllTextAsync` **mỗi request** (không cache), rồi parse bằng `MessageParser` của chính message protobuf tương ứng — nếu message không tồn tại (như `BrandPage` hiện nay) thì không có parser để validate.
 ---
-
-### Bước 3: Thêm Action Trong Controller Tương Ứng (`Controllers/CatalogController.cs`)
-`CatalogController` đã khai báo `[Route("api/v1")]` và `[BackendTag("catalog")]`. Action chỉ khai báo route **tương đối**, policy, request HTTP và lời gọi gRPC typed; không tự dựng JSON response hoặc tự xét Mock/Real:
+### Bước 3: Thêm Action Trong Controller Tương Ứng
+File thật cần sửa là `Nexus.Gateway/Controllers/ProductsController.cs` (hiện là **stub 10 dòng**, `[Route("api/v1/catalog/products")]`, 0 action) — **không có** `CatalogController.cs` trong repo.
+Action chỉ khai báo route **tương đối**, policy, kiểu request HTTP và lời gọi gRPC typed; không tự dựng JSON response và **không** tự rẽ nhánh Mock/Real:
 ```csharp
+// Đặc tả mục tiêu — chỉ biên dịch được sau khi Bước 1 hoàn tất
 [HttpGet("catalog/brands")]
 [AllowAnonymous]
 [ProducesResponseType(typeof(ApiResponse<PagedData<Brand>>), StatusCodes.Status200OK)]
@@ -779,7 +751,6 @@ public Task<IResult> ListBrands([FromQuery] PaginationRequest pagination)
 {
     if (!pagination.IsValid)
         throw new GatewayInputException(ValidationHelpers.PageMessage, field: "Pagination");
-
     return _dispatcher.DispatchPagedAsync(
         HttpContext, "catalog", "brands", pagination.Page, pagination.PageSize,
         o => _client.ListBrandsAsync(new PageRequest
@@ -790,30 +761,40 @@ public Task<IResult> ListBrands([FromQuery] PaginationRequest pagination)
         BrandPage.Parser);
 }
 ```
-`PaginationRequest` là HTTP query model (`page`, `pageSize` mặc định `1`, `20`); **không thay** các request protobuf. `GatewayInputException` là tùy chọn gọn cho input validation; các action đang dùng `ValidationHelpers.Bad(...)` vẫn đúng schema. RPC và seed của ví dụ chỉ hoạt động khi bạn đã bổ sung contract và backend tương ứng.
-
-👉 **Hoàn tất!**
-- Khi `catalog` ở mode `Mock`: Gateway tự động đọc file `Seeds/catalog/brands.json`, validate schema và trả về `ApiResponse<PagedData<Brand>>`.
-- Khi `catalog` ở mode `Real`: Gateway tự động forward gRPC call sang `CatalogService:8002`, đính kèm JWT token, idempotency key và traceId.
-- Endpoint mới tự động hiển thị đầy đủ tài liệu trên Swagger UI.
-
+Ghi chú kỹ thuật đã đối chiếu code:
+- `IGatewayDispatcher.DispatchPagedAsync<T>(HttpContext, string service, string operation, int pageIndex, int pageSize, Func<CallOptions, AsyncUnaryCall<T>> realCall, MessageParser<T> parser, int successStatusCode = 200)` — `Nexus.Gateway/Dispatching/GatewayDispatcher.cs:22-33` (đúng thứ tự tham số trong ví dụ).
+- `PaginationRequest` là HTTP query model (`page`, `pageSize`); **không thay** các request protobuf.
+- `GatewayInputException` mặc định `errorCode = "VAL_INVALID_INPUT"` (`Common/GatewayInputException.cs:9`).
+- Nếu route mới nằm ngoài prefix `api/v1/catalog/products` của file stub, phải sửa `[Route(...)]` hoặc dùng route tuyệt đối — nếu không sẽ **không** khớp endpoint nào.
+👉 **Hoàn tất (khi đã làm đủ 3 bước)**
+- Ở mode `Mock`: Gateway đọc file `Seeds/catalog/brands.json` và trả `ApiResponse<PagedData<Brand>>`.
+- Ở mode `Real`: Gateway forward gRPC sang Catalog service, kèm `x-trace-id`, `x-user-id`, `x-user-roles`, `Idempotency-Key` (`Dispatching/GrpcServiceCaller.cs:62-89`).
+- Endpoint mới hiển thị trên Swagger UI.
 ---
-
 # 7. BẢO ĐẢM CHẤT LƯỢNG & KIỂM THỬ TỰ ĐỘNG
-
-Hệ sinh thái Gateway đi kèm bộ kiểm thử tự động toàn diện trong project `Nexus.Gateway.Tests/`, bao phủ mọi khía cạnh an ninh, hiệu năng và tính đúng đắn của nghiệp vụ:
-
-- **`ApiResponseFactoryTests.cs`**: Đảm bảo envelope thành công và lỗi Problem Details RFC 9110 luôn chuẩn định dạng.
-- **`GatewayTests.cs`**: Kiểm tra Kestrel limits (64KB), timeout 65s, và Rate Limiting phân tán qua Redis.
-- **`MockEngineTests.cs`**: Kiểm tra thuật toán khớp route động, ưu tiên route tĩnh, và nạp mock JSON.
-- **`GatewaySurfaceTests.cs`**: Kiểm tra toàn bộ bề mặt API của 8 services.
-- **`SevenServicesGatewayTests.cs`**: Kiểm tra một số luồng Mock/Real và auth Enforce/Bypass; không thay thế integration tests của 8 backend.
-- **`HealthProberUnitTests.cs`**: Kiểm tra logic State Machine, Ring Buffer, và cơ chế File Rolling tự động xoay file khi đạt ngưỡng 1000 dòng.
-- **`HealthProberControllerTests.cs`**: Kiểm tra phân quyền Admin cho API Prober, bật/tắt daemon từng service & bulk, API check thủ công (Manual Check), và Circuit Breaker ngắt mạch trong 0ms khi Unhealthy (HTTP 503 `DOWNSTREAM_UNHEALTHY`).
-- **`EnumConversionTests.cs`**: Kiểm chứng chuyển đổi Enum 2 chiều (Serialize Enum số ➔ PascalCase String, Deserialize case-insensitive String ➔ Enum, và bắt lỗi validation 400 ProblemDetails khi FE gửi sai).
-
+Bộ kiểm thử nằm trong `Nexus.Gateway.Tests/` — **19 file, 62 test attribute** (`[Fact]` 49 + `[Theory]` 13, kèm 49 dòng `[InlineData]`), tức khoảng **85 test case** khi chạy. **Không** có con số "120/120" hay "98/98" trong repo; muốn số pass thật hãy chạy lệnh bên dưới và đọc output.
+| File test | `[Fact]` | `[Theory]` | Nội dung kiểm chứng |
+|:---|:---:|:---:|:---|
+| `ApiResponseFactoryTests.cs` | 3 | 0 | Envelope thành công + Problem Details RFC 9110 |
+| `BulkModesAtomicityTests.cs` | 0 | 1 | Bulk update sai **không** làm thay đổi auth mode/service mode |
+| `EndpointRateLimitingTests.cs` | 5 | 0 | Rate limit theo endpoint |
+| `EnumConversionTests.cs` | 4 | 1 | Enum 2 chiều: serialize PascalCase, deserialize case-insensitive, chặn giá trị số |
+| `GatewayInputExceptionTests.cs` | 0 | 1 | Mã lỗi mặc định `VAL_INVALID_INPUT` |
+| `GatewayRequestResolutionTests.cs` | 3 | 1 | Resolve tên service chuẩn hoá (user→users, catalog→catalog...) |
+| `GatewaySurfaceTests.cs` | 3 | 0 | Bề mặt tổng quát của Gateway — **không** phải "toàn bộ API của 8 services" |
+| `GatewayTests.cs` | 5 | 1 | Luồng mock/jwt/OTP/real-mock coexist, production từ chối mock & plaintext |
+| `HealthProberControllerTests.cs` | 4 | 0 | Phân quyền admin, bật/tắt daemon, manual check, circuit breaker 503 |
+| `HealthProberUnitTests.cs` | 2 | 0 | Logic state machine / trạng thái mặc định của prober |
+| `MockEngineTests.cs` | 10 | 0 | Khớp route động, ưu tiên route tĩnh, nạp mock JSON |
+| `MockPaginationValidationTests.cs` | 0 | 1 | Validate phân trang trong mock engine |
+| `ModelBindingResponseTests.cs` | 1 | 0 | Model binding trả lỗi |
+| `MoneyPrecisionHttpTests.cs` | 0 | 2 | Giữ độ chính xác số tiền qua HTTP |
+| `PaginationRequestBindingTests.cs` | 1 | 2 | Bind `page`/`pageSize` |
+| `RedisRateLimitMiddlewareRegressionTests.cs` | 0 | 3 | Regression rate limit Redis |
+| `SevenServicesGatewayTests.cs` | 5 | 0 | Một số luồng Mock/Real + auth — **không** thay thế integration test của 8 backend |
+| `TraceConsistencyTests.cs` | 3 | 0 | Trace ID nhất quán |
 ### Lệnh chạy kiểm thử:
 ```bash
-dotnet test src/Services/ApiGateway/ApiGateway.sln -c Release
+dotnet test ApiGateway.sln -c Release
 ```
-👉 Hiện tại toàn bộ **120/120 bài kiểm thử tự động** đều vượt qua tuyệt đối (100% Passed). Chạy lại lệnh sau mỗi thay đổi; không dùng số bài test cố định làm bảo đảm chất lượng. Đặc biệt kiểm tra auth Standard/Bypass, mode Mock/Real, HTTP status 200/201/4xx, lỗi typed/malformed JSON, route phân trang và response trace ID.
+👉 Lấy số liệu pass/fail **từ output thật** của lệnh trên. Bản cũ ghi "120/120 bài kiểm thử đều vượt qua (100% Passed)" — con số này **không tồn tại** trong repo và không kiểm chứng được. Đặc biệt kiểm tra auth `Enforce`/`Bypass`, mode Mock/Real, HTTP 200/201/4xx, lỗi typed/malformed JSON, route phân trang và `traceId`.
