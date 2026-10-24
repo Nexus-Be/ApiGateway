@@ -56,7 +56,7 @@
         "MockStatus": 200
       },
       "catalog": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8002",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,

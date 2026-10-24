@@ -1,0 +1,11 @@
+{
+  "data": {
+    "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "parent_id": null,
+    "name": "Thiết Bị Điện Tử",
+    "description": "Điện thoại, máy tính, phụ kiện công nghệ",
+    "level": 1,
+    "sort_order": 1,
+    "is_disabled": false
+  }
+}

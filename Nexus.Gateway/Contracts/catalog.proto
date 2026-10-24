@@ -1,0 +1,141 @@
+syntax = "proto3";
+option csharp_namespace = "ShoppingCart.Contracts.V1";
+package shoppingcart.v1;
+
+// Catalog service contract exposed through Gateway
+// Additive only: shop.proto is not modified.
+
+service CatalogApi {
+  // Categories
+  rpc ListCategories(CategoryPageRequest) returns (CategoryListResponse);
+  rpc GetCategory(CategoryIdRequest) returns (CategoryResponse);
+  rpc CreateCategory(CreateCategoryProtoRequest) returns (CategoryResponse);
+  rpc UpdateCategory(UpdateCategoryProtoRequest) returns (CategoryResponse);
+  rpc DeleteCategory(CategoryIdRequest) returns (CatalogDeleteResponse);
+
+  // Products
+  rpc ListProducts(ProductQueryRequest) returns (ProductListResponse);
+  rpc GetProduct(ProductIdRequest) returns (ProductResponse);
+  rpc ListProductsBySeller(SellerProductQueryRequest) returns (ProductListResponse);
+  rpc CreateProduct(CreateProductProtoRequest) returns (ProductResponse);
+  rpc UpdateProduct(UpdateProductProtoRequest) returns (ProductResponse);
+  rpc DeleteProduct(ProductIdRequest) returns (CatalogDeleteResponse);
+
+  // Inventory
+  rpc GetInventory(InventoryQueryRequest) returns (InventoryResponse);
+  rpc AdjustInventory(AdjustInventoryProtoRequest) returns (InventoryResponse);
+}
+
+// Common
+message CategoryIdRequest { string id = 1; }
+message ProductIdRequest { string id = 1; }
+message InventoryQueryRequest { string product_id = 1; }
+message CatalogDeleteResponse { bool success = 1; string id = 2; }
+
+// Categories
+message CategoryPageRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message CategoryItem {
+  string id = 1;
+  optional string parent_id = 2;
+  string name = 3;
+  optional string description = 4;
+  int32 level = 5;
+  int32 sort_order = 6;
+  bool is_disabled = 7;
+}
+
+message CategoryResponse {
+  CategoryItem data = 1;
+}
+
+message CategoryListResponse {
+  repeated CategoryItem items = 1;
+  int32 total = 2;
+}
+
+message CreateCategoryProtoRequest {
+  string name = 1;
+  optional string description = 2;
+  optional string parent_id = 3;
+  int32 level = 4;
+  int32 sort_order = 5;
+}
+
+message UpdateCategoryProtoRequest {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  int32 level = 4;
+  int32 sort_order = 5;
+  bool is_disabled = 6;
+}
+
+// Products
+message ProductQueryRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  optional string category_id = 3;
+}
+
+message SellerProductQueryRequest {
+  string seller_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ProductItem {
+  string id = 1;
+  string seller_id = 2;
+  string category_id = 3;
+  string name = 4;
+  optional string description = 5;
+  optional string brand = 6;
+  double price = 7;
+  string currency = 8;
+  string status = 9;
+}
+
+message ProductResponse {
+  ProductItem data = 1;
+}
+
+message ProductListResponse {
+  repeated ProductItem items = 1;
+  int32 total = 2;
+}
+
+message CreateProductProtoRequest {
+  string seller_id = 1;
+  string category_id = 2;
+  string name = 3;
+  optional string description = 4;
+  optional string brand = 5;
+  double price = 6;
+  string currency = 7;
+}
+
+message UpdateProductProtoRequest {
+  string id = 1;
+  string name = 2;
+  optional string description = 3;
+  optional string brand = 4;
+  double price = 5;
+  string status = 6;
+}
+
+// Inventory
+message InventoryResponse {
+  string product_id = 1;
+  int32 available = 2;
+  int32 reserved = 3;
+  string updated_at = 4;
+}
+
+message AdjustInventoryProtoRequest {
+  string product_id = 1;
+  int32 quantity_change = 2;
+}
