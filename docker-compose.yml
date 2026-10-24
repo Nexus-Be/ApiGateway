@@ -7,7 +7,7 @@
 services:
   gateway:
     build:
-      context: ./Nexus.Gateway
+      context: .
       dockerfile: Dockerfile
     container_name: nexus-apigateway
     ports:
