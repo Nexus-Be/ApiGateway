@@ -1,5 +1,10 @@
 # Hướng Dẫn Sử Dụng & Định Nghĩa Mock API Tại Nexus Gateway
 
+> ⚠️ **Lưu Ý Kiến Trúc Quan Trọng**:
+> Thư mục `Mocks/` này chứa các định nghĩa Declarative Mock cấp thấp được nạp bởi `MockEngineMiddleware`. 
+> Quy chuẩn phát triển API chuẩn **DUY NHẤT** của hệ thống Nexus Gateway là **Khai báo Endpoint trong Controller C# + Tạo dữ liệu Seed Fixture trong thư mục `Seeds/`** (xem chi tiết tại [MOCK_GUIDE.md](../../MOCK_GUIDE.md)).
+> Khi một Controller Action C# đã được khai báo, Gateway sẽ **tự động ưu tiên Controller** và bỏ qua định nghĩa trong thư mục `Mocks/` này.
+
 Gateway cung cấp cơ chế **Dynamic Declarative Mock (`*.mock.json`)** giúp Frontend và Backend team có thể phát triển, tích hợp và kiểm thử giao diện hoàn toàn độc lập mà không cần chờ backend service chạy hay viết bất kỳ dòng code C# nào.
 
 ---
