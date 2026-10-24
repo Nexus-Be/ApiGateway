@@ -1,0 +1,9 @@
+{
+  "auctionId": "a1000000-0000-0000-0000-000000000002",
+  "status": "SCHEDULED",
+  "startPriceAmount": 3500000,
+  "bidStepAmount": 250000,
+  "scheduledStartAt": "2026-10-27T09:00:00+07:00",
+  "scheduledEndAt": "2026-10-29T09:00:00+07:00",
+  "updatedAt": "2026-10-24T15:05:00+07:00"
+}
