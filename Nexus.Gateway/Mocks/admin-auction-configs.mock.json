@@ -1,0 +1,28 @@
+{
+  "id": "mock-admin-auction-configs",
+  "service": "auction",
+  "method": "GET",
+  "path": "/api/v1/admin/auction-configs",
+  "description": "Xem các luật đấu giá đang hiệu lực (AUC-16)",
+  "policy": "admin",
+  "statusCode": 200,
+  "responseType": "single",
+  "message": "Auction configs retrieved successfully.",
+  "response": {
+    "items": [
+      {
+        "configKey": "DEFAULT_AUCTION_POLICY",
+        "configValue": {
+          "antiSnipingExtensionMinutes": 5,
+          "maxExtensionCount": 10,
+          "minReputationToBid": 40,
+          "minReputationToSell": 50
+        },
+        "description": "Chính sách tham gia và chống bắn tỉa mặc định toàn sàn",
+        "version": 1,
+        "updatedBy": null,
+        "updatedAt": "2026-10-20T08:00:00+07:00"
+      }
+    ]
+  }
+}

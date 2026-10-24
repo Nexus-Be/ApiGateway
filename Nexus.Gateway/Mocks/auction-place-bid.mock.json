@@ -1,0 +1,25 @@
+{
+  "id": "mock-auction-bid-place",
+  "service": "auction",
+  "method": "POST",
+  "path": "/api/v1/auctions/{auctionId}/bids",
+  "description": "Buyer đặt giá cho một phiên (AUC-07). Contract yêu cầu thêm header Idempotency-Key và If-Match, mock không kiểm tra",
+  "policy": "authenticated",
+  "statusCode": 201,
+  "responseType": "single",
+  "message": "Bid placed successfully.",
+  "request": {
+    "amount": 13000000
+  },
+  "response": {
+    "bidId": "f1000000-0000-0000-0000-000000000006",
+    "auctionId": "a1000000-0000-0000-0000-000000000001",
+    "bidSeq": 6,
+    "amount": 13000000,
+    "placedAt": "2026-10-24T15:30:00+07:00",
+    "currentPriceAmount": 13000000,
+    "bidCount": 6,
+    "scheduledEndAt": "2026-10-26T08:00:00+07:00",
+    "extensionCount": 0
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "mock-auction-error-bid-not-running",
+  "service": "auction",
+  "method": "POST",
+  "path": "/api/v1/auctions/a1000000-0000-0000-0000-000000000002/bids",
+  "description": "Giả lập lỗi 422 AUCTION_NOT_RUNNING (phiên Scheduled)",
+  "policy": "authenticated",
+  "statusCode": 422,
+  "responseType": "raw",
+  "request": {
+    "amount": 13000000
+  },
+  "response": {
+    "Code": "AUCTION_NOT_RUNNING",
+    "Message": "Phiên đấu giá chưa bắt đầu.",
+    "Errors": []
+  }
+}

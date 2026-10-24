@@ -1,0 +1,18 @@
+{
+  "id": "mock-auction-error-cancel-has-bids",
+  "service": "auction",
+  "method": "POST",
+  "path": "/api/v1/auctions/a1000000-0000-0000-0000-000000000001/cancel",
+  "description": "Giả lập lỗi 409 AUCTION_HAS_BIDS (phiên đã có bid, chỉ Admin hủy được)",
+  "policy": "seller",
+  "statusCode": 409,
+  "responseType": "raw",
+  "request": {
+    "reason": "Người bán đổi ý"
+  },
+  "response": {
+    "Code": "AUCTION_HAS_BIDS",
+    "Message": "Phiên đã có lượt đặt giá, chỉ Admin hủy được.",
+    "Errors": []
+  }
+}

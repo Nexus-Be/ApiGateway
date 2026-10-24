@@ -1,0 +1,23 @@
+{
+  "id": "mock-admin-auction-saga",
+  "service": "auction",
+  "method": "GET",
+  "path": "/api/v1/admin/auctions/{auctionId}/saga",
+  "description": "Admin theo dõi phiên đang ở bước nào của luồng đơn hàng (AUC-19)",
+  "policy": "staff",
+  "statusCode": 200,
+  "responseType": "single",
+  "message": "Auction saga retrieved successfully.",
+  "response": {
+    "auctionId": "a1000000-0000-0000-0000-000000000003",
+    "sagaType": "AuctionOrderSaga",
+    "currentState": "AwaitingPayment",
+    "stateData": {
+      "orderId": "e1000000-0000-0000-0000-000000000001",
+      "winnerId": "11111111-1111-1111-1111-000000000003",
+      "paymentDeadlineAt": "2026-10-23T08:00:00+07:00"
+    },
+    "createdAt": "2026-10-22T08:00:05+07:00",
+    "updatedAt": "2026-10-22T08:05:00+07:00"
+  }
+}

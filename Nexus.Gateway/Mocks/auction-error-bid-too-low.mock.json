@@ -1,0 +1,26 @@
+{
+  "id": "mock-auction-error-bid-too-low",
+  "service": "auction",
+  "method": "POST",
+  "path": "/api/v1/auctions/a1000000-0000-0000-0000-000000000004/bids",
+  "description": "Giả lập lỗi 422 BID_TOO_LOW kèm minNextBidAmount",
+  "policy": "authenticated",
+  "statusCode": 422,
+  "responseType": "raw",
+  "request": {
+    "amount": 2350000
+  },
+  "response": {
+    "Code": "BID_TOO_LOW",
+    "Message": "Giá đặt thấp hơn mức tối thiểu.",
+    "Errors": [
+      {
+        "Field": "amount",
+        "Message": "Giá đặt phải từ 2400000 trở lên."
+      }
+    ],
+    "Details": {
+      "minNextBidAmount": 2400000
+    }
+  }
+}

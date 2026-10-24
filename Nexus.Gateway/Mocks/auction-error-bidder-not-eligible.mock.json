@@ -1,0 +1,18 @@
+{
+  "id": "mock-auction-error-bidder-not-eligible",
+  "service": "auction",
+  "method": "POST",
+  "path": "/api/v1/auctions/a1000000-0000-0000-0000-000000000005/bids",
+  "description": "Giả lập lỗi 403 BIDDER_NOT_ELIGIBLE (uy tín thấp hoặc tài khoản bị khóa)",
+  "policy": "authenticated",
+  "statusCode": 403,
+  "responseType": "raw",
+  "request": {
+    "amount": 13000000
+  },
+  "response": {
+    "Code": "BIDDER_NOT_ELIGIBLE",
+    "Message": "Điểm uy tín thấp hơn ngưỡng đặt giá hoặc tài khoản bị khóa.",
+    "Errors": []
+  }
+}

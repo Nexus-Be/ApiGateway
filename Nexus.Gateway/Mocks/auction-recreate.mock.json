@@ -1,0 +1,29 @@
+{
+  "id": "mock-auction-recreate",
+  "service": "auction",
+  "method": "POST",
+  "path": "/api/v1/auctions/{auctionId}/recreate",
+  "description": "Tạo lại phiên mới cho sản phẩm của phiên cũ đã FAILED (AUC-13)",
+  "policy": "seller",
+  "statusCode": 201,
+  "responseType": "single",
+  "message": "Auction recreated successfully.",
+  "request": {
+    "startPriceAmount": 2500000,
+    "bidStepAmount": 100000,
+    "scheduledStartAt": "2026-10-27T08:00:00+07:00",
+    "scheduledEndAt": "2026-10-29T08:00:00+07:00"
+  },
+  "response": {
+    "auctionId": "a1000000-0000-0000-0000-000000000010",
+    "recreatedFromAuctionId": "a1000000-0000-0000-0000-000000000003",
+    "productId": "b1000000-0000-0000-0000-000000000003",
+    "skuId": "c1000000-0000-0000-0000-000000000003",
+    "status": "SCHEDULED",
+    "startPriceAmount": 2500000,
+    "bidStepAmount": 100000,
+    "scheduledStartAt": "2026-10-27T08:00:00+07:00",
+    "scheduledEndAt": "2026-10-29T08:00:00+07:00",
+    "createdAt": "2026-10-24T15:15:00+07:00"
+  }
+}
