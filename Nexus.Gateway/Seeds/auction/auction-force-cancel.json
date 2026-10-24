@@ -1,0 +1,8 @@
+{
+  "auctionId": "a1000000-0000-0000-0000-000000000001",
+  "fromStatus": "RUNNING",
+  "status": "CANCELLED",
+  "reason": "Phát hiện hành vi gian lận",
+  "cancelledBy": "11111111-1111-1111-1111-000000000001",
+  "cancelledAt": "2026-10-24T15:20:00+07:00"
+}

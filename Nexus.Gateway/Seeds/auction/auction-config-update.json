@@ -1,0 +1,15 @@
+{
+  "configKey": "DEFAULT_AUCTION_POLICY",
+  "configValue": {
+    "antiSnipingExtensionMinutes": 5,
+    "maxExtensionCount": 10,
+    "minReputationToBid": 45,
+    "minReputationToSell": 50
+  },
+  "description": "Tăng ngưỡng uy tín tối thiểu để đặt giá",
+  "version": 2,
+  "isActive": true,
+  "updatedBy": "11111111-1111-1111-1111-000000000001",
+  "createdAt": "2026-10-20T08:00:00+07:00",
+  "updatedAt": "2026-10-24T15:25:00+07:00"
+}

@@ -10,7 +10,8 @@ public static class GrpcClientsExtension
     {
         // Core User/Auth Service Client
         services.AddNamedGrpcClient<UsersApi.UsersApiClient>("users");
-
+        // Auction Service Client (Contracts/auction.proto)
+        services.AddNamedGrpcClient<AuctionApi.AuctionApiClient>("auction");
         // NOTE (Team): Khi phát triển các Microservices tiếp theo (Catalog, Commerce, etc.),
         // bổ sung contract tương ứng vào shop.proto và đăng ký AddNamedGrpcClient tại đây.
 
