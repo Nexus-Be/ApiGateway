@@ -1,0 +1,13 @@
+{
+  "variantId": "44444444-4444-4444-8444-000000000001",
+  "productId": "22222222-2222-4222-8222-000000000001",
+  "skuCode": "NX-HP-001-BLK",
+  "name": "Matte Black",
+  "price": 1350000,
+  "currency": "VND",
+  "status": "ACTIVE",
+  "attributes": [
+    { "attrName": "Color", "attrValue": "Black" }
+  ],
+  "updatedAt": "2026-10-25T08:45:00Z"
+}

@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "productId": "22222222-2222-4222-8222-000000000010",
+      "name": "Nexus Limited Edition Turntable",
+      "brand": "NexusAudio",
+      "saleType": "AUCTION",
+      "minPrice": 15000000,
+      "maxPrice": 15000000,
+      "primaryImageUrl": "https://cdn.nexus.local/catalog/turntable-1.jpg",
+      "status": "ACTIVE",
+      "auctionStatus": "RUNNING",
+      "isOpen": true,
+      "isSold": false
+    }
+  ],
+  "total": 1
+}

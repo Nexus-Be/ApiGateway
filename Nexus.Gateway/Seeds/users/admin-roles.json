@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "roleId": 1,
+      "roleName": "buyer",
+      "description": "Standard retail customer role",
+      "isSystemRole": true,
+      "permissionsCount": 12
+    },
+    {
+      "roleId": 2,
+      "roleName": "seller",
+      "description": "Merchant seller role",
+      "isSystemRole": true,
+      "permissionsCount": 28
+    },
+    {
+      "roleId": 3,
+      "roleName": "staff",
+      "description": "Support and moderation staff role",
+      "isSystemRole": true,
+      "permissionsCount": 45
+    },
+    {
+      "roleId": 4,
+      "roleName": "admin",
+      "description": "System super administrator role",
+      "isSystemRole": true,
+      "permissionsCount": 99
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "items": [
+    { "skuId": "44444444-4444-4444-8444-000000000001", "addedQuantity": 50, "stockQuantity": 150 },
+    { "skuId": "44444444-4444-4444-8444-000000000002", "addedQuantity": 20, "stockQuantity": 35 }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "reportId": "report_11111111-1111-1111-1111-000000000001",
+      "targetType": "USER",
+      "targetId": "11111111-1111-1111-1111-000000000002",
+      "reason": "Counterfeit product shipped",
+      "evidenceUrls": [
+        "https://storage.example.com/reports/evidence_file_1.jpg"
+      ],
+      "status": "PENDING",
+      "adminNote": "",
+      "createdAt": "2026-10-25T15:00:00Z",
+      "resolvedAt": "2026-10-25T15:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}

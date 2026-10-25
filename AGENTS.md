@@ -33,7 +33,7 @@ This project is indexed by GitNexus as **ApiGateway** (1252 symbols, 2601 relati
 <!-- gitnexus:end -->
 ---
 # QUY CHUẨN VẬN HÀNH DÀNH CHO AI CODING AGENTS (API GATEWAY)
-> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 5/15 controller có action (32 action), 2/8 gRPC client (`users`, `auction`), 2 file proto (`shop.proto` 5 rpc + `auction.proto` 16 rpc), `dotnet test` 152 passed trên 20 file.
+> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 9/15 controller có action (114 action), 3/8 gRPC client (`users`, `catalog`, `auction`), 4 file proto (`shop.proto` 5 rpc + `catalog.proto` 27 rpc + `user.proto` 31 rpc + `auction.proto` 16 rpc), `dotnet test` 310+ passed trên 24 file.
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
 > **Cập nhật lần cuối:** 2026-10-25.
 File này là bản sao **giống hệt** `CLAUDE.md` trong cùng thư mục — mọi sửa đổi phải áp dụng cho cả hai file.
@@ -59,7 +59,7 @@ ApiGateway là một Git Repository độc lập (`ApiGateway.git`):
 Khi bắt đầu làm việc tại ApiGateway, AI Agent **BẮT BUỘC PHẢI ĐỌC** các file nội bộ sau theo thứ tự:
 1. `specs/00_AGENT_MISSION_GUARDRAILS.md`: Bounded context gateway, port `8000`, 0 DB, rào chắn chống ảo giác.
 2. `specs/01_ARCHITECTURAL_BLUEPRINT.md`: Kiến trúc 3 khối (Input → Dispatching Core → Output), Circuit Breaker, Health Prober, Redis Rate Limiting.
-3. `specs/02_GATEWAY_CONTROLLERS_ROUTING.md`: **15 file controller — chỉ 5 file có action (tổng 32 action), 10 file là stub 0 action**; chuẩn viết Action siêu mỏng.
+3. `specs/02_GATEWAY_CONTROLLERS_ROUTING.md`: **15 file controller — 9 file có action (tổng 114 action), 6 file là stub 0 action**; chuẩn viết Action siêu mỏng.
 4. `specs/03_GATEWAY_STATE_SECURITY.md`: Hai trục cấu hình `Gateway:AuthMode` (`Enforce`/`Standard` vs `Bypass` — chỉ Development) và `Gateway:Services:{name}:Mode` (`Real`/`Mock`).
 5. `specs/04_MOCK_ENGINE_SEED_DATA.md`: Seed fixture `Seeds/{service}/{operation}.json` + declarative mock `Mocks/*.mock.json`.
 6. `MOCK_GUIDE.md`: Hai cơ chế mock đang chạy song song (Controller Action + Seeds, và declarative `*.mock.json`).
@@ -102,14 +102,14 @@ Một task tại ApiGateway chỉ hoàn tất khi:
 | Hạng mục | Giá trị thật | Trạng thái | Bằng chứng |
 |:---|:---|:---|:---|
 | Mã nguồn | 98 file `.cs` / 7468 dòng (`Nexus.Gateway` 79 file, `Nexus.Gateway.Tests` 19 file) | ✅ CÓ | `find` + `wc -l` |
-| Controller | 15 file; **5 file có action (32 action)**, 10 stub 0 action | ⚠️ MỘT PHẦN | `Nexus.Gateway/Controllers/*.cs` |
-| gRPC client | 1/8 — chỉ `UsersApi.UsersApiClient` (tag `users`) | ⚠️ MỘT PHẦN | `Nexus.Gateway/Extensions/GrpcClientsExtension.cs` |
-| Protobuf | 2 file: `shop.proto` (`UsersApi`, 5 rpc) + `auction.proto` (`AuctionApi`, 16 rpc) | ⚠️ MỘT PHẦN | `Nexus.Gateway/Contracts/` |
-| Seed fixture | 25 file (`Seeds/auth` 4, `Seeds/users` 5, `Seeds/auction` 16) | ⚠️ MỘT PHẦN | `Nexus.Gateway/Seeds/` |
-| Declarative mock | 6 file `*.mock.json` | ✅ CÓ | `Nexus.Gateway/Mocks/` |
+| Controller | 15 file; **9 file có action (114 action)**, 6 stub 10 dòng 0 action | ⚠️ MỘT PHẦN | `Nexus.Gateway/Controllers/*.cs` |
+| gRPC client | 3/8 — `UsersApi.UsersApiClient` / `UserApi.UserApiClient` (`users`), `CatalogApi.CatalogApiClient` (`catalog`), `AuctionApi.AuctionApiClient` (`auction`) | ⚠️ MỘT PHẦN | `Nexus.Gateway/Extensions/GrpcClientsExtension.cs` |
+| Protobuf | 4 file: `shop.proto` (`UsersApi`, 5 rpc) + `catalog.proto` (`CatalogApi`, 27 rpc) + `user.proto` (`UserApi`, 31 rpc) + `auction.proto` (`AuctionApi`, 16 rpc) | ⚠️ MỘT PHẦN | `Nexus.Gateway/Contracts/` |
+| Seed fixture | 107 file (`Seeds/auth` 4, `Seeds/users` 60, `Seeds/catalog` 27, `Seeds/auction` 16) | ⚠️ MỘT PHẦN | `Nexus.Gateway/Seeds/` |
+| Declarative mock | 5 file `*.mock.json` | ✅ CÓ | `Nexus.Gateway/Mocks/` |
 | Database nghiệp vụ | 0 `DbContext`, 0 `DbSet` | ✅ CÓ (đúng thiết kế) | grep `DbSet` |
 | RabbitMQ / MassTransit | 0 package, 0 publish thật (chỉ log) | ❌ CHƯA CÓ | `HealthProber/SagaRollbackPublisher.cs` |
 | Docker auto-recovery | gọi CLI `docker restart` nhưng image runtime không có docker CLI | ⚠️ MỘT PHẦN | `HealthProber/DockerContainerRecoveryService.cs:26-55`, `Dockerfile` |
 | Batch log sink | POST `/api/v1/log/batch` — endpoint 404, response bị bỏ qua, `catch {}` rỗng | ⚠️ MỘT PHẦN | `Logging/GatewayBatchLogSink.cs:56-63` |
-| Test | 20 file; `dotnet test ApiGateway.sln -c Release` = **152 passed** (2026-10-25) | ✅ CÓ | `Nexus.Gateway.Tests/` |
+| Test | 24 file; `dotnet test ApiGateway.sln -c Release` = **310+ passed** (2026-10-25) | ✅ CÓ | `Nexus.Gateway.Tests/` |
 | Bí mật JWT | khóa hardcode **chỉ** trong `appsettings*.json` (bị `.gitignore:81` ignore, chưa commit); bản mẫu dùng placeholder | ⚠️ MỘT PHẦN (rủi ro local) | `.gitignore:81`; `git check-ignore` |

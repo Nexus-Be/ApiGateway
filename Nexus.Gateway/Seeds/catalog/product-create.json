@@ -1,0 +1,11 @@
+{
+  "productId": "22222222-2222-4222-8222-000000000004",
+  "status": "DRAFT",
+  "saleType": "REGULAR",
+  "variants": [
+    {
+      "variantId": "44444444-4444-4444-8444-000000000010",
+      "skuCode": "NX-KB-001"
+    }
+  ]
+}

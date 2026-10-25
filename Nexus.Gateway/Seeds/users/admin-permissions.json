@@ -1,0 +1,22 @@
+{
+  "items": [
+    {
+      "permissionId": 1,
+      "permissionCode": "user.view",
+      "module": "USERS",
+      "description": "View user profile and metadata"
+    },
+    {
+      "permissionId": 2,
+      "permissionCode": "user.edit",
+      "module": "USERS",
+      "description": "Update user details"
+    },
+    {
+      "permissionId": 3,
+      "permissionCode": "user.ban",
+      "module": "USERS",
+      "description": "Ban or suspend user access"
+    }
+  ]
+}
