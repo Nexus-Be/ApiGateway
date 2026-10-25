@@ -1,0 +1,14 @@
+{
+  "productId": "22222222-2222-4222-8222-000000000001",
+  "categoryId": "33333333-3333-4333-8333-000000000003",
+  "name": "Nexus Wireless Headphones Pro",
+  "description": "Over-ear wireless headphones with active noise cancellation and multipoint pairing.",
+  "brand": "NexusAudio",
+  "saleType": "REGULAR",
+  "status": "ACTIVE",
+  "specifications": {
+    "batteryLifeHours": "40",
+    "connectivity": "Bluetooth 5.3"
+  },
+  "updatedAt": "2026-10-25T08:30:00Z"
+}

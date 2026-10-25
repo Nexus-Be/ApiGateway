@@ -28,6 +28,17 @@ public interface IGatewayDispatcher
         Func<CallOptions, AsyncUnaryCall<T>> realCall,
         MessageParser<T> parser,
         int successStatusCode = StatusCodes.Status200OK) where T : class, IMessage<T>;
+
+    /// <summary>
+    /// Dispatches an operation whose contract answers 204 No Content. The backend message is still
+    /// invoked (and the seed still resolved in Mock mode) but its body is discarded.
+    /// </summary>
+    Task<IResult> DispatchNoContentAsync<T>(
+        HttpContext context,
+        string service,
+        string operation,
+        Func<CallOptions, AsyncUnaryCall<T>> realCall,
+        MessageParser<T> parser) where T : class, IMessage<T>;
 }
 
 public sealed class GatewayDispatcher : IGatewayDispatcher
@@ -116,6 +127,65 @@ public sealed class GatewayDispatcher : IGatewayDispatcher
 
         // Đưa dữ liệu sang Đầu ra bọc ApiResponse
         return _responseFactory.SuccessResult(context, realData, successMessage, successStatusCode);
+    }
+
+    public async Task<IResult> DispatchNoContentAsync<T>(
+        HttpContext context,
+        string service,
+        string operation,
+        Func<CallOptions, AsyncUnaryCall<T>> realCall,
+        MessageParser<T> parser) where T : class, IMessage<T>
+    {
+        var config = _modeEvaluator.GetServiceOptions(service);
+        if (config == null)
+        {
+            return _responseFactory.FailureResult(
+                context,
+                title: "Unknown backend service",
+                status: StatusCodes.Status503ServiceUnavailable,
+                detail: $"Service configuration for '{service}' was not found.",
+                errorCode: "SERVICE_CONFIG_MISSING"
+            );
+        }
+
+        var effectiveMode = _modeEvaluator.EvaluateMode(context, service);
+        context.Items["GatewayMode"] = effectiveMode;
+        using var activity = Activities.StartActivity($"{service}.{operation}");
+        activity?.SetTag("backend.service", service);
+        activity?.SetTag("backend.mode", effectiveMode);
+
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+        timeout.CancelAfter(TimeSpan.FromSeconds(config.TimeoutSeconds));
+
+        if (effectiveMode == "Mock")
+        {
+            context.Response.Headers["X-Gateway-Mode"] = "Mock";
+            context.Response.Headers.CacheControl = "no-store";
+
+            // Resolve the seed so a missing fixture still surfaces as SEED_DATA_NOT_FOUND,
+            // then drop the body: the contract answers 204 No Content.
+            var (_, failure) = await _mockDataMapper.MapMockAsync(context, service, operation, config, parser, timeout.Token);
+            if (failure != null) return failure;
+
+            return Results.NoContent();
+        }
+
+        context.Response.Headers["X-Gateway-Mode"] = "Real";
+
+        if (_healthProberManager != null && !_healthProberManager.IsServiceAvailable(service))
+        {
+            return _responseFactory.FailureResult(
+                context,
+                title: "Downstream Service Unavailable",
+                status: StatusCodes.Status503ServiceUnavailable,
+                detail: $"Service '{service}' is currently unhealthy or undergoing recovery.",
+                errorCode: "DOWNSTREAM_UNHEALTHY"
+            );
+        }
+
+        await _grpcServiceCaller.CallAsync(context, realCall, config, timeout.Token);
+
+        return Results.NoContent();
     }
 
     public async Task<IResult> DispatchPagedAsync<T>(

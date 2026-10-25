@@ -1,0 +1,9 @@
+{
+  "productId": "22222222-2222-4222-8222-000000000011",
+  "status": "DRAFT",
+  "saleType": "AUCTION",
+  "variant": {
+    "variantId": "44444444-4444-4444-8444-000000000021",
+    "skuCode": "NX-TT-002"
+  }
+}

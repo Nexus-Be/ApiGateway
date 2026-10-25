@@ -1,32 +1,20 @@
 {
   "items": [
     {
-      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-      "parent_id": null,
-      "name": "Thiết Bị Điện Tử",
-      "description": "Điện thoại, máy tính, phụ kiện công nghệ",
+      "categoryId": "33333333-3333-4333-8333-000000000001",
+      "name": "Electronics",
       "level": 1,
-      "sort_order": 1,
-      "is_disabled": false
+      "sortOrder": 1,
+      "children": [
+        { "categoryId": "33333333-3333-4333-8333-000000000002", "name": "Smartphones", "level": 2 },
+        { "categoryId": "33333333-3333-4333-8333-000000000003", "name": "Audio", "level": 2 }
+      ]
     },
     {
-      "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-      "parent_id": null,
-      "name": "Thời Trang & Phụ Kiện",
-      "description": "Quần áo, giày dép, túi xách thời trang nam nữ",
+      "categoryId": "33333333-3333-4333-8333-000000000004",
+      "name": "Home Appliances",
       "level": 1,
-      "sort_order": 2,
-      "is_disabled": false
-    },
-    {
-      "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
-      "parent_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-      "name": "Bàn Phím Cơ & Gaming Gear",
-      "description": "Bàn phím cơ, chuột gaming, tai nghe công nghệ cao",
-      "level": 2,
-      "sort_order": 1,
-      "is_disabled": false
+      "sortOrder": 2
     }
-  ],
-  "total": 3
+  ]
 }

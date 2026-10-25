@@ -1,141 +1,555 @@
 syntax = "proto3";
+
 option csharp_namespace = "ShoppingCart.Contracts.V1";
 package shoppingcart.v1;
 
-// Catalog service contract exposed through Gateway
-// Additive only: shop.proto is not modified.
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+// Catalog service contract exposed through the Gateway (F2 — product, category and inventory flows).
+// Additive only: shop.proto is not modified and no existing tag number changes.
+// Money fields are doubles holding VND; timestamps are RFC 3339 UTC (google.protobuf.Timestamp).
 
 service CatalogApi {
-  // Categories
-  rpc ListCategories(CategoryPageRequest) returns (CategoryListResponse);
-  rpc GetCategory(CategoryIdRequest) returns (CategoryResponse);
-  rpc CreateCategory(CreateCategoryProtoRequest) returns (CategoryResponse);
-  rpc UpdateCategory(UpdateCategoryProtoRequest) returns (CategoryResponse);
-  rpc DeleteCategory(CategoryIdRequest) returns (CatalogDeleteResponse);
-
-  // Products
-  rpc ListProducts(ProductQueryRequest) returns (ProductListResponse);
-  rpc GetProduct(ProductIdRequest) returns (ProductResponse);
-  rpc ListProductsBySeller(SellerProductQueryRequest) returns (ProductListResponse);
-  rpc CreateProduct(CreateProductProtoRequest) returns (ProductResponse);
-  rpc UpdateProduct(UpdateProductProtoRequest) returns (ProductResponse);
-  rpc DeleteProduct(ProductIdRequest) returns (CatalogDeleteResponse);
-
-  // Inventory
-  rpc GetInventory(InventoryQueryRequest) returns (InventoryResponse);
-  rpc AdjustInventory(AdjustInventoryProtoRequest) returns (InventoryResponse);
+  rpc ListProducts(ListProductsRequest) returns (ProductListResponse);
+  rpc SearchProducts(SearchProductsRequest) returns (ProductListResponse);
+  rpc GetProduct(GetProductRequest) returns (ProductDetailResponse);
+  rpc CreateProduct(CreateProductRequest) returns (ProductCreatedResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (ProductUpdatedResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteResponse);
+  rpc AddProductImages(AddProductImagesRequest) returns (ProductImageAddResponse);
+  rpc ListProductImages(ListProductImagesRequest) returns (ProductImageListResponse);
+  rpc DeleteProductImages(DeleteProductImagesRequest) returns (DeleteResponse);
+  rpc GetProductTotalRating(ProductIdRequest) returns (ProductRatingSummaryResponse);
+  rpc GetProductRating(GetProductRatingRequest) returns (ProductRatingResponse);
+  rpc UpdateProductStatus(UpdateProductStatusRequest) returns (ProductStatusResponse);
+  rpc StockIn(StockInRequest) returns (StockInResponse);
+  rpc CreateVariant(CreateVariantRequest) returns (VariantCreatedResponse);
+  rpc DeleteVariant(DeleteVariantRequest) returns (DeleteResponse);
+  rpc UpdateVariant(UpdateVariantRequest) returns (VariantUpdatedResponse);
+  rpc GetVariant(VariantIdRequest) returns (VariantDetailResponse);
+  rpc StockInVariant(StockInVariantRequest) returns (StockInVariantResponse);
+  rpc ListCategories(ListCategoriesRequest) returns (CategoryListResponse);
+  rpc CreateCategory(CreateCategoryRequest) returns (CategoryCreatedResponse);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (CategoryUpdatedResponse);
+  rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteResponse);
+  rpc GetCategory(CategoryIdRequest) returns (CategoryDetailResponse);
+  rpc CreateAuctionProduct(CreateAuctionProductRequest) returns (AuctionProductCreatedResponse);
+  rpc SearchAuctionProducts(SearchAuctionProductsRequest) returns (ProductListResponse);
+  rpc ListAuctionProducts(ListAuctionProductsRequest) returns (ProductListResponse);
+  rpc GetAuctionProduct(GetAuctionProductRequest) returns (AuctionProductDetailResponse);
 }
 
-// Common
-message CategoryIdRequest { string id = 1; }
-message ProductIdRequest { string id = 1; }
-message InventoryQueryRequest { string product_id = 1; }
-message CatalogDeleteResponse { bool success = 1; string id = 2; }
+// ------------------------------------------------------------------ common
 
-// Categories
-message CategoryPageRequest {
+// The authenticated caller, forwarded by the Gateway from the verified JWT.
+// The Gateway is the only writer; a client-supplied body can never populate it.
+message CallerContext {
+  string user_id = 1;
+  repeated string roles = 2;
+}
+
+message AttributeItem {
+  string attr_name = 1;
+  string attr_value = 2;
+}
+
+message DeleteResponse {
+  bool success = 1;
+  string id = 2;
+}
+
+// ------------------------------------------------------------------ products
+
+message ProductListItem {
+  string product_id = 1;
+  string name = 2;
+  string brand = 3;
+  string sale_type = 4;
+  optional double min_price = 5;
+  optional double max_price = 6;
+  optional string primary_image_url = 7;
+  optional double avg_rating = 8;
+  string status = 9;
+  optional string auction_status = 10;
+  optional bool is_open = 11;
+  optional bool is_sold = 12;
+}
+
+message ProductListResponse {
+  repeated ProductListItem items = 1;
+  int32 total = 2;
+}
+
+message ListProductsRequest {
   int32 page = 1;
   int32 page_size = 2;
+  string keyword = 3;
+  string category_id = 4;
+  string status = 5;
+  string seller_id = 6;
+  string sale_type = 7;
+  string sort_by = 8;
+  string sort_dir = 9;
+}
+
+message SearchProductsRequest {
+  string keyword = 1;
+  string category_id = 2;
+  optional double min_price = 3;
+  optional double max_price = 4;
+  string brand = 5;
+  string sale_type = 6;
+  string attributes = 7;
+  optional double min_rating = 8;
+  string status = 9;
+  string sort_by = 10;
+  int32 page = 11;
+  int32 page_size = 12;
+}
+
+message ProductIdRequest {
+  string product_id = 1;
+}
+
+message GetProductRequest {
+  string product_id = 1;
+  optional string auction_id = 2;
+}
+
+message ProductSnapshot {
+  string product_id = 1;
+  string seller_id = 2;
+  string category_id = 3;
+  string name = 4;
+  string description = 5;
+  string brand = 6;
+  string sale_type = 7;
+  string status = 8;
+  optional string status_reason = 9;
+  google.protobuf.Struct specifications = 10;
+  optional google.protobuf.Timestamp published_at = 11;
+}
+
+message CategorySnapshot {
+  string category_id = 1;
+  optional string parent_id = 2;
+  string name = 3;
+  string description = 4;
+  int32 level = 5;
+  int32 sort_order = 6;
+  bool is_active = 7;
+}
+
+message VariantItem {
+  string variant_id = 1;
+  string sku_code = 2;
+  string name = 3;
+  optional double price = 4;
+  string status = 5;
+  bool is_default = 6;
+  repeated AttributeItem attributes = 7;
+}
+
+message ProductImageItem {
+  string image_id = 1;
+  string url = 2;
+  string alt_text = 3;
+  bool is_active = 4;
+  int32 sort_order = 5;
+  optional string variant_id = 6;
+}
+
+message RatingSummary {
+  optional double avg_rating = 1;
+  int32 review_count = 2;
+}
+
+message ProductDetailResponse {
+  ProductSnapshot product = 1;
+  CategorySnapshot category = 2;
+  repeated VariantItem variants = 3;
+  repeated ProductImageItem images = 4;
+  RatingSummary rating = 5;
+}
+
+message CreateVariantItem {
+  string sku_code = 1;
+  string name = 2;
+  double price = 3;
+  string currency = 4;
+  bool is_active = 5;
+  repeated AttributeItem attributes = 6;
+}
+
+message CreateProductRequest {
+  string category_id = 1;
+  string name = 2;
+  string description = 3;
+  string brand = 4;
+  google.protobuf.Struct specifications = 5;
+  repeated CreateVariantItem variants = 6;
+  CallerContext caller = 7;
+}
+
+message VariantRef {
+  string variant_id = 1;
+  string sku_code = 2;
+}
+
+message ProductCreatedResponse {
+  string product_id = 1;
+  string status = 2;
+  string sale_type = 3;
+  repeated VariantRef variants = 4;
+}
+
+message UpdateProductRequest {
+  string product_id = 1;
+  string category_id = 2;
+  string name = 3;
+  string description = 4;
+  string brand = 5;
+  google.protobuf.Struct specifications = 6;
+  CallerContext caller = 7;
+}
+
+message ProductUpdatedResponse {
+  string product_id = 1;
+  string category_id = 2;
+  string name = 3;
+  string description = 4;
+  string brand = 5;
+  string sale_type = 6;
+  string status = 7;
+  google.protobuf.Struct specifications = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message DeleteProductRequest {
+  string product_id = 1;
+  CallerContext caller = 2;
+}
+
+message AddProductImagesRequest {
+  string product_id = 1;
+  optional string variant_id = 2;
+  string alt_text = 3;
+  bool is_active = 4;
+  repeated string file_names = 5;
+  CallerContext caller = 6;
+}
+
+message ProductImageListResponse {
+  repeated ProductImageItem items = 1;
+}
+
+// POST /product/{productId}pics answers with the four fields of the created images only.
+message ImageAddItem {
+  string image_id = 1;
+  string url = 2;
+  bool is_active = 3;
+  int32 sort_order = 4;
+}
+
+message ProductImageAddResponse {
+  repeated ImageAddItem items = 1;
+}
+
+message ListProductImagesRequest {
+  string product_id = 1;
+  optional string variant_id = 2;
+}
+
+message DeleteProductImagesRequest {
+  string product_id = 1;
+  repeated string image_ids = 2;
+  CallerContext caller = 3;
+}
+
+message ProductRatingSummaryResponse {
+  string product_id = 1;
+  optional double avg_rating = 2;
+  int32 review_count = 3;
+}
+
+message ReviewItem {
+  string review_id = 1;
+  int32 rating = 2;
+  string comment = 3;
+  google.protobuf.Timestamp created_at = 4;
+  optional string reviewer_name = 5;
+}
+
+message GetProductRatingRequest {
+  string product_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  int32 rating = 4;
+  string sort_by = 5;
+}
+
+message ProductRatingResponse {
+  RatingSummary rating = 1;
+  repeated ReviewItem items = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+  int32 total = 5;
+}
+
+message UpdateProductStatusRequest {
+  string product_id = 1;
+  string status = 2;
+  optional string status_reason = 3;
+  CallerContext caller = 4;
+}
+
+message ProductStatusResponse {
+  string product_id = 1;
+  string status = 2;
+  optional string status_reason = 3;
+  optional google.protobuf.Timestamp published_at = 4;
+}
+
+// ------------------------------------------------------------------ inventory
+
+message StockInItem {
+  string sku_id = 1;
+  int32 quantity = 2;
+}
+
+message StockInRequest {
+  repeated StockInItem items = 1;
+  CallerContext caller = 2;
+}
+
+message StockInResult {
+  string sku_id = 1;
+  int32 added_quantity = 2;
+  int32 stock_quantity = 3;
+}
+
+message StockInResponse {
+  repeated StockInResult items = 1;
+}
+
+// POST /variant/{variantId}/stock-in answers with a single line.
+message StockInVariantResponse {
+  string sku_id = 1;
+  int32 added_quantity = 2;
+  int32 stock_quantity = 3;
+}
+
+// ------------------------------------------------------------------ variants
+
+message VariantIdRequest {
+  string variant_id = 1;
+}
+
+message CreateVariantRequest {
+  string product_id = 1;
+  string sku_code = 2;
+  string name = 3;
+  double price = 4;
+  string currency = 5;
+  repeated AttributeItem attributes = 6;
+  CallerContext caller = 7;
+}
+
+message VariantCreatedResponse {
+  string variant_id = 1;
+  string sku_code = 2;
+  string status = 3;
+}
+
+message UpdateVariantRequest {
+  string variant_id = 1;
+  string name = 2;
+  optional double price = 3;
+  string currency = 4;
+  repeated AttributeItem attributes = 5;
+  CallerContext caller = 6;
+}
+
+message VariantUpdatedResponse {
+  string variant_id = 1;
+  string product_id = 2;
+  string sku_code = 3;
+  string name = 4;
+  optional double price = 5;
+  string currency = 6;
+  string status = 7;
+  repeated AttributeItem attributes = 8;
+  google.protobuf.Timestamp updated_at = 9;
+}
+
+message DeleteVariantRequest {
+  string variant_id = 1;
+  CallerContext caller = 2;
+}
+
+message VariantImageItem {
+  string image_id = 1;
+  string url = 2;
+  bool is_active = 3;
+}
+
+message VariantDetailResponse {
+  string variant_id = 1;
+  string product_id = 2;
+  string sku_code = 3;
+  string name = 4;
+  optional double price = 5;
+  string currency = 6;
+  string status = 7;
+  optional string status_reason = 8;
+  bool is_default = 9;
+  bool has_order = 10;
+  repeated AttributeItem attributes = 11;
+  repeated VariantImageItem images = 12;
+}
+
+message StockInVariantRequest {
+  string variant_id = 1;
+  int32 quantity = 2;
+  CallerContext caller = 3;
+}
+
+// ------------------------------------------------------------------ categories
+
+message CategoryChild {
+  string category_id = 1;
+  string name = 2;
+  int32 level = 3;
 }
 
 message CategoryItem {
-  string id = 1;
-  optional string parent_id = 2;
-  string name = 3;
-  optional string description = 4;
-  int32 level = 5;
-  int32 sort_order = 6;
-  bool is_disabled = 7;
-}
-
-message CategoryResponse {
-  CategoryItem data = 1;
+  string category_id = 1;
+  string name = 2;
+  int32 level = 3;
+  int32 sort_order = 4;
+  repeated CategoryChild children = 5;
 }
 
 message CategoryListResponse {
   repeated CategoryItem items = 1;
-  int32 total = 2;
 }
 
-message CreateCategoryProtoRequest {
+message ListCategoriesRequest {
+  optional string parent_id = 1;
+  bool tree = 2;
+  string keyword = 3;
+}
+
+message CreateCategoryRequest {
   string name = 1;
-  optional string description = 2;
+  string description = 2;
   optional string parent_id = 3;
-  int32 level = 4;
-  int32 sort_order = 5;
+  int32 sort_order = 4;
+  CallerContext caller = 5;
 }
 
-message UpdateCategoryProtoRequest {
-  string id = 1;
+message CategoryCreatedResponse {
+  string category_id = 1;
+  int32 level = 2;
+}
+
+message UpdateCategoryRequest {
+  string category_id = 1;
   string name = 2;
-  optional string description = 3;
-  int32 level = 4;
+  string description = 3;
+  optional string parent_id = 4;
   int32 sort_order = 5;
-  bool is_disabled = 6;
+  bool is_active = 6;
+  CallerContext caller = 7;
 }
 
-// Products
-message ProductQueryRequest {
-  int32 page = 1;
-  int32 page_size = 2;
-  optional string category_id = 3;
+message CategoryUpdatedResponse {
+  string category_id = 1;
+  optional string parent_id = 2;
+  string name = 3;
+  string description = 4;
+  int32 level = 5;
+  int32 sort_order = 6;
+  bool is_active = 7;
+  google.protobuf.Timestamp updated_at = 8;
 }
 
-message SellerProductQueryRequest {
-  string seller_id = 1;
+message DeleteCategoryRequest {
+  string category_id = 1;
+  CallerContext caller = 2;
+}
+
+message CategoryIdRequest {
+  string category_id = 1;
+}
+
+message CategoryDetailResponse {
+  CategorySnapshot category = 1;
+  CategoryChild parent = 2;
+  repeated CategoryChild children = 3;
+}
+
+// ------------------------------------------------------------------ auction products
+
+message CreateAuctionVariantItem {
+  string sku_code = 1;
+  string name = 2;
+  repeated AttributeItem attributes = 3;
+}
+
+message CreateAuctionProductRequest {
+  string category_id = 1;
+  string name = 2;
+  string description = 3;
+  string brand = 4;
+  google.protobuf.Struct specifications = 5;
+  CreateAuctionVariantItem variant = 6;
+  CallerContext caller = 7;
+}
+
+message AuctionProductCreatedResponse {
+  string product_id = 1;
+  string status = 2;
+  string sale_type = 3;
+  VariantRef variant = 4;
+}
+
+message SearchAuctionProductsRequest {
+  string keyword = 1;
+  string category_id = 2;
+  string status = 3;
+  string brand = 4;
+  string sort_by = 5;
+  string sort_dir = 6;
+  int32 page = 7;
+  int32 page_size = 8;
+}
+
+message ListAuctionProductsRequest {
+  string status = 1;
   int32 page = 2;
   int32 page_size = 3;
 }
 
-message ProductItem {
-  string id = 1;
-  string seller_id = 2;
-  string category_id = 3;
-  string name = 4;
-  optional string description = 5;
-  optional string brand = 6;
-  double price = 7;
-  string currency = 8;
-  string status = 9;
+message GetAuctionProductRequest {
+  string auction_id = 1;
 }
 
-message ProductResponse {
-  ProductItem data = 1;
+message AuctionSnapshot {
+  string auction_id = 1;
+  string status = 2;
+  double starting_price_amount = 3;
+  double bid_step_amount = 4;
+  optional double current_price_amount = 5;
+  optional string current_leading_bidder_masked = 6;
+  int32 bid_count = 7;
+  google.protobuf.Timestamp starts_at = 8;
+  google.protobuf.Timestamp ends_at = 9;
+  int32 extension_count = 10;
 }
 
-message ProductListResponse {
-  repeated ProductItem items = 1;
-  int32 total = 2;
-}
-
-message CreateProductProtoRequest {
-  string seller_id = 1;
-  string category_id = 2;
-  string name = 3;
-  optional string description = 4;
-  optional string brand = 5;
-  double price = 6;
-  string currency = 7;
-}
-
-message UpdateProductProtoRequest {
-  string id = 1;
-  string name = 2;
-  optional string description = 3;
-  optional string brand = 4;
-  double price = 5;
-  string status = 6;
-}
-
-// Inventory
-message InventoryResponse {
-  string product_id = 1;
-  int32 available = 2;
-  int32 reserved = 3;
-  string updated_at = 4;
-}
-
-message AdjustInventoryProtoRequest {
-  string product_id = 1;
-  int32 quantity_change = 2;
+message AuctionProductDetailResponse {
+  AuctionSnapshot auction = 1;
+  ProductDetailResponse product = 2;
 }
