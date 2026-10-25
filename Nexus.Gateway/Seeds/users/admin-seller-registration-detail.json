@@ -1,0 +1,14 @@
+{
+  "registrationId": "reg_11111111-1111-1111-1111-000000000001",
+  "userId": "11111111-1111-1111-1111-000000000001",
+  "shopName": "Nexus Official Tech Store",
+  "hotline": "+84908889999",
+  "pickupAddress": "456 Nguyen Hue, District 1, Ho Chi Minh City",
+  "identityCardNumber": "079090001234",
+  "idCardFrontUrl": "https://storage.example.com/seller-docs/id_front.jpg",
+  "idCardBackUrl": "https://storage.example.com/seller-docs/id_back.jpg",
+  "businessLicenseUrl": "https://storage.example.com/seller-docs/license.pdf",
+  "reputationScore": 120,
+  "status": "PENDING",
+  "submittedAt": "2026-10-25T09:30:00Z"
+}

@@ -10,6 +10,7 @@ public static class GrpcClientsExtension
     {
         // Core User/Auth Service Client
         services.AddNamedGrpcClient<UsersApi.UsersApiClient>("users");
+        services.AddNamedGrpcClient<UserApi.UserApiClient>("users");
         services.AddNamedGrpcClient<CatalogApi.CatalogApiClient>("catalog");
 
         // NOTE (Team): Khi phát triển các Microservices tiếp theo (Catalog, Commerce, etc.),

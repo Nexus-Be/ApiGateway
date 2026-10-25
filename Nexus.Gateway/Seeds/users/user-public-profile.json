@@ -1,0 +1,15 @@
+{
+  "id": "11111111-1111-1111-1111-000000000001",
+  "username": "alexrivers",
+  "firstName": "Alex",
+  "lastName": "Rivers",
+  "avatarUrl": "https://storage.example.com/avatars/user-1.png",
+  "reputationScore": 120,
+  "trustLevel": "PLATINUM",
+  "badges": [
+    "TOP_RATED",
+    "VERIFIED_SELLER"
+  ],
+  "isSeller": true,
+  "joinedAt": "2025-01-15T09:00:00Z"
+}

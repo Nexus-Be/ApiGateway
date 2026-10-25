@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "id": "audit_log_001",
+      "actorId": "admin@nexus.local",
+      "action": "BAN_USER",
+      "targetEntity": "user_11111111-1111-1111-1111-000000000002",
+      "oldValues": {
+        "status": "ACTIVE"
+      },
+      "newValues": {
+        "status": "BANNED"
+      },
+      "reason": "Repeated fraud attempts",
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-10-25T17:25:00Z"
+    }
+  ],
+  "total": 1
+}

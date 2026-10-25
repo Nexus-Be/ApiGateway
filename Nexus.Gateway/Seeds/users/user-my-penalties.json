@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "id": "penalty_001",
+      "violationType": "LATE_SHIPPING",
+      "reason": "Order delivery delayed beyond standard SLA",
+      "penaltyApplied": "WARNING",
+      "pointsDeducted": 5,
+      "status": "ACTIVE",
+      "issuedAt": "2026-10-20T08:00:00Z",
+      "expiresAt": "2026-11-20T08:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}

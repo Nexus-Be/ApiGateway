@@ -1,12 +1,12 @@
 # 02 — BẢN ĐẶC TẢ CONTROLLERS & ĐỊNH TUYẾN (CONTROLLERS & ROUTING SPEC)
-> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 15/15 file controller tồn tại, 7/15 controller có action (43 action: 16 action cơ bản + 27 action catalog F2); 8 controller stub 10 dòng, 0 action.
+> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 15/15 file controller tồn tại, 8/15 controller có action (98 action: 60 action luồng User/Auth/Admin + 27 action catalog F2 + 11 action gateway/health); 7 controller stub 10 dòng, 0 action.
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
 > **Cập nhật lần cuối:** 2026-10-25.
 
 Toàn bộ các API được quản lý bởi 15 file controller `[ApiController] ControllerBase` trong `Nexus.Gateway/Controllers/`, phân bổ phẳng theo từng nghiệp vụ/tài nguyên với tiền tố chuẩn hóa:
 $$\mathbf{/api/v1/...}$$
 
-Đếm thật: `grep -c '\[Http'` trên từng file cho ra **43 attribute action**, nằm trong 7 file: `AuthController.cs` (4), `UsersController.cs` (1), `GatewayControlController.cs` (6), `HealthProberController.cs` (5), `ProductsController.cs` (20), `CategoriesController.cs` (5), `InventoryController.cs` (2). 8 file còn lại chỉ có `[ApiController]` + `[Route(...)]` + comment `// TODO (Team)` — **không có action nào**, nên request tới các route đó rơi xuống declarative mock (nếu có `Mocks/*.mock.json` khớp) hoặc trả **404**.
+Đếm thật: `grep -c '\[Http'` trên từng file cho ra **98 attribute action**, nằm trong 8 file: `AuthController.cs` (10), `UsersController.cs` (26), `AdminUsersController.cs` (24), `GatewayControlController.cs` (6), `HealthProberController.cs` (5), `ProductsController.cs` (20), `CategoriesController.cs` (5), `InventoryController.cs` (2). 7 file còn lại chỉ có `[ApiController]` + `[Route(...)]` + comment `// TODO (Team)` — **không có action nào**, nên request tới các route đó rơi xuống declarative mock (nếu có `Mocks/*.mock.json` khớp) hoặc trả **404**.
 
 ---
 
@@ -14,14 +14,14 @@ $$\mathbf{/api/v1/...}$$
 
 | # | Controller | Route Prefix (thật) | Số action | Trạng thái | Bằng chứng |
 |:--:|:---|:---|:--:|:---|:---|
-| 1 | `AuthController` | `/api/v1/auth` | 4 | ✅ CÓ | `Controllers/AuthController.cs` |
-| 2 | `UsersController` | `/api/v1` | 1 | ✅ CÓ | `Controllers/UsersController.cs` |
-| 3 | `GatewayControlController` | `/api/v1` | 6 | ✅ CÓ | `Controllers/GatewayControlController.cs` |
-| 4 | `HealthProberController` | `/api/v1` | 5 | ✅ CÓ | `Controllers/HealthProberController.cs` |
-| 5 | `ProductsController` | `/api/v1` | 20 | ✅ CÓ | `Controllers/ProductsController.cs` |
-| 6 | `CategoriesController` | `/api/v1` | 5 | ✅ CÓ | `Controllers/CategoriesController.cs` |
-| 7 | `InventoryController` | `/api/v1` | 2 | ✅ CÓ | `Controllers/InventoryController.cs` |
-| 8 | `AdminUsersController` | `/api/v1/admin/users` | 0 | ❌ CHƯA CÓ | `Controllers/AdminUsersController.cs` (10 dòng, TODO) |
+| 1 | `AuthController` | `/api/v1/auth` | 10 | ✅ CÓ | `Controllers/AuthController.cs` |
+| 2 | `UsersController` | `/api/v1` | 26 | ✅ CÓ | `Controllers/UsersController.cs` |
+| 3 | `AdminUsersController` | `/api/v1/admin` | 24 | ✅ CÓ | `Controllers/AdminUsersController.cs` |
+| 4 | `GatewayControlController` | `/api/v1` | 6 | ✅ CÓ | `Controllers/GatewayControlController.cs` |
+| 5 | `HealthProberController` | `/api/v1` | 5 | ✅ CÓ | `Controllers/HealthProberController.cs` |
+| 6 | `ProductsController` | `/api/v1` | 20 | ✅ CÓ | `Controllers/ProductsController.cs` |
+| 7 | `CategoriesController` | `/api/v1` | 5 | ✅ CÓ | `Controllers/CategoriesController.cs` |
+| 8 | `InventoryController` | `/api/v1` | 2 | ✅ CÓ | `Controllers/InventoryController.cs` |
 | 9 | `CartController` | `/api/v1/commerce/cart` | 0 | ❌ CHƯA CÓ | `Controllers/CartController.cs` (10 dòng, TODO) |
 | 10 | `OrdersController` | `/api/v1/commerce/orders` | 0 | ❌ CHƯA CÓ | `Controllers/OrdersController.cs` (10 dòng, TODO) |
 | 11 | `AuctionController` | `/api/v1/auction` | 0 | ❌ CHƯA CÓ | `Controllers/AuctionController.cs` (10 dòng, TODO) |
@@ -32,25 +32,84 @@ $$\mathbf{/api/v1/...}$$
 
 ---
 
-## 2. CHI TIẾT 7 CONTROLLER ĐÃ CÓ ACTION
+## 2. CHI TIẾT 8 CONTROLLER ĐÃ CÓ ACTION
 
 ### 1. `AuthController` (`Controllers/AuthController.cs`)
 - Route Prefix: `/api/v1/auth` | Service: `users`
 - Attributes: `[ApiController]`, `[BackendTag("users")]`, `[EnableRateLimiting("api")]`
-- Actions:
+- Actions (10 routes):
   - `POST /register` [AllowAnonymous] $\rightarrow$ Đăng ký tài khoản mới (`RegisterRequestDto`).
-  - `POST /verify-otp` [AllowAnonymous] $\rightarrow$ Xác thực tài khoản bằng mã OTP (`VerifyOtpRequestDto`).
-  - `POST /resend-otp` [AllowAnonymous] $\rightarrow$ Gửi lại mã OTP (`ResendOtpRequestDto`).
-  - `POST /login` [AllowAnonymous] $\rightarrow$ Đăng nhập lấy access token (`LoginRequestDto`); gọi `UsersApi.UsersApiClient.LoginAsync` — phía Gateway đã có, phía User service chưa implement rpc `Login`.
+  - `POST /verify-otp` & `POST /otp/verify` [AllowAnonymous] $\rightarrow$ Xác thực tài khoản bằng OTP (`VerifyOtpRequestDto`).
+  - `POST /resend-otp` & `POST /otp/resend` [AllowAnonymous] $\rightarrow$ Gửi lại mã OTP (`ResendOtpRequestDto`).
+  - `POST /login` [AllowAnonymous] $\rightarrow$ Đăng nhập lấy access/refresh token (`LoginRequestDto`).
+  - `POST /refresh` [AllowAnonymous] $\rightarrow$ Làm mới access token bằng refresh token (`RefreshTokenDto`).
+  - `POST /password/forgot` [AllowAnonymous] $\rightarrow$ Yêu cầu đặt lại mật khẩu (`ForgotPasswordDto`).
+  - `POST /password/reset` [AllowAnonymous] $\rightarrow$ Đặt lại mật khẩu mới bằng OTP (`ResetPasswordDto`).
+  - `POST /password/change` & `PATCH /password` [Authorize(Authenticated)] $\rightarrow$ Đổi mật khẩu (`ChangePasswordDto`).
+  - `POST /logout` [Authorize(Authenticated)] $\rightarrow$ Đăng xuất phiên hiện tại.
+  - `POST /logout-all` [Authorize(Authenticated)] $\rightarrow$ Thu hồi toàn bộ phiên đăng nhập.
 
 ### 2. `UsersController` (`Controllers/UsersController.cs`)
 - Route Prefix: `/api/v1` | Service: `users`
 - Attributes: `[ApiController]`, `[BackendTag("users")]`, `[EnableRateLimiting("api")]`
-- Actions:
-  - `GET /users/me` [Authorize("authenticated")] $\rightarrow$ Lấy thông tin cá nhân.
-  - `PUT /users/me` và `POST /users/me/seller-upgrade` $\rightarrow$ ❌ CHƯA CÓ (đặc tả mục tiêu, chưa triển khai).
+- Actions (26 routes):
+  - `GET /me/sessions` [Authenticated] $\rightarrow$ Danh sách các phiên đăng nhập.
+  - `DELETE /me/sessions/{id}` [Authenticated] $\rightarrow$ Thu hồi 1 phiên đăng nhập (204 NoContent).
+  - `GET /me` & `GET /users/me` [Authenticated] $\rightarrow$ Lấy thông tin cá nhân hiện tại.
+  - `PATCH /me` [Authenticated] $\rightarrow$ Cập nhật thông tin cá nhân (`UpdateMyProfileDto`).
+  - `GET /me/avatar` [Authenticated] $\rightarrow$ Lấy avatar người dùng hiện tại.
+  - `POST /me/avatar` [Authenticated] $\rightarrow$ Tải lên avatar mới (Multipart Form).
+  - `GET /me/reputation` [Authenticated] $\rightarrow$ Điểm uy tín cá nhân.
+  - `GET /me/penalties` [Authenticated] $\rightarrow$ Lịch sử vi phạm/phạt (paged).
+  - `GET /user/{userId}` [AllowAnonymous] $\rightarrow$ Xem hồ sơ công khai của người dùng.
+  - `GET /user/{userId}/avatar` [AllowAnonymous] $\rightarrow$ Lấy avatar công khai.
+  - `GET /seller/{sellerId}` [AllowAnonymous] $\rightarrow$ Xem thông tin cửa hàng người bán.
+  - `GET /user/{userId}/reputation` [AllowAnonymous] $\rightarrow$ Xem điểm uy tín công khai.
+  - `GET /user/{userId}/reputation/history` [Authenticated] $\rightarrow$ Lịch sử thay đổi điểm uy tín (paged).
+  - `GET /user/{userId}/reviews` [AllowAnonymous] $\rightarrow$ Đánh giá của người dùng (paged).
+  - `POST /review/files/upload` [Authenticated] $\rightarrow$ Tải lên ảnh/video bằng chứng đánh giá.
+  - `POST /reviews` [Authenticated] $\rightarrow$ Gửi đánh giá mới (201 Created).
+  - `POST /report/files/upload` [Authenticated] $\rightarrow$ Tải lên tài liệu khiếu nại.
+  - `POST /users/reports` [Authenticated] $\rightarrow$ Tạo báo cáo/khiếu nại người dùng (201 Created).
+  - `GET /me/reports` [Authenticated] $\rightarrow$ Danh sách khiếu nại đã gửi (paged).
+  - `POST /seller/registration` [Authenticated] $\rightarrow$ Đăng ký mở cửa hàng người bán (201 Created).
+  - `POST /seller/registration/otp/resend` [Authenticated] $\rightarrow$ Gửi lại mã OTP xác minh đăng ký bán hàng.
+  - `POST /seller/registration/documents` [Authenticated] $\rightarrow$ Tải lên tài liệu CCCD/GPKD (Multipart).
+  - `POST /seller/otp/verify` [Authenticated] $\rightarrow$ Xác minh OTP đăng ký bán hàng.
+  - `GET /seller/registration` [Authenticated] $\rightarrow$ Tra cứu trạng thái duyệt hồ sơ bán hàng.
+  - `GET /seller/profile` [Seller] $\rightarrow$ Lấy thông tin hồ sơ cửa hàng của chính mình.
+  - `PATCH /seller/profile` [Seller] $\rightarrow$ Cập nhật thông tin cửa hàng.
 
-### 3. `GatewayControlController` (`Controllers/GatewayControlController.cs`)
+### 3. `AdminUsersController` (`Controllers/AdminUsersController.cs`)
+- Route Prefix: `/api/v1/admin` | Service: `users`
+- Attributes: `[ApiController]`, `[BackendTag("users")]`, `[EnableRateLimiting("api")]`
+- Actions (24 routes):
+  - `GET /seller-registrations` [Staff] $\rightarrow$ Danh sách đơn đăng ký bán hàng chờ duyệt (paged).
+  - `GET /seller-registrations/{registrationId}` [Staff] $\rightarrow$ Chi tiết hồ sơ đăng ký bán hàng.
+  - `PUT /seller-registrations/{registrationId}/approve` [Staff] $\rightarrow$ Phê duyệt đơn đăng ký bán hàng.
+  - `PUT /seller-registrations/{registrationId}/reject` [Staff] $\rightarrow$ Từ chối đơn đăng ký bán hàng.
+  - `GET /reports` [Staff] $\rightarrow$ Danh sách báo cáo vi phạm (paged).
+  - `PUT /reports/{reportId}/resolve` [Staff] $\rightarrow$ Xử lý báo cáo vi phạm.
+  - `PUT /reports/{reportId}/dismiss` [Staff] $\rightarrow$ Bác bỏ báo cáo vi phạm.
+  - `PUT /reviews/{reviewId}/hide` [Staff] $\rightarrow$ Ẩn đánh giá vi phạm.
+  - `GET /user` & `GET /users` [Staff] $\rightarrow$ Danh sách người dùng quản trị (paged).
+  - `POST /user` & `POST /users` [Admin] $\rightarrow$ Tạo tài khoản người dùng/nhân viên mới (201 Created).
+  - `GET /user/{userId}` & `GET /users/{userId}` [Staff] $\rightarrow$ Chi tiết người dùng.
+  - `PUT /user/{userId}` & `PUT /users/{userId}` [Admin] $\rightarrow$ Cập nhật thông tin người dùng.
+  - `DELETE /user/{userId}` & `DELETE /users/{userId}` [Admin] $\rightarrow$ Xóa người dùng (204 NoContent).
+  - `PATCH /user/{userId}/ban` & `PATCH /users/{userId}/ban` [Admin] $\rightarrow$ Khóa tài khoản người dùng.
+  - `PATCH /user/{userId}/unban` & `PATCH /users/{userId}/unban` [Admin] $\rightarrow$ Mở khóa tài khoản.
+  - `GET /sellers/{sellerId}` [Staff] $\rightarrow$ Chi tiết thông tin người bán phía quản trị.
+  - `PUT /user/{userId}/roles` & `PUT /users/{userId}/roles` [Admin] $\rightarrow$ Gán vai trò cho người dùng.
+  - `PATCH /user/{userId}/reputation` & `PATCH /users/{userId}/reputation` [Admin] $\rightarrow$ Điều chỉnh điểm uy tín thủ công.
+  - `GET /roles` [Admin] $\rightarrow$ Danh sách vai trò trong hệ thống.
+  - `GET /permissions` [Admin] $\rightarrow$ Danh sách quyền hạn.
+  - `PUT /roles/{roleId}/permissions` [Admin] $\rightarrow$ Cập nhật phân quyền cho vai trò.
+  - `GET /audit-logs` [Admin] $\rightarrow$ Danh sách nhật ký kiểm toán hệ thống (paged).
+  - `GET /configs` [Admin] $\rightarrow$ Danh sách cấu hình hệ thống.
+  - `PUT /configs/{key}` [Admin] $\rightarrow$ Cập nhật cấu hình hệ thống.
+
+### 4. `GatewayControlController` (`Controllers/GatewayControlController.cs`)
 - Route Prefix: `/api/v1` | Service: *Nội bộ Gateway*
 - Attributes: `[ApiController]`, `[EnableRateLimiting("api")]`, `[Authorize(GatewayPolicies.GatewayAdmin)]`, `[DisableMockAuthorizationBypass]`
 - Actions:
@@ -61,7 +120,7 @@ $$\mathbf{/api/v1/...}$$
   - `GET /mock-engine/definitions` $\rightarrow$ Xem danh sách declarative mock endpoints.
   - `POST /mock-engine/reload` $\rightarrow$ Quét và nạp lại mock definitions nóng.
 
-### 4. `HealthProberController` (`Controllers/HealthProberController.cs`)
+### 5. `HealthProberController` (`Controllers/HealthProberController.cs`)
 - Route Prefix: `/api/v1` (route con `gateway/prober/...`) | Service: *Nội bộ Gateway*
 - Attributes: `[ApiController]`, `[EnableRateLimiting("api")]`, `[Authorize(GatewayPolicies.GatewayAdmin)]`, `[DisableMockAuthorizationBypass]`
 - Actions:
@@ -71,65 +130,55 @@ $$\mathbf{/api/v1/...}$$
   - `PUT /gateway/prober/bulk` $\rightarrow$ Bật/tắt hàng loạt prober daemons (`BulkProberToggleDto`).
   - `POST /gateway/prober/{service}/check` $\rightarrow$ **Kiểm tra sức khỏe thủ công tức thì** — probe ngay 1 lần và trả về latency/status code.
 
-### 5. `ProductsController` (`Controllers/ProductsController.cs`)
+### 6. `ProductsController` (`Controllers/ProductsController.cs`)
 - Route Prefix: `/api/v1` | Service: `catalog`
 - Attributes: `[ApiController]`, `[BackendTag("catalog")]`, `[EnableRateLimiting("api")]`
 - Actions (20 routes khớp hợp đồng F2 quản lý sản phẩm):
-  | Phương thức & Tuyến đường | Operation / Seed | Quyền hạn | Ghi chú |
-  |:---|:---|:---|:---|
-  | `GET /products` | `products` | `AllowAnonymous` | Phân trang: `page`, `pageSize`, `categoryId` |
-  | `GET /product/search` | `product-search` | `Seller` | Phân trang + lọc đa tiêu chí |
-  | `GET /product/{productId}` | `product` | `AllowAnonymous` | Chi tiết sản phẩm + variants + images + rating |
-  | `POST /products` | `product-create` (201) | `Seller` | Tạo sản phẩm mới |
-  | `PATCH /product/{productId}` | `product-update` | `Seller` | Cập nhật thông tin sản phẩm |
-  | `DELETE /product/{productId}` | `product-delete` (204) | `Seller` | Xóa sản phẩm (NoContent) |
-  | `POST /product/{productId}pics` | `product-images-add` (201) | `Seller` | Multipart form upload ảnh |
-  | `GET /product/{productId}pics` | `product-images` | `AllowAnonymous` | Danh sách ảnh của sản phẩm |
-  | `DELETE /product/{productId}pics?ids=` | `product-images-delete` (204) | `Seller` | Xóa danh sách ảnh (NoContent) |
-  | `GET /products/{productId}/totalRating` | `product-rating-total` | `AllowAnonymous` | Tổng điểm đánh giá |
-  | `GET /products/{productId}/rating` | `product-rating` | `AllowAnonymous` | Chi tiết đánh giá và phân trang |
-  | `PATCH /product/{productId}/status` | `product-status` | `Seller` | Đổi trạng thái (`DRAFT`, `ACTIVE`, `INACTIVE`) |
-  | `POST /product/{productId}/variants` | `variant-create` (201) | `Seller` | Thêm biến thể mới |
-  | `DELETE /variant/{variantId}` | `variant-delete` (204) | `Seller` | Xóa biến thể (NoContent) |
-  | `PATCH /variant/{variantId}` | `variant-update` | `Seller` | Cập nhật biến thể |
-  | `GET /variant/{variantId}` | `variant` | `Seller` | Chi tiết biến thể |
-  | `POST /product/auction` | `auction-product-create` (201) | `Seller` | Tạo sản phẩm đấu giá (SaleType AUCTION) |
-  | `GET /product/auction/search` | `auction-product-search` | `Seller` | Tìm kiếm sản phẩm đấu giá (paged) |
-  | `GET /product/auctions` | `auction-products` | `Seller` | Danh sách sản phẩm đấu giá (paged) |
-  | `GET /product/auction/{auctionId}` | `auction-product` | `Seller` | Chi tiết sản phẩm đấu giá |
+  - `GET /products` | `products` | `AllowAnonymous`
+  - `GET /product/search` | `product-search` | `Seller`
+  - `GET /product/{productId}` | `product` | `AllowAnonymous`
+  - `POST /products` | `product-create` (201) | `Seller`
+  - `PATCH /product/{productId}` | `product-update` | `Seller`
+  - `DELETE /product/{productId}` | `product-delete` (204) | `Seller`
+  - `POST /product/{productId}pics` | `product-images-add` (201) | `Seller`
+  - `GET /product/{productId}pics` | `product-images` | `AllowAnonymous`
+  - `DELETE /product/{productId}pics?ids=` | `product-images-delete` (204) | `Seller`
+  - `GET /products/{productId}/totalRating` | `product-rating-total` | `AllowAnonymous`
+  - `GET /products/{productId}/rating` | `product-rating` | `AllowAnonymous`
+  - `PATCH /product/{productId}/status` | `product-status` | `Seller`
+  - `POST /product/{productId}/variants` | `variant-create` (201) | `Seller`
+  - `DELETE /variant/{variantId}` | `variant-delete` (204) | `Seller`
+  - `PATCH /variant/{variantId}` | `variant-update` | `Seller`
+  - `GET /variant/{variantId}` | `variant` | `Seller`
+  - `POST /product/auction` | `auction-product-create` (201) | `Seller`
+  - `GET /product/auction/search` | `auction-product-search` | `Seller`
+  - `GET /product/auctions` | `auction-products` | `Seller`
+  - `GET /product/auction/{auctionId}` | `auction-product` | `Seller`
 
-### 6. `CategoriesController` (`Controllers/CategoriesController.cs`)
+### 7. `CategoriesController` (`Controllers/CategoriesController.cs`)
 - Route Prefix: `/api/v1` | Service: `catalog`
 - Attributes: `[ApiController]`, `[BackendTag("catalog")]`, `[EnableRateLimiting("api")]`
 - Actions (5 routes danh mục F2):
-  | Phương thức & Tuyến đường | Operation / Seed | Quyền hạn | Ghi chú |
-  |:---|:---|:---|:---|
-  | `GET /categories` | `categories` | `AllowAnonymous` | Lấy danh sách cây danh mục (`tree=true`) |
-  | `GET /categories/{categoryId}` | `category` | `AllowAnonymous` | Chi tiết danh mục kèm cha và con |
-  | `POST /categories` | `category-create` (201) | `Admin` | Tạo danh mục mới |
-  | `PUT /categories/{categoryId}` | `category-update` | `Admin` | Cập nhật danh mục |
-  | `DELETE /categories/{categoryId}` | `category-delete` (204) | `Admin` | Xóa danh mục (NoContent) |
+  - `GET /categories` | `categories` | `AllowAnonymous`
+  - `GET /categories/{categoryId}` | `category` | `AllowAnonymous`
+  - `POST /categories` | `category-create` (201) | `Admin`
+  - `PUT /categories/{categoryId}` | `category-update` | `Admin`
+  - `DELETE /categories/{categoryId}` | `category-delete` (204) | `Admin`
 
-### 7. `InventoryController` (`Controllers/InventoryController.cs`)
+### 8. `InventoryController` (`Controllers/InventoryController.cs`)
 - Route Prefix: `/api/v1` | Service: `catalog`
 - Attributes: `[ApiController]`, `[BackendTag("catalog")]`, `[EnableRateLimiting("api")]`
 - Actions (2 routes kho F2):
-  | Phương thức & Tuyến đường | Operation / Seed | Quyền hạn | Ghi chú |
-  |:---|:---|:---|:---|
-  | `POST /inventory/stock-in` | `inventory-stock-in` | `Seller` | Nhập kho nhiều SKU |
-  | `POST /variant/{variantId}/stock-in` | `variant-stock-in` | `Seller` | Nhập kho 1 biến thể |
+  - `POST /inventory/stock-in` | `inventory-stock-in` | `Seller`
+  - `POST /variant/{variantId}/stock-in` | `variant-stock-in` | `Seller`
 
-- Validate: `Common/CatalogValidation.cs`
-- Test: `Nexus.Gateway.Tests/CatalogMockTests.cs` (42 test cases) + `CatalogSeedConformanceTests.cs` (27 seed conformance cases)
+- Validate: `Common/CatalogValidation.cs`, `Common/UserValidation.cs`
+- Test: `Nexus.Gateway.Tests/CatalogMockTests.cs` (42 cases), `CatalogSeedConformanceTests.cs` (27 cases), `UserMockTests.cs` (34 cases), `UserSeedConformanceTests.cs` (55 cases).
 
 ---
 
-## 3. ĐẶC TẢ MỤC TIÊU CHO 8 CONTROLLER STUB (CHƯA TRIỂN KHAI)
+## 3. ĐẶC TẢ MỤC TIÊU CHO 7 CONTROLLER STUB (CHƯA TRIỂN KHAI)
 Các route dưới đây là **đặc tả mục tiêu, chưa triển khai** — không controller nào trong danh sách này có action, và hầu hết cũng chưa có RPC tương ứng trong `Nexus.Gateway/Contracts/shop.proto`.
-
-### 8. `AdminUsersController` (`Controllers/AdminUsersController.cs`)
-- Route Prefix: `/api/v1/admin/users` | Service: `users`
-- Đặc tả mục tiêu: `GET /admin/users` [staff], `POST /admin/sellers/{id}/approve` [staff], `POST /admin/users` [admin], `POST /admin/users/{id}/roles` [admin], `GET /admin/roles` [admin], `GET /admin/permissions` [admin].
 
 ### 9. `CartController` (`Controllers/CartController.cs`)
 - Route Prefix: `/api/v1/commerce/cart` | Service: `commerce`

@@ -1,0 +1,19 @@
+{
+  "items": [
+    {
+      "id": "review_11111111-1111-1111-1111-000000000001",
+      "reviewerName": "David Chen",
+      "rating": 5,
+      "comment": "Fast shipping, item condition perfectly matched description.",
+      "mediaUrls": [
+        "https://storage.example.com/reviews/img1.jpg"
+      ],
+      "createdAt": "2026-10-23T14:10:00Z"
+    }
+  ],
+  "averageRating": 4.9,
+  "totalReviews": 45,
+  "total": 1,
+  "page": 1,
+  "pageSize": 20
+}

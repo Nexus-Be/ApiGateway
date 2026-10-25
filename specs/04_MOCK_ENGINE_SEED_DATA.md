@@ -1,5 +1,5 @@
 # 04 — MOCK ENGINE & SEED DATA SPECIFICATION
-> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 36/36 file seed thật phục vụ `auth` (4), `users` (5), `catalog` (27); 5/5 file declarative mock phục vụ 5 route; 2 thư mục seed nghiệp vụ còn lại mới có `README.md` (`cart`, `orders`).
+> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 91/91 file seed thật phục vụ `auth` (4), `users` (60: 5 cơ bản + 55 luồng user/seller/admin), `catalog` (27); 5/5 file declarative mock phục vụ 5 route; 2 thư mục seed nghiệp vụ còn lại mới có `README.md` (`cart`, `orders`).
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
 > **Cập nhật lần cuối:** 2026-10-25.
 
@@ -9,7 +9,7 @@
 
 | Cơ chế | Cách hoạt động | Có dữ liệu thật? | Trạng thái | Bằng chứng |
 |:---|:---|:---|:---|:---|
-| **Fixture theo Controller Action** | Controller gọi `_dispatcher.DispatchAsync(...)` / `DispatchPagedAsync(...)` / `DispatchNoContentAsync(...)`; `MockDataMapper` đọc `Seeds/{service}/{operation}.json` rồi parse bằng `MessageParser<T>.ParseJson()` | 36 file (`auth` 4, `users` 5, `catalog` 27) | ✅ CÓ | `Dispatching/MockDataMapper.cs:27`; `Nexus.Gateway/Seeds/` |
+| **Fixture theo Controller Action** | Controller gọi `_dispatcher.DispatchAsync(...)` / `DispatchPagedAsync(...)` / `DispatchNoContentAsync(...)`; `MockDataMapper` đọc `Seeds/{service}/{operation}.json` rồi parse bằng `MessageParser<T>.ParseJson()` | 91 file (`auth` 4, `users` 60, `catalog` 27) | ✅ CÓ | `Dispatching/MockDataMapper.cs:27`; `Nexus.Gateway/Seeds/` |
 | **Declarative mock routes** | `MockEngineMiddleware` khớp `Mocks/*.mock.json` **khi không có endpoint `ControllerActionDescriptor` nào khớp** và effective mode của service là `Mock` | 5 file | ✅ CÓ | `MockEngine/MockEngineMiddleware.cs:30-51`; `Nexus.Gateway/Mocks/` |
 
 Tài liệu cũ khẳng định "declarative `*.mock.json` không được dùng, chỉ Controller + Seeds mới hợp lệ" là **sai**: cả hai cơ chế đều đang chạy. Declarative mock chỉ phục vụ route **chưa có controller action**; ngay khi service chuyển `Real`, route không có controller tương ứng trả **404** (không tự forward).
@@ -22,7 +22,7 @@ Tài liệu cũ khẳng định "declarative `*.mock.json` không được dùng
 Nexus.Gateway/Seeds/
 ├── README.md
 ├── auth/           ✅ 4 file: login.json, register.json, verify-otp.json, resend-otp.json
-├── users/          ✅ 5 file: login.json, profile.json, register.json, verify-otp.json, resend-otp.json
+├── users/          ✅ 60 file: 5 file cơ bản + 55 file nghiệp vụ User/Seller/Admin Flow
 ├── catalog/        ✅ 27 file: khớp 27 operation của Catalog Flow (F2)
 ├── cart/           ❌ chỉ có README.md — đặc tả mục tiêu, chưa triển khai
 └── orders/         ❌ chỉ có README.md — đặc tả mục tiêu, chưa triển khai
@@ -112,7 +112,7 @@ Những mã lỗi Mock thật sự tạo được:
 - `DispatchPagedAsync` gọi `parser.ParseJson(jsonResult)` **không** có try/catch (`GatewayDispatcher.cs:183`) ⇒ seed sai ⇒ `500`.
 - `DispatchAsync` (object đơn) đi qua `MapMockAsync`, `catch {}` rỗng rồi trả JSON thô (`MockDataMapper.cs:87-92`) ⇒ seed sai shape vẫn `200`, chỉ là body lệch hợp đồng.
 
-⇒ Mọi bộ seed mới phải kèm test khóa shape: `Nexus.Gateway.Tests/CatalogSeedConformanceTests.cs` (27 operation) kiểm chứng toàn bộ fixture theo message protobuf.
+⇒ Mọi bộ seed mới phải kèm test khóa shape: `Nexus.Gateway.Tests/CatalogSeedConformanceTests.cs` (27 operation) và `Nexus.Gateway.Tests/UserSeedConformanceTests.cs` (55 operation) kiểm chứng toàn bộ fixture theo message protobuf.
 
 ### 5.3 Envelope Gateway không trùng 1-1 với hợp đồng API
 Hợp đồng F2 mô tả body phẳng; Gateway bọc trong `ApiResponse<T>` (Nguyên tắc 4.1 + `Responses/ApiResponse.cs`). Mapping đã chốt:
