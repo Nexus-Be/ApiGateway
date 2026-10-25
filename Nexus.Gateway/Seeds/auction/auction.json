@@ -1,0 +1,40 @@
+{
+  "auctionId": "a1000000-0000-0000-0000-000000000001",
+  "productId": "b1000000-0000-0000-0000-000000000001",
+  "skuId": "c1000000-0000-0000-0000-000000000001",
+  "sellerId": "11111111-1111-1111-1111-000000000002",
+  "productName": "iPhone 15 Pro Max 256GB",
+  "description": "Like-new condition, all accessories included, 6-month warranty.",
+  "images": [
+    {
+      "url": "https://example.com/images/iphone15.jpg",
+      "isPrimary": true
+    },
+    {
+      "url": "https://example.com/images/iphone15-back.jpg",
+      "isPrimary": false
+    }
+  ],
+  "specifications": {
+    "storage": "256GB",
+    "color": "Natural Titanium",
+    "condition": "Like new"
+  },
+  "status": "RUNNING",
+  "startPriceAmount": 10000000,
+  "bidStepAmount": 500000,
+  "currentPriceAmount": 12500000,
+  "bidCount": 5,
+  "leadingBidderDisplayName": "T*** B",
+  "scheduledStartAt": "2026-10-24T08:00:00+07:00",
+  "originalEndAt": "2026-10-26T08:00:00+07:00",
+  "scheduledEndAt": "2026-10-26T08:00:00+07:00",
+  "startedAt": "2026-10-24T08:00:00+07:00",
+  "endedAt": null,
+  "extensionCount": 0,
+  "maxExtensionCount": 10,
+  "antiSnipingExtensionMinutes": 5,
+  "minReputationToBid": 40,
+  "recreatedFromAuctionId": null,
+  "createdAt": "2026-10-22T10:00:00+07:00"
+}

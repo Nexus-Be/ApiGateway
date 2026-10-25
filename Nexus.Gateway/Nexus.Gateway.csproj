@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <Protobuf Include="Contracts/shop.proto" GrpcServices="Both" />
+    <Protobuf Include="Contracts/auction.proto" GrpcServices="Client" />
     <Content Update="Mocks/**/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Update="Seeds/**/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
