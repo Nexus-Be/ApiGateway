@@ -13,12 +13,13 @@ using Nexus.Gateway.Security;
 using ShoppingCart.Contracts.V1;
 
 /// <summary>
-/// Auction HTTP API (apicontract_Auction.xlsx, AUC-01 đến AUC-19).
+/// Auction HTTP API — the gateway-side slice of the auction flow contract (F3, AUC-01 through AUC-19).
 /// </summary>
 /// <remarks>
 /// Response thành công bọc trong <c>{ success, statusCode, message, data, traceId, timestamp }</c>; danh sách có thêm <c>data.pagination</c>. Lỗi trả <c>errorCode</c> + <c>detail</c>.
 /// Trạng thái phiên (AuctionStatus): DRAFT, SCHEDULED, RUNNING, ENDED, SETTLED, FAILED, CANCELLED.
 /// Thời gian dạng ISO 8601 (UTC). Tiền là số (VND). Mock đọc Seeds/auction/*.json; Real gọi gRPC AuctionService.
+/// <para>Phạm vi: 16 route REST tương ứng AUC-01..AUC-19. Ba mục còn lại của F3 nằm ngoài phạm vi gateway: AUC-20 là gRPC <c>Auction.CheckPaymentDeadline</c>, AUC-34/AUC-35 là route <c>/internal/v1/auctions/*</c> chỉ dùng cho gọi nội bộ service-to-service.</para>
 /// </remarks>
 [ApiController]
 [Route("api/v1")]

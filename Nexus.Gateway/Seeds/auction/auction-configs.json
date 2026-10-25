@@ -8,7 +8,7 @@
         "minReputationToBid": 40,
         "minReputationToSell": 50
       },
-      "description": "Chính sách tham gia và chống bắn tỉa mặc định toàn sàn",
+      "description": "Marketplace default bidding and anti-sniping policy",
       "version": 1,
       "updatedBy": null,
       "updatedAt": "2026-10-20T08:00:00+07:00"

@@ -1,5 +1,5 @@
 # 02 — BẢN ĐẶC TẢ CONTROLLERS & ĐỊNH TUYẾN (CONTROLLERS & ROUTING SPEC)
-> **Trạng thái triển khai (2026-10-24):** ⚠️ Một phần — 15/15 file controller tồn tại nhưng chỉ 4/15 controller có action (16 action: 5 `GET`, 6 `POST`, 5 `PUT`); 11 controller stub 10 dòng, 0 action.
+> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 15/15 file controller tồn tại, **5/15 controller có action (32 action)**; 10 controller stub 0 action.
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
 > **Cập nhật lần cuối:** 2026-10-24.
 Toàn bộ các API được quản lý bởi 15 file controller `[ApiController] ControllerBase` trong `Nexus.Gateway/Controllers/` (tổng 555 dòng), phân bổ phẳng theo từng nghiệp vụ/tài nguyên với tiền tố chuẩn hóa:
@@ -19,14 +19,14 @@ $$\mathbf{/api/v1/\{resource\}/...}$$
 | 8 | `ProductsController` | `/api/v1/catalog/products` | 0 | ❌ CHƯA CÓ | `Controllers/ProductsController.cs` (10 dòng, TODO) |
 | 9 | `CategoriesController` | `/api/v1/catalog/categories` | 0 | ❌ CHƯA CÓ | `Controllers/CategoriesController.cs` (10 dòng, TODO) |
 | 10 | `InventoryController` | `/api/v1/catalog/inventory` | 0 | ❌ CHƯA CÓ | `Controllers/InventoryController.cs` (10 dòng, TODO) |
-| 11 | `AuctionController` | `/api/v1/auction` | 0 | ❌ CHƯA CÓ | `Controllers/AuctionController.cs` (10 dòng, TODO) |
+| 11 | `AuctionController` | `/api/v1` | 16 | ✅ CÓ | `Controllers/AuctionController.cs` (591 dòng; `Seeds/auction/` 16 file; `Contracts/auction.proto`) |
 | 12 | `FulfillmentController` | `/api/v1/fulfillment` | 0 | ❌ CHƯA CÓ | `Controllers/FulfillmentController.cs` (10 dòng, TODO) |
 | 13 | `NotificationController` | `/api/v1/notification` | 0 | ❌ CHƯA CÓ | `Controllers/NotificationController.cs` (10 dòng, TODO) |
 | 14 | `LogController` | `/api/v1/log` | 0 | ❌ CHƯA CÓ | `Controllers/LogController.cs` (10 dòng, TODO) |
 | 15 | `WalletController` | `/api/v1/wallet` | 0 | ❌ CHƯA CÓ | `Controllers/WalletController.cs` (10 dòng, TODO) |
 Ghi chú: các route prefix ở cột 3 là giá trị **thật** trong `[Route(...)]`, khác với các alias từng được tài liệu cũ mô tả (`/api/v1/cart`, `/api/v1/orders`, `/api/v1/auctions`, `/api/v1/notifications`...) — các alias đó chưa từng được khai báo trong code.
 ---
-## 2. CHI TIẾT 4 CONTROLLER ĐÃ CÓ ACTION
+## 2. CHI TIẾT 5 CONTROLLER ĐÃ CÓ ACTION
 ### 1. `AuthController` (`Controllers/AuthController.cs`)
 - Route Prefix: `/api/v1/auth` | Service: `users`
 - Attributes: `[ApiController]`, `[BackendTag("users")]`, `[EnableRateLimiting("api")]`
@@ -61,7 +61,37 @@ Ghi chú: các route prefix ở cột 3 là giá trị **thật** trong `[Route(
   - `PUT /gateway/prober/bulk` $\rightarrow$ Bật/tắt hàng loạt prober daemons (`BulkProberToggleDto`).
   - `POST /gateway/prober/{service}/check` $\rightarrow$ **Kiểm tra sức khỏe thủ công tức thì** — probe ngay 1 lần và trả về latency/status code.
 ---
-## 3. ĐẶC TẢ MỤC TIÊU CHO 11 CONTROLLER STUB (CHƯA TRIỂN KHAI)
+### 11. `AuctionController` (`Controllers/AuctionController.cs`)
+- Route Prefix: `/api/v1` (số thứ tự theo bảng §1) | Service: `auction` | Contract: F3, AUC-01..AUC-19
+- 16 action, mỗi action một dòng `[HttpGet]/[HttpPost]` + gọi `_dispatcher.DispatchAsync/DispatchPagedAsync`, không phân nhánh Mock/Real:
+
+| # | Method + Route | Operation (seed) | Quyền |
+|:---|:---|:---|:---|
+| AUC-01 | `GET /auctions` | `auctions` (paged) | anonymous |
+| AUC-02 | `GET /auctions/{auctionId}` | `auction` | anonymous |
+| AUC-03 | `GET /auctions/{auctionId}/bids` | `auction-bids` (paged) | anonymous |
+| AUC-07 | `POST /auctions/{auctionId}/bids` | `auction-bid-place` | `Authenticated` + `Idempotency-Key` + `If-Match` |
+| AUC-08 | `GET /me/bids` | `me-bids` (paged) | `Authenticated` |
+| AUC-09 | `GET /auctions/{auctionId}/result` | `auction-result` | `Authenticated` |
+| AUC-10 | `POST /auctions` | `auction-create` (201) | `Seller` |
+| AUC-11 | `PUT /auctions/{auctionId}` | `auction-update` | `Seller` |
+| AUC-12 | `POST /auctions/{auctionId}/cancel` | `auction-cancel` | `Seller` |
+| AUC-13 | `POST /auctions/{auctionId}/recreate` | `auction-recreate` (201) | `Seller` |
+| AUC-14 | `GET /seller/auctions` | `seller-auctions` (paged) | `Seller` |
+| AUC-15 | `POST /admin/auctions/{auctionId}/force-cancel` | `auction-force-cancel` | `Admin` |
+| AUC-16 | `GET /admin/auction-configs` | `auction-configs` | `Admin` |
+| AUC-17 | `PUT /admin/auction-configs/{key}` | `auction-config-update` | `Admin` |
+| AUC-18 | `GET /auctions/{auctionId}/status-history` | `auction-status-history` | `Staff` |
+| AUC-19 | `GET /admin/auctions/{auctionId}/saga` | `auction-saga` | `Staff` |
+
+- Ngoài phạm vi gateway: AUC-20 (`gRPC Auction.CheckPaymentDeadline`), AUC-34/AUC-35 (`/internal/v1/auctions/*` — gọi nội bộ service-to-service).
+- Validate: `Common/AuctionValidation.cs` (`EnsureAuctionId`, `EnsureStatus`, `EnsureBidHeaders`, `EnsureBidAmount`, `EnsureCreate`, `EnsureUpdate`, `EnsureOptionalReason`, `EnsureRequiredReason`, `EnsureConfig`).
+- Test: `Nexus.Gateway.Tests/AuctionMockTests.cs` (happy path 16 route + validate + authz) và `AuctionSeedConformanceTests.cs` (khoá shape 16 seed theo proto).
+- Giới hạn mock: xem `specs/04` §5.1 — mock không trả được 404/409/422.
+
+---
+
+## 3. ĐẶC TẢ MỤC TIÊU CHO 10 CONTROLLER STUB (CHƯA TRIỂN KHAI)
 Các route dưới đây là **đặc tả mục tiêu, chưa triển khai** — không controller nào trong danh sách này có action, và hầu hết cũng chưa có RPC tương ứng trong `Nexus.Gateway/Contracts/shop.proto` (chỉ có `UsersApi`).
 ### 5. `AdminUsersController` (`Controllers/AdminUsersController.cs`)
 - Route Prefix: `/api/v1/admin/users` | Service: `users`
@@ -81,9 +111,7 @@ Các route dưới đây là **đặc tả mục tiêu, chưa triển khai** —
 ### 10. `InventoryController` (`Controllers/InventoryController.cs`)
 - Route Prefix: `/api/v1/catalog/inventory` | Service: `catalog`
 - Đặc tả mục tiêu: `GET /seller/inventory`, `PUT /seller/inventory/{productId}` [seller].
-### 11. `AuctionController` (`Controllers/AuctionController.cs`)
-- Route Prefix: `/api/v1/auction` | Service: `auction`
-- Đặc tả mục tiêu: `GET /auction`, `GET /auction/{id}`, `POST /auction` [seller], `POST /auction/{id}/bids` [authenticated], `GET /auction/{id}/bids`.
+
 ### 12. `FulfillmentController` (`Controllers/FulfillmentController.cs`)
 - Route Prefix: `/api/v1/fulfillment` | Service: `fulfillment`
 - Đặc tả mục tiêu: `GET /inventory/{skuId}`, `POST /shipping/quote`, `GET /shipments/{trackingCode}`.

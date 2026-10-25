@@ -15,7 +15,7 @@
     {
       "auctionId": "a1000000-0000-0000-0000-000000000004",
       "productId": "b1000000-0000-0000-0000-000000000004",
-      "productName": "Bàn phím cơ Keychron Q1",
+      "productName": "Keychron Q1 Mechanical Keyboard",
       "primaryImageUrl": "https://example.com/images/keychron.jpg",
       "auctionStatus": "RUNNING",
       "myHighestBidAmount": 2300000,
@@ -27,7 +27,7 @@
     {
       "auctionId": "a1000000-0000-0000-0000-000000000003",
       "productId": "b1000000-0000-0000-0000-000000000003",
-      "productName": "Đồng hồ Casio G-Shock",
+      "productName": "Casio G-Shock Watch",
       "primaryImageUrl": "https://example.com/images/gshock.jpg",
       "auctionStatus": "ENDED",
       "myHighestBidAmount": 1800000,

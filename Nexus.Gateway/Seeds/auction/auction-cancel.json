@@ -2,6 +2,6 @@
   "auctionId": "a1000000-0000-0000-0000-000000000002",
   "fromStatus": "SCHEDULED",
   "status": "CANCELLED",
-  "reason": "Người bán đổi ý, không bán nữa",
+  "reason": "Seller changed their mind and withdrew the listing",
   "cancelledAt": "2026-10-24T15:10:00+07:00"
 }
