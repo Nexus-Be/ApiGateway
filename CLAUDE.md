@@ -111,5 +111,5 @@ Một task tại ApiGateway chỉ hoàn tất khi:
 | RabbitMQ / MassTransit | 0 package, 0 publish thật (chỉ log) | ❌ CHƯA CÓ | `HealthProber/SagaRollbackPublisher.cs` |
 | Docker auto-recovery | gọi CLI `docker restart` nhưng image runtime không có docker CLI | ⚠️ MỘT PHẦN | `HealthProber/DockerContainerRecoveryService.cs:26-55`, `Dockerfile` |
 | Batch log sink | POST `/api/v1/log/batch` — endpoint 404, response bị bỏ qua, `catch {}` rỗng | ⚠️ MỘT PHẦN | `Logging/GatewayBatchLogSink.cs:56-63` |
-| Test | 24 file; `dotnet test ApiGateway.sln -c Release` = **310+ passed** (2026-10-25) | ✅ CÓ | `Nexus.Gateway.Tests/` |
+| Test | 24 file; `dotnet test ApiGateway.sln -c Release` = **313 passed** (2026-10-25) | ✅ CÓ | `Nexus.Gateway.Tests/` |
 | Bí mật JWT | khóa hardcode **chỉ** trong `appsettings*.json` (bị `.gitignore:81` ignore, chưa commit); bản mẫu dùng placeholder | ⚠️ MỘT PHẦN (rủi ro local) | `.gitignore:81`; `git check-ignore` |
