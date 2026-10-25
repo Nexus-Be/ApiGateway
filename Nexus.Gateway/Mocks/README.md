@@ -1,5 +1,9 @@
 # Hướng Dẫn Sử Dụng & Định Nghĩa Mock API Tại Nexus Gateway
 
+> **Trạng thái triển khai (2026-10-24):** ⚠️ Một phần — dữ liệu seed tĩnh phục vụ Mock; không phải nguồn sự thật của nghiệp vụ.
+> **Nguồn sự thật:** code trong repo này (`Seeds/` + `MockDataMapper`).
+> **Cập nhật lần cuối:** 2026-10-24.
+
 > ⚠️ **Lưu Ý Kiến Trúc Quan Trọng**:
 > Thư mục `Mocks/` này chứa các định nghĩa Declarative Mock cấp thấp được nạp bởi `MockEngineMiddleware`. 
 > Quy chuẩn phát triển API chuẩn **DUY NHẤT** của hệ thống Nexus Gateway là **Khai báo Endpoint trong Controller C# + Tạo dữ liệu Seed Fixture trong thư mục `Seeds/`** (xem chi tiết tại [MOCK_GUIDE.md](../../MOCK_GUIDE.md)).

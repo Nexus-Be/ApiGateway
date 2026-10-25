@@ -1,5 +1,9 @@
 # Thư Mục Mock Seed Data Cho Tính Năng Orders (Commerce)
 
+> **Trạng thái triển khai (2026-10-24):** ⚠️ Một phần — dữ liệu seed tĩnh phục vụ Mock; không phải nguồn sự thật của nghiệp vụ.
+> **Nguồn sự thật:** code trong repo này (`Seeds/` + `MockDataMapper`).
+> **Cập nhật lần cuối:** 2026-10-24.
+
 Thư mục này dành cho Team triển khai dữ liệu mock cho các API đơn hàng (`GET /api/v1/commerce/orders`, `POST /api/v1/commerce/orders`, v.v.).
 
 ### Cách thêm file mock JSON:

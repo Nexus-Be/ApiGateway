@@ -1,165 +1,164 @@
 # CẨM NANG CẤU HÌNH & BIẾN MÔI TRƯỜNG NEXUS API GATEWAY (CONFIG_REFERENCE.md)
-
-Tài liệu này giải thích chi tiết ý nghĩa của **từng file cấu hình**, **từng biến môi trường**, **nhiệm vụ của chúng** và **thứ tự ưu tiên khi nạp cấu hình (Configuration Precedence)** trong Nexus API Gateway (.NET 8).
-
+> **Trạng thái triển khai (2026-10-24):** ⚠️ Một phần — cấu hình, precedence, header override và rate limit đều có thật trong code; nhưng chỉ **1/8** service có gRPC client (`users`), nên chuyển service khác sang `Mode: "Real"` sẽ **không** gọi được backend. Các file `appsettings.json` / `appsettings.Development.json` **không được commit** (bị `.gitignore:81` chặn).
+> **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
+> **Cập nhật lần cuối:** 2026-10-24.
+Tài liệu này giải thích chi tiết ý nghĩa của **từng file cấu hình**, **từng biến môi trường**, **nhiệm vụ của chúng** và **thứ tự ưu tiên khi nạp cấu hình (Configuration Precedence)** trong Nexus API Gateway (.NET 8). Mọi khoá dưới đây được đối chiếu với `Nexus.Gateway/GatewayOptions.cs` và `Nexus.Gateway/Extensions/ConfigurationExtensions.cs`.
 ---
-
 ## 1. BẢN ĐỒ CÁC FILE CẤU HÌNH TRONG DỰ ÁN
-
 | File | Vị trí | Mục đích sử dụng | Được commit lên Git? |
 |:---|:---|:---|:---:|
-| `appsettings.json` | `Nexus.Gateway/` | Cấu hình cơ sở (Base/Production). Chứa các giá trị mặc định cho toàn hệ thống với toàn bộ 8 services ở mode `Real`. | ✅ Có |
-| `appsettings.Development.json` | `Nexus.Gateway/` | Cấu hình cho môi trường phát triển cục bộ (Local Development). Ghi đè các service sang chế độ `Mock`. | ✅ Có |
-| `appsettings.example.json` | `Nexus.Gateway/` | File mẫu tham khảo cấu hình cơ sở cho team. | ✅ Có |
-| `gateway.runtime.json` | `Nexus.Gateway/` | File runtime cấu hình động (hỗ trợ **Hot-Reload tức thì** khi bật/tắt Mock hoặc đổi mode qua API/file). | ✅ Có |
+| `appsettings.json` | `Nexus.Gateway/` | Cấu hình cơ sở (Base/Production). Toàn bộ 8 services ở `Mode: "Real"`, `AuthMode: "Enforce"`, các cờ bypass đều `false`. | ❌ **Không** — bị `.gitignore:81` (`appsettings*.json`) chặn |
+| `appsettings.Development.json` | `Nexus.Gateway/` | Cấu hình cho môi trường phát triển cục bộ. Ghi đè 8 services sang `Mode: "Mock"`, bật các cờ bypass, JWT hạn 120 phút. | ❌ **Không** — cùng lý do trên |
+| `appsettings.example.json` | `Nexus.Gateway/` | File mẫu cấu hình cơ sở cho team (JWT dùng placeholder, **không** chứa khoá thật). | ✅ Có |
+| `appsettings.Development.example.json` | `Nexus.Gateway/` | File mẫu cấu hình Development. | ✅ Có |
+| `gateway.runtime.json` | `Nexus.Gateway/` | File runtime cấu hình động, nạp **sau** appsettings và **có** `reloadOnChange: true` (sửa file là áp dụng ngay, không cần restart). | ✅ Có |
 | `gateway.runtime.example.json`| `Nexus.Gateway/` | File mẫu runtime cấu hình động. | ✅ Có |
-| `launchSettings.json` | `Nexus.Gateway/Properties/` | Cấu hình cổng chạy khi khởi động local qua Visual Studio, Rider hoặc `dotnet run`. | ✅ Có |
-| `.env.example` | `ApiGateway/` | File mẫu danh sách các biến môi trường (Environment Variables) cho server/Docker. | ✅ Có |
-| `.env` | `ApiGateway/` | File chứa biến môi trường thực tế và bí mật (Secret Key). | ❌ Không (chặn trong `.gitignore`) |
-
+| `launchSettings.json` | `Nexus.Gateway/Properties/` | Cấu hình cổng chạy khi khởi động local qua Visual Studio, Rider hoặc `dotnet run` (`http://localhost:8000`, env `Development`). | ✅ Có |
+| `.env.example` | `ApiGateway/` | File mẫu danh sách biến môi trường cho server/Docker (`GATEWAY_PORT=8000`, `REDIS_CONNECTION_STRING=redis:6379`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317`, 8 biến `*_SERVICE_URL`). | ✅ Có |
+| `.env` | `ApiGateway/` | File biến môi trường thực tế khi chạy Docker/CI. | ❌ Không (chặn trong `.gitignore`) |
+> ⚠️ **Đính chính so với bản cũ**: bảng trước đây ghi `appsettings.json` và `appsettings.Development.json` là "✅ Có" (được commit) — **sai**. `.gitignore:81` khai báo `appsettings*.json` và chỉ whitelist `!appsettings*.example.json` / `!appsettings.example.json` / `!appsettings.*.example.json`, nên hai file thật **chưa bao giờ** vào git (`git ls-files` không liệt kê chúng). Hệ quả: **không có bí mật nào bị commit** qua đường này, nhưng cũng **không ai clone được cấu hình chạy được** nếu chỉ clone repo — phải copy từ `*.example.json`.
 ---
-
 ## 2. THỨ TỰ ƯU TIÊN NẠP CẤU HÌNH (CONFIGURATION PRECEDENCE)
-
-Cấu hình .NET được nạp từ `appsettings.json` → `appsettings.{Environment}.json` → `gateway.runtime.json` → biến môi trường (nguồn sau ghi đè nguồn trước). **Request headers không phải configuration provider**: chỉ ở Development và khi bật `AllowClientModeOverrideInDevelopment`, header có thể ghi đè *mode hiệu dụng của request hiện tại*. Các lệnh chuyển mode qua admin API còn tạo memory override, có ưu tiên hơn mode cấu hình khi không có header hợp lệ.
-
+Cấu hình .NET được nạp theo đúng thứ tự sau (`Extensions/ConfigurationExtensions.cs:12-16`), **nguồn sau ghi đè nguồn trước**:
+```csharp
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddJsonFile("gateway.runtime.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+```
+1. `appsettings.json` (base)
+2. `appsettings.{Environment}.json` (Development/Production)
+3. **`gateway.runtime.json`** ← nạp **sau** appsettings ⇒ mọi giá trị ở file này **thắng** appsettings
+4. Biến môi trường (`Gateway__Services__users__Mode=Mock`, `Jwt__Signature=...`, …) ← **thắng tất cả**
+Sau khi nạp, options được validate fail-fast lúc khởi động (`:19-23`):
+```csharp
+.Validate(x => x.IsValid(isDevelopment), "Invalid gateway options; Mock and plaintext upstreams are Development-only.")
+.ValidateOnStart();
+```
+**Request headers không phải configuration provider**: chỉ ở Development và khi bật `AllowClientModeOverrideInDevelopment`, header có thể ghi đè *mode hiệu dụng của request hiện tại*. Các lệnh chuyển mode qua admin API còn tạo memory override, có ưu tiên hơn mode cấu hình khi không có header hợp lệ.
 Hai loại mode độc lập:
-- **Service mode `Mock` / `Real`**: header `X-Service-Mode-{service}` → `X-Service-Modes` → `X-Mock-Mode` → `X-Gateway-Mode-Override` → memory override → `Gateway:Services:<service>:Mode`.
-- **Auth mode `Standard` / `Bypass`**: header `X-Gateway-Auth` → `X-Gateway-Mode` → memory override → `Gateway:AuthMode`/`Gateway:GatewayMode`. `Bypass` chỉ có hiệu lực trong Development đối với endpoint được phép và service ở Mock; control-plane không được bypass.
-
+- **Service mode `Mock` / `Real`**: header `X-Service-Mode-{service}` → `X-Service-Modes` → `X-Mock-Mode` → `X-Gateway-Mode-Override` → memory override → `Gateway:Services:<service>:Mode` (`Services/GatewayRuntimeManager.cs:110,124`).
+- **Auth mode `Enforce` / `Standard` / `Bypass`**: header `X-Gateway-Auth` → `X-Gateway-Mode` → memory override → `Gateway:AuthMode`/`Gateway:GatewayMode` (`Services/GatewayRuntimeManager.cs:38`). `Bypass` chỉ có hiệu lực trong Development đối với endpoint được phép và service ở Mock; control-plane không được bypass.
 Dùng admin API để xem/đổi mode chung, dùng header cho một request test trong Development. Không lấy service mode để suy ra auth mode hoặc ngược lại.
-
 ---
-
 ## 3. CHI TIẾT TỪNG PHẦN CẤU HÌNH & BIẾN MÔI TRƯỜNG
-
 ### A. Cấu Hình Xác Thực JWT (`Jwt`)
 Đặt tại: `appsettings.json`, `appsettings.Development.json`, hoặc qua biến môi trường `Jwt__*`.
-
-| Khóa cấu hình (JSON) | Biến môi trường tương ứng | Kiểu | Mặc định | Ý nghĩa & Tác dụng |
-|:---|:---|:---:|:---:|:---|
-| `Jwt:Issuer` | `Jwt__Issuer` | `string` | `http://localhost:8001` | **Nguồn phát hành token**. URL của Identity/UserService cấp phát token. Gateway kiểm tra claim `iss`. |
-| `Jwt:Authority` | `Jwt__Authority` | `string` | `http://localhost:8001` | **Địa chỉ máy chủ OIDC**. Tương đương với Issuer khi chạy cục bộ. |
-| `Jwt:Audience` | `Jwt__Audience` | `string` | `shoppingcart-api` | **Đối tượng nhận token**. Mã định danh API mà token này hướng tới. Gateway kiểm tra claim `aud`. |
-| `Jwt:Signature` | `Jwt__Signature` | `string` | *(Bắt buộc)* | **Khóa bí mật ký đối xứng (Signing Key)**. Chuỗi tối thiểu 32 ký tự (256 bits) cho thuật toán HMAC-SHA256 để xác thực chữ ký token. Hỗ trợ alias: `Jwt:SigningKey`, `Jwt:Key`. |
-| `Jwt:ExpirationInMinutes` | `Jwt__ExpirationInMinutes` | `int` | `60` (Prod) / `120` (Dev) | **Thời hạn sống của token** tính bằng phút. Hỗ trợ alias: `Jwt:Expiration`. |
-| `Jwt:RequireHttpsMetadata` | `Jwt__RequireHttpsMetadata` | `bool` | `false` (Dev) / `true` (Prod) | Bắt buộc HTTPS khi kiểm tra metadata của nhà phát hành. |
-
+| Khóa cấu hình (JSON) | Biến môi trường tương ứng | Kiểu | Mặc định | Ý nghĩa & Tác dụng | Trạng thái | Bằng chứng |
+|:---|:---|:---:|:---:|:---|:---|:---|
+| `Jwt:Issuer` | `Jwt__Issuer` | `string` | `http://localhost:8001` | **Nguồn phát hành token**. Gateway kiểm tra claim `iss`. | ✅ CÓ | `appsettings.json`, `Security/SecurityConfiguration.cs` |
+| `Jwt:Authority` | `Jwt__Authority` | `string` | `http://localhost:8001` | **Địa chỉ máy chủ OIDC**. Tương đương Issuer khi chạy cục bộ. | ✅ CÓ | `Security/SecurityConfiguration.cs` |
+| `Jwt:Audience` | `Jwt__Audience` | `string` | `shoppingcart-api` | **Đối tượng nhận token**. Gateway kiểm tra claim `aud`. | ✅ CÓ | `Security/SecurityConfiguration.cs` |
+| `Jwt:Signature` | `Jwt__Signature` | `string` | *(Bắt buộc)* | **Khóa bí mật ký đối xứng (Signing Key)**, tối thiểu 32 ký tự (256 bits) cho HMAC-SHA256. Hỗ trợ alias `Jwt:SigningKey`, `Jwt:Key`. | ⚠️ MỘT PHẦN | `appsettings.json:26` đang chứa **khoá thật dạng plaintext**; file này gitignored nên khoá **không** bị commit, nhưng vẫn là plaintext trên máy dev. `*.example.json` dùng placeholder `<REPLACE_WITH_JWT_SIGNING_KEY_MIN_32_CHARS>`. Production phải cấp qua `Jwt__Signature` |
+| `Jwt:ExpirationInMinutes` | `Jwt__ExpirationInMinutes` | `int` | `60` (Prod) / `120` (Dev) | **Thời hạn sống của token** tính bằng phút. Hỗ trợ alias `Jwt:Expiration`. | ✅ CÓ | `appsettings.json`, `appsettings.Development.json` |
+| `Jwt:RequireHttpsMetadata` | `Jwt__RequireHttpsMetadata` | `bool` | `false` (Dev) / `true` (Prod) | Bắt buộc HTTPS khi kiểm tra metadata của nhà phát hành. | ✅ CÓ | `appsettings.json` |
+> ⚠️ Không service nào phát JWT: `rpc Login` của `UsersApi` **chưa implement** ở User service (GW-03) ⇒ luồng lấy token end-to-end chưa chạy.
 ---
-
 ### B. Cấu Hình Hoạt Động Của Gateway (`Gateway`)
-Đặt tại: `appsettings.json`, `appsettings.Development.json`, `gateway.runtime.json`, hoặc biến môi trường `Gateway__*`.
-
-| Khóa cấu hình (JSON) | Biến môi trường tương ứng | Giá trị mẫu | Ý nghĩa & Tác dụng |
-|:---|:---|:---:|:---|
-| `Gateway:AuthMode` | `Gateway__AuthMode` | `"Standard"` / `"Enforce"` hoặc `"Bypass"` | **Chế độ kiểm tra xác thực của Gateway**:<br>- `"Standard"` hoặc `"Enforce"`: Yêu cầu JWT và kiểm tra quyền RBAC nghiêm ngặt (chặn 401/403).<br>- `"Bypass"`: (Development-only) Tự động nới lỏng auth để Frontend test độc lập với Mock API. |
-| `Gateway:PermitLimit` | `Gateway__PermitLimit` | `100` | Số lượng request tối đa mặc định được phép trong một cửa sổ thời gian (Redis fixed-window rate limit fallback). |
-| `Gateway:WindowSeconds` | `Gateway__WindowSeconds` | `60` | Thời gian mặc định của cửa sổ rate limit (tính bằng giây). |
-| `Gateway:RateLimits:<policy>:PermitLimit` | `Gateway__RateLimits__<policy>__PermitLimit` | `5` (auth-strict), `10` (auth-login), `120` (user-frequent) | Giới hạn request cho từng policy cụ thể (`auth-strict`, `auth-login`, `user-frequent`, `default`). |
-| `Gateway:RateLimits:<policy>:WindowSeconds` | `Gateway__RateLimits__<policy>__WindowSeconds` | `60` | Độ dài cửa sổ thời gian theo giây cho từng policy cụ thể. |
-| `Gateway:ConcurrencyLimit` | `Gateway__ConcurrencyLimit` | `100` | Số lượng request đồng thời tối đa Gateway tiếp nhận cùng một thời điểm. |
-| `Gateway:RedisConnectionString` | `Gateway__RedisConnectionString` | `"localhost:6379"` | Địa chỉ kết nối Redis phục vụ tính năng Distributed Rate Limiting. |
-| `Gateway:RedisKeyPrefix` | `Gateway__RedisKeyPrefix` | `"nexus:gateway"` | Tiền tố cho các khóa (keys) lưu trong Redis để tránh xung đột với ứng dụng khác. |
-| `Gateway:RedisFailOpenInDevelopment` | `Gateway__RedisFailOpenInDevelopment` | `true` | Nếu bật `true` ở Dev: Nếu Redis bị sập hoặc chưa bật, Gateway tự động cho request đi qua và log cảnh báo, không làm gián đoạn việc code. |
-| `Gateway:CorsOrigins` | `Gateway__CorsOrigins__0`, `__1` | `["http://localhost:3000", ...]` | Danh sách URL Frontend được phép gọi API (tránh lỗi CORS Policy của trình duyệt). |
-| `Gateway:CorsMethods` | `Gateway__CorsMethods` | `["GET", "POST", ...]` | Các phương thức HTTP được phép qua CORS. |
-| `Gateway:CorsHeaders` | `Gateway__CorsHeaders` | `["*"]` | Các HTTP Header được phép gửi lên Gateway. |
-| `Gateway:CorsAllowCredentials` | `Gateway__CorsAllowCredentials` | `true` | Cho phép gửi Cookie/Credentials qua CORS. |
-| `Gateway:AllowClientModeOverrideInDevelopment` | `Gateway__AllowClientModeOverrideInDevelopment` | `true` | Cho phép Client tự đổi mode Mock/Real qua Header (ví dụ: `X-Service-Mode-catalog: Real`). |
-| `Gateway:AllowAnonymousMockAuthInDevelopment` | `Gateway__AllowAnonymousMockAuthInDevelopment` | `true` | Cho phép gọi API không cần token khi Gateway ở chế độ Bypass. |
-| `Gateway:AllowMockTokenAuth` | `Gateway__AllowMockTokenAuth` | `true` | Cho phép nhập các từ khóa `admin`, `seller`, `staff`, `buyer` trên Swagger thay cho token JWT thật khi test Mock. |
-| `Gateway:DefaultMockUserId` | `Gateway__DefaultMockUserId` | `"11111111-1111-1111-1111-000000000004"` | Mã UUID user mặc định gán cho các request mock khi không có token trong mode Bypass. |
-| `Gateway:DefaultMockRole` | `Gateway__DefaultMockRole` | `"buyer"` | Quyền mặc định gán cho request mock trong mode Bypass. |
-
+Đặt tại: `appsettings.json`, `appsettings.Development.json`, `gateway.runtime.json`, hoặc biến môi trường `Gateway__*`. Tất cả khoá dưới đây đều là property thật của `GatewayOptions` (`Nexus.Gateway/GatewayOptions.cs:13-40`).
+| Khóa cấu hình (JSON) | Biến môi trường tương ứng | Giá trị mẫu | Ý nghĩa & Tác dụng | Trạng thái |
+|:---|:---|:---:|:---|:---|
+| `Gateway:AuthMode` | `Gateway__AuthMode` | `"Enforce"` (đang dùng) / `"Standard"` / `"Bypass"` | **Chế độ kiểm tra xác thực**:<br>- `"Enforce"` hoặc `"Standard"`: yêu cầu JWT + RBAC nghiêm ngặt (401/403).<br>- `"Bypass"` / `"Mock"` / `"MockBypass"`: **Development-only**, nới lỏng auth cho Mock API.<br>`Gateway:GatewayMode` là **alias legacy**, cấu hình mới phải dùng `AuthMode` (`:38,42,101,110-115`). | ✅ CÓ |
+| `Gateway:PermitLimit` | `Gateway__PermitLimit` | `100` | Số request tối đa mặc định trong một cửa sổ (fallback khi policy không khai báo). | ✅ CÓ |
+| `Gateway:WindowSeconds` | `Gateway__WindowSeconds` | `60` | Độ dài cửa sổ rate limit mặc định (giây). | ✅ CÓ |
+| `Gateway:RateLimits:<policy>:PermitLimit` | `Gateway__RateLimits__<policy>__PermitLimit` | `5` (`auth-strict`), `10` (`auth-login`), `120` (`user-frequent`) | Giới hạn request theo từng policy. Policy thật đang dùng: `auth-strict`, `auth-login`, `user-frequent`, `api`, `default`. | ✅ CÓ |
+| `Gateway:RateLimits:<policy>:WindowSeconds` | `Gateway__RateLimits__<policy>__WindowSeconds` | `60` | Độ dài cửa sổ theo giây cho từng policy. | ✅ CÓ |
+| `Gateway:ConcurrencyLimit` | `Gateway__ConcurrencyLimit` | `100` | Số request đồng thời tối đa Gateway tiếp nhận. | ✅ CÓ |
+| `Gateway:RedisConnectionString` | `Gateway__RedisConnectionString` | `"localhost:6379"` | Địa chỉ Redis cho Distributed Rate Limiting. Compose override thành `redis:6379`. | ✅ CÓ |
+| `Gateway:RedisKeyPrefix` | `Gateway__RedisKeyPrefix` | `"nexus:gateway"` | Tiền tố khoá Redis. | ✅ CÓ |
+| `Gateway:RedisFailOpenInDevelopment` | `Gateway__RedisFailOpenInDevelopment` | `true` (Dev) | Nếu Redis sập và cờ bật: cho request đi qua + log cảnh báo thay vì chặn. Prod mặc định `false`. | ✅ CÓ |
+| `Gateway:CorsOrigins` | `Gateway__CorsOrigins__0`, `__1` | `["http://localhost:3000", ...]` | Danh sách URL Frontend được phép gọi API. | ✅ CÓ |
+| `Gateway:CorsMethods` | `Gateway__CorsMethods` | `["GET","POST",...]` | Phương thức HTTP được phép qua CORS. | ✅ CÓ |
+| `Gateway:CorsHeaders` | `Gateway__CorsHeaders` | `["*"]` | Header được phép gửi lên Gateway. | ✅ CÓ |
+| `Gateway:CorsAllowCredentials` | `Gateway__CorsAllowCredentials` | `true` | Cho phép gửi Cookie/Credentials qua CORS. | ✅ CÓ |
+| `Gateway:AllowClientModeOverrideInDevelopment` | `Gateway__AllowClientModeOverrideInDevelopment` | `true` (runtime) | Cho phép Client tự đổi mode Mock/Real qua header (vd `X-Service-Mode-catalog: Real`). | ✅ CÓ |
+| `Gateway:AllowAnonymousMockAuthInDevelopment` | `Gateway__AllowAnonymousMockAuthInDevelopment` | `true` (runtime) / `false` (base) | Cho phép gọi API không token khi Bypass. | ✅ CÓ |
+| `Gateway:AllowMockTokenAuth` | `Gateway__AllowMockTokenAuth` | `true` (runtime) / `false` (base) | Cho phép nhập `admin`/`seller`/`staff`/`buyer` trên Swagger thay token thật khi test Mock. | ✅ CÓ |
+| `Gateway:DefaultMockUserId` | `Gateway__DefaultMockUserId` | `"11111111-1111-1111-1111-000000000004"` | UUID user gán cho request mock khi không có token ở Bypass. | ✅ CÓ |
+| `Gateway:DefaultMockRole` | `Gateway__DefaultMockRole` | `"buyer"` | Vai trò mặc định gán cho request mock. | ✅ CÓ |
 ---
-
 ### C. Cấu Hình 8 Microservices Upstream (`Gateway:Services:<name>`)
-Mỗi service được cấu hình với 5 thuộc tính:
-
-| Thuộc tính | Kiểu | Ý nghĩa | Mặc định | Ví dụ |
-|:---|:---:|:---|:---:|:---|
-| `Mode` | `string` | **`"Mock"`** (đọc file seed JSON) hoặc **`"Real"`** (gọi gRPC sang backend thật). | `"Real"` (Prod) / `"Mock"` (Dev) | `"Mock"` |
-| `Address` | `string` | Địa chỉ gRPC của service backend thật. | *(Bắt buộc)* | `"http://localhost:8001"` |
-| `TimeoutSeconds` | `int` | Thời gian tối đa chờ backend phản hồi trước khi trả về lỗi 504 Gateway Timeout. | `5` | `5` (giây) |
-| `MockDelayMs` | `int` | Giả lập độ trễ mạng khi ở chế độ Mock (tính bằng mili-giây) để test loading UI. | `0` | `500` (ms) |
-| `MockStatus` | `int` | Giả lập HTTP status code trả về khi ở Mock để test lỗi mạng. | `200` | `200` (hoặc `503`) |
-
+Mỗi service dùng `BackendOptions` (`GatewayOptions.cs:118-125`) với đúng 5 thuộc tính:
+| Thuộc tính | Kiểu | Ý nghĩa | Mặc định | Ví dụ | Trạng thái |
+|:---|:---:|:---|:---:|:---|:---|
+| `Mode` | `string` | **`"Mock"`** (đọc file seed / declarative mock) hoặc **`"Real"`** (gọi gRPC backend thật). | `"Real"` | `"Mock"` | ✅ CÓ |
+| `Address` | `string` | Địa chỉ gRPC của service backend. | *(rỗng)* | `"http://localhost:8001"` | ✅ CÓ |
+| `TimeoutSeconds` | `int` | Thời gian tối đa chờ backend (quá hạn ⇒ 504). | `5` | `5` | ✅ CÓ |
+| `MockDelayMs` | `int` | Giả lập độ trễ mạng khi Mock (ms) để test loading UI. | `0` | `500` | ✅ CÓ |
+| `MockStatus` | `int` | Giả lập HTTP status khi Mock để test lỗi mạng. | `200` | `200` / `503` | ✅ CÓ |
 #### Danh Sách 8 Microservices Đã Quy Hoạch Chuẩn:
-- **`users`**: `http://localhost:8001` (User, Auth, Profile, RBAC)
-- **`catalog`**: `http://localhost:8002` (Danh mục, Sản phẩm, Tồn kho ảo)
-- **`commerce`**: `http://localhost:8003` (Giỏ hàng, Đơn hàng, Checkout)
-- **`log`**: `http://localhost:8004` (Nhật ký hệ thống tập trung, Event Types)
-- **`auction`**: `http://localhost:8005` (Phòng đấu giá, Đặt giá bid)
-- **`fulfillment`**: `http://localhost:8006` (Kho bãi vật lý, Tính phí ship, Vận đơn)
-- **`notification`**: `http://localhost:8007` (Thông báo, Cài đặt thông báo)
-- **`wallet`**: `http://localhost:8008` (Ví điện tử, Số dư, Nạp/rút/chuyển tiền)
-
+| Service | Address (local) | Chức năng | Mode trong `gateway.runtime.json` | gRPC client ở Gateway |
+|:---|:---|:---|:---|:---|
+| **`users`** | `http://localhost:8001` | User, Auth, Profile, RBAC | `Mock` | ✅ CÓ (`UsersApiClient`) |
+| **`catalog`** | `http://localhost:8002` | Danh mục, Sản phẩm, Tồn kho ảo | `Real` | ❌ CHƯA CÓ |
+| **`commerce`** | `http://localhost:8003` | Giỏ hàng, Đơn hàng, Checkout | `Real` | ❌ CHƯA CÓ |
+| **`log`** | `http://localhost:8004` | Nhật ký hệ thống tập trung, Event Types | `Real` | ❌ CHƯA CÓ |
+| **`auction`** | `http://localhost:8005` | Phòng đấu giá, Đặt giá bid | `Mock` | ❌ CHƯA CÓ |
+| **`fulfillment`** | `http://localhost:8006` | Kho bãi vật lý, Phí ship, Vận đơn | `Real` | ❌ CHƯA CÓ |
+| **`notification`** | `http://localhost:8007` | Thông báo, Cài đặt thông báo | `Real` | ❌ CHƯA CÓ |
+| **`wallet`** | `http://localhost:8008` | Ví điện tử, Số dư, Nạp/rút/chuyển tiền | `Real` | ❌ CHƯA CÓ |
+> ⚠️ **Chỉ service `users` có typed client** (`Extensions/GrpcClientsExtension.cs` → `AddNamedGrpcClient<UsersApi.UsersApiClient>("users")`). Đặt `"catalog": { "Mode": "Real" }` hiện **không** làm request đi tới Catalog — sẽ lỗi vì không có `CatalogApi` trong `Contracts/shop.proto` và không có client đăng ký.
 ---
-
 ### D. Cấu Hình Kestrel Server & Observability
-
-| Khóa / Biến môi trường | Vị trí cấu hình | Giá trị | Ý nghĩa |
-|:---|:---|:---:|:---|
-| `MaxRequestBodySize` | `Program.cs` | `65536` (64KB) | Giới hạn kích thước gói tin gửi lên Gateway, chống làm tràn RAM server. |
-| `RequestTimeout` | `CoreServicesExtension.cs` | `65` (giây) | Tự động ngắt kết nối và trả về 504 nếu request bị treo quá 65 giây. |
-| `ASPNETCORE_ENVIRONMENT` | `.env` / `launchSettings.json` | `Development` / `Production` | Xác định môi trường chạy của Gateway. |
-| `ASPNETCORE_URLS` | `.env` / `Dockerfile` | `http://+:8000` | Cổng HTTP mà Gateway lắng nghe (Port `8000`). |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`| `.env` / Environment | `http://localhost:4317` | Địa chỉ nhận dữ liệu OpenTelemetry Traces & Metrics (Grafana Tempo / OTLP Collector). Hỗ trợ alias `Otel:Endpoint` trong appsettings. |
-
+| Khóa / Biến môi trường | Vị trí cấu hình | Giá trị | Ý nghĩa | Trạng thái | Bằng chứng |
+|:---|:---|:---:|:---|:---|:---|
+| `MaxRequestBodySize` | `Program.cs` | `65536` (64KB) | Giới hạn kích thước body, chống tràn RAM. | ✅ CÓ | `Program.cs:9` `o.Limits.MaxRequestBodySize = 64 * 1024` |
+| `RequestTimeout` | `CoreServicesExtension.cs` | `65` (giây) | Ngắt request treo quá 65s ⇒ 504. | ✅ CÓ | `Extensions/CoreServicesExtension.cs:93-97` |
+| `ASPNETCORE_ENVIRONMENT` | `.env` / `launchSettings.json` | `Development` / `Production` | Môi trường chạy. | ✅ CÓ | `launchSettings.json`, `run-dev.sh` |
+| `ASPNETCORE_URLS` | `.env` / `Dockerfile` | `http://+:8000` | Cổng HTTP Gateway lắng nghe (port **8000** — bất biến). | ✅ CÓ | `Dockerfile` (`EXPOSE 8000`, `ENV ASPNETCORE_URLS=http://+:8000`) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`| `.env` / Environment | `http://tempo:4317` (`.env.example`), `http://localhost:4317` (local) | Địa chỉ nhận OTel Traces & Metrics. Alias: `Otel:Endpoint`. **Exporter chỉ bật khi biến này có giá trị** (`Extensions/TelemetryExtension.cs:13,25`). | ⚠️ MỘT PHẦN | Tempo/Grafana **không** có trong `docker-compose.yml` của repo này (compose chỉ có service `gateway`) ⇒ phải chạy stack ngoài |
 ---
-
 ### E. Cấu Hình Giám Sát Sức Khỏe & Tự Hồi Phục (`Gateway:HealthProber`)
 Đặt tại: `appsettings.json`, `appsettings.Development.json` hoặc qua biến môi trường `Gateway__HealthProber__*`.
-
-| Khóa cấu hình (JSON) | Biến môi trường tương ứng | Kiểu | Mặc định | Ý nghĩa & Tác dụng |
-|:---|:---|:---:|:---:|:---|
-| `Gateway:HealthProber:IntervalSeconds` | `Gateway__HealthProber__IntervalSeconds` | `int` | `60` | Chu kỳ định kỳ mỗi lần Prober Daemon gửi request probe (tính bằng giây). Mặc định 1 phút. |
-| `Gateway:HealthProber:TimeoutSeconds` | `Gateway__HealthProber__TimeoutSeconds` | `int` | `30` | Thời gian tối đa chờ phản hồi HTTP /health từ backend service trước khi tính là probe timeout. |
-| `Gateway:HealthProber:FailureThreshold` | `Gateway__HealthProber__FailureThreshold` | `int` | `5` | Số lần thất bại liên tiếp trước khi chuyển trạng thái sang `Unhealthy` và kích hoạt Circuit Breaker. |
-| `Gateway:HealthProber:StartPeriodSeconds` | `Gateway__HealthProber__StartPeriodSeconds` | `int` | `60` | Thời gian ân hạn khi container mới khởi động lại (không tính lỗi trong khoảng này để container kịp nạp runtime/DB). |
-| `Gateway:HealthProber:AutoRecoverContainer` | `Gateway__HealthProber__AutoRecoverContainer` | `bool` | `true` | Tự động kích hoạt chuỗi Stop $\rightarrow$ Remove $\rightarrow$ Recreate container qua Docker socket khi đạt ngưỡng Unhealthy. |
-| `Gateway:HealthProber:MaxAutoRecoverAttempts` | `Gateway__HealthProber__MaxAutoRecoverAttempts` | `int` | `3` | Giới hạn số lần tự động hồi phục liên tiếp để chống CrashLoopBackOff làm treo tài nguyên máy chủ. |
-| `Gateway:HealthProber:LogDirectory` | `Gateway__HealthProber__LogDirectory` | `string` | `"logs/health"` | Thư mục lưu trữ tệp log sự cố sức khỏe (Incident log) tại Gateway. |
-| `Gateway:HealthProber:MaxLinesPerLogFile` | `Gateway__HealthProber__MaxLinesPerLogFile` | `int` | `1000` | Số dòng tối đa trên một tệp log sự cố trước khi tự động xoay sang tệp mới (`incident-YYYYMMDD-XXXX.log`). |
-
+| Khóa cấu hình (JSON) | Biến môi trường tương ứng | Kiểu | Mặc định | Ý nghĩa & Tác dụng | Trạng thái |
+|:---|:---|:---:|:---:|:---|:---|
+| `Gateway:HealthProber:IntervalSeconds` | `Gateway__HealthProber__IntervalSeconds` | `int` | `60` | Chu kỳ gửi request probe. | ✅ CÓ |
+| `Gateway:HealthProber:TimeoutSeconds` | `Gateway__HealthProber__TimeoutSeconds` | `int` | `30` | Thời gian chờ phản hồi `/health` trước khi tính timeout. | ✅ CÓ |
+| `Gateway:HealthProber:FailureThreshold` | `Gateway__HealthProber__FailureThreshold` | `int` | `5` | Số lần thất bại liên tiếp trước khi chuyển `Unhealthy` và kích hoạt circuit breaker. | ✅ CÓ |
+| `Gateway:HealthProber:StartPeriodSeconds` | `Gateway__HealthProber__StartPeriodSeconds` | `int` | `60` | Ân hạn khi container mới khởi động lại (không tính lỗi trong khoảng này). | ✅ CÓ |
+| `Gateway:HealthProber:AutoRecoverContainer` | `Gateway__HealthProber__AutoRecoverContainer` | `bool` | `true` | Bật chuỗi tự hồi phục container khi `Unhealthy`. | ⚠️ MỘT PHẦN — thực thi bằng `docker restart <container>` qua `ProcessStartInfo` (`HealthProber/DockerContainerRecoveryService.cs`); image `mcr.microsoft.com/dotnet/aspnet:8.0` **không có docker CLI** ⇒ không chạy được trong container |
+| `Gateway:HealthProber:MaxAutoRecoverAttempts` | `Gateway__HealthProber__MaxAutoRecoverAttempts` | `int` | `3` | Giới hạn số lần hồi phục liên tiếp (chống CrashLoopBackOff). | ✅ CÓ |
+| `Gateway:HealthProber:LogDirectory` | `Gateway__HealthProber__LogDirectory` | `string` | `"logs/health"` | Thư mục log sự cố (incident log). | ✅ CÓ |
+| `Gateway:HealthProber:MaxLinesPerLogFile` | `Gateway__HealthProber__MaxLinesPerLogFile` | `int` | `1000` | Số dòng tối đa/tệp trước khi xoay sang `incident-YYYYMMDD-XXXX.log`. | ✅ CÓ |
+> ⚠️ Trạng thái mặc định của mọi prober là **`Disabled`** (`HealthProber/HealthProberManager.cs:53,85,158`) — cấu hình `IntervalSeconds` **không** tự bật prober; phải gọi `PUT /api/v1/gateway/prober/{service}`.
+> ⚠️ **Saga Rollback chưa tồn tại**: `HealthProber/SagaRollbackPublisher.cs` chỉ ghi warning log và trả `Task.CompletedTask`; không có publish RabbitMQ (xem ADR 11).
 ---
-
 ### F. Danh Sách Request Headers Ghi Đè (Header Overrides)
-
-Trong môi trường Development, Gateway hỗ trợ ghi đè cấu hình cho từng request thông qua các HTTP Headers:
-
-| Header Name | Giá Trị Hợp Lệ | Mục Đích Sử Dụng |
-|:---|:---:|:---|
-| `X-Service-Mode-{service}` | `Real` hoặc `Mock` | Ép buộc một service cụ thể chạy `Real` hoặc `Mock` cho riêng request đó (ví dụ: `X-Service-Mode-catalog: Real`). |
-| `X-Gateway-Auth` | `Bypass` hoặc `Standard` | Tạm thời bật/tắt chế độ bypass auth cho riêng request đó. |
-| `X-Mock-Enforce-Auth` | `true` | Ép buộc kiểm tra auth nghiêm ngặt ngay cả khi service đang ở chế độ Mock. |
-| `X-Require-Real-Auth` | `true` | Bắt buộc phải có JWT Token thật từ backend `UserService:8001`, chặn hoàn toàn mock token. |
-| `X-Mock-Role` | `admin`, `seller`, `staff`, `buyer` | Chỉ định vai trò giả lập mong muốn khi gửi mock token. |
-| `X-Mock-User-Id` | UUID string | Chỉ định UserId giả lập mong muốn khi gửi mock token. |
-
+Trong môi trường Development, Gateway hỗ trợ ghi đè cấu hình cho từng request thông qua các HTTP Headers. Tất cả tên dưới đây đã được đối chiếu code:
+| Header Name | Giá Trị Hợp Lệ | Mục Đích Sử Dụng | Trạng thái | Bằng chứng |
+|:---|:---:|:---|:---|:---|
+| `X-Service-Mode-{service}` | `Real` hoặc `Mock` | Ép một service chạy `Real`/`Mock` cho riêng request đó (vd `X-Service-Mode-catalog: Real`). | ✅ CÓ | `Services/GatewayRuntimeManager.cs` |
+| `X-Service-Modes` | map (vd `catalog:Real,wallet:Mock`) | Ép nhiều service cùng lúc. | ✅ CÓ | `Services/GatewayRuntimeManager.cs:110` |
+| `X-Mock-Mode` | `Mock` hoặc `Real` | Ép toàn bộ service cho riêng request. | ✅ CÓ | `Services/GatewayRuntimeManager.cs:124` |
+| `X-Gateway-Auth` | `Bypass` hoặc `Standard`/`Enforce` | Tạm bật/tắt bypass auth cho riêng request đó. | ✅ CÓ | `Services/GatewayRuntimeManager.cs:38` |
+| `X-Gateway-Mode-Override` | `Mock`/`Real` | Alias ép mode toàn cục cho request. | ✅ CÓ | `Services/GatewayRuntimeManager.cs:123` |
+| `X-Mock-Enforce-Auth` | `true` | Ép kiểm tra auth nghiêm ngặt kể cả khi service đang Mock. | ✅ CÓ | `Security/MockSecurityAdapterMiddleware.cs:38` |
+| `X-Require-Real-Auth` | `true` | Bắt buộc JWT thật từ UserService, chặn hoàn toàn mock token. | ✅ CÓ | `Security/MockSecurityAdapterMiddleware.cs:45`, `Security/SecurityConfiguration.cs:71` |
+| `X-Mock-Role` | `admin`, `seller`, `staff`, `buyer` | Vai trò giả lập khi gửi mock token. | ✅ CÓ | `Security/MockSecurityAdapterMiddleware.cs:114` |
+| `X-Mock-User-Id` | UUID string | UserId giả lập khi gửi mock token. | ✅ CÓ | `Security/MockSecurityAdapterMiddleware.cs:137` |
 ---
-
 ## 4. HƯỚNG DẪN THỰC HÀNH CẤU HÌNH DÀNH CHO DEVELOPER
-
 1. **Khi chạy local để code giao diện hoặc test độc lập với Mock**:
-   - Sử dụng file `appsettings.Development.json`.
-   - Toàn bộ 8 services đã được bật sẵn `"Mode": "Mock"`. Bạn chỉ việc chạy `./run-dev.sh` (hoặc `dotnet run --project Nexus.Gateway`) là toàn bộ API đều hoạt động mượt mà.
-   - Nếu muốn test không cần đăng nhập: Mở `gateway.runtime.json`, đổi `"AuthMode": "Bypass"`.
-
+   - Copy `Nexus.Gateway/appsettings.example.json` → `Nexus.Gateway/appsettings.json` và `appsettings.Development.example.json` → `appsettings.Development.json` (hai file thật **không** có trong git), rồi điền `Jwt:Signature` tối thiểu 32 ký tự.
+   - Ở `appsettings.Development.json`, toàn bộ 8 services đã bật `"Mode": "Mock"`. Chạy `./run-dev.sh` (hoặc `dotnet run --project Nexus.Gateway`) ⇒ `http://localhost:8000`.
+   - Nếu muốn test không cần đăng nhập: mở `gateway.runtime.json`, đổi `"AuthMode": "Bypass"` (giá trị đang commit là `"Enforce"`).
+   - ⚠️ Chỉ **route có action hoặc có mock definition** mới trả dữ liệu; 11 controller stub (vd `catalog/products`, `commerce/orders`) trả **404** kể cả khi `Mode: "Mock"`.
 2. **Khi code xong 1 microservice (ví dụ Catalog Service)**:
-   - Khởi động `Catalog Service` thật ở cổng `http://localhost:8002`.
-   - Mở file `gateway.runtime.json`, sửa:
+   - Khởi động Catalog gRPC ở `http://localhost:8002`.
+   - ⚠️ **Trước hết phải thêm `CatalogApi` vào `Nexus.Gateway/Contracts/shop.proto` + đăng ký client** trong `Extensions/GrpcClientsExtension.cs` + viết action trong `ProductsController` (hiện là stub). Nếu không, đổi mode chỉ gây lỗi.
+   - Sau đó sửa `gateway.runtime.json`:
      ```json
      "catalog": {
        "Mode": "Real",
        "Address": "http://localhost:8002"
      }
      ```
-   - **Lưu file là có hiệu lực ngay (Hot-Reload), KHÔNG cần khởi động lại Gateway!**
-   - Gateway sẽ tự động chuyển tiếp request tới `http://localhost:8002` qua gRPC, trong khi 7 service còn lại vẫn chạy Mock bình thường.
-
+   - **Lưu file là có hiệu lực ngay** — `gateway.runtime.json` nạp với `reloadOnChange: true` (`Extensions/ConfigurationExtensions.cs:15`), **không cần restart**.
+   - 7 service còn lại vẫn chạy Mock bình thường; nhưng các service đó cũng **chưa có client** nên chỉ Mock mới hoạt động.
 3. **Khi triển khai Docker / Production**:
-   - Tạo file `.env` từ `.env.example`.
-   - Điền khóa bí mật `Jwt__Signature` thật dài tối thiểu 32 ký tự.
+   - Tạo `.env` từ `.env.example` (`GATEWAY_PORT=8000`, `REDIS_CONNECTION_STRING`, `OTEL_EXPORTER_OTLP_ENDPOINT`, 8 `*_SERVICE_URL`).
+   - Cấp `Jwt__Signature` thật dài ≥ 32 ký tự qua biến môi trường / secret store — **không** dựa vào `appsettings.json`.
    - Đặt `ASPNETCORE_ENVIRONMENT=Production`.
-   - Toàn bộ 8 services trong `appsettings.json` đều mặc định ở mode `Real` và chế độ `AuthMode` là `Enforce` nghiêm ngặt.
+   - Toàn bộ 8 services trong `appsettings.json` mặc định `Mode: "Real"`, `AuthMode: "Enforce"`; mọi cờ bypass đều `false` và options validation sẽ **fail-fast** nếu ai đó bật Mock/Bypass ở Production.
+   - ⚠️ Health prober mặc định `Disabled`; container tự hồi phục cần docker CLI (không có trong image) ⇒ đừng tin `AutoRecoverContainer: true` là đã hoạt động.
