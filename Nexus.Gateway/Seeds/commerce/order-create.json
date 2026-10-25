@@ -1,0 +1,10 @@
+{
+  "orderId": "6a1b2c3d-7777-4e8f-9a0b-1c2d3e4f5a07",
+  "orderNo": "ORD-20261026-0001",
+  "totalAmount": 480000,
+  "status": "PENDING_PAYMENT",
+  "paymentDeadlineAt": "2026-10-26T02:00:00Z",
+  "paymentUrl": null,
+  "subOrderIds": ["b1c2d3e4-8888-4f9a-8b0c-2d3e4f5a6b08"],
+  "createdAt": "2026-10-26T00:00:00Z"
+}

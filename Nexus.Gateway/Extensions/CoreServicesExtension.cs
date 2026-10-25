@@ -1,6 +1,8 @@
 namespace Nexus.Gateway.Extensions;
 
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Timeouts;
@@ -33,12 +35,14 @@ public static class CoreServicesExtension
             {
                 options.JsonSerializerOptions.Converters.Add(new Common.Converters.PascalCaseJsonStringEnumConverter(allowIntegerValues: false));
                 options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+                Serialization.SnakeCaseAliasResolver.Apply(options.JsonSerializerOptions);
             });
 
         services.ConfigureHttpJsonOptions(options =>
         {
             options.SerializerOptions.Converters.Add(new Common.Converters.PascalCaseJsonStringEnumConverter(allowIntegerValues: false));
             options.SerializerOptions.PropertyNameCaseInsensitive = true;
+            Serialization.SnakeCaseAliasResolver.Apply(options.SerializerOptions);
         });
         services.Configure<ApiBehaviorOptions>(options =>
         {

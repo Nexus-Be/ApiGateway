@@ -1,0 +1,46 @@
+{
+  "cartId": "3f1c4b1e-8a2d-4c6f-9b1a-0d2e5f7a9c11",
+  "status": "ACTIVE",
+  "itemCount": 2,
+  "subtotalAmount": 830000,
+  "lastActivityAt": "2026-10-26T00:00:00Z",
+  "groups": [
+    {
+      "sellerId": "5e9d1c2b-7f3a-4d8e-9c1b-2a4f6d8e0b12",
+      "sellerName": "Shop Cong Nghe",
+      "items": [
+        {
+          "cartItemId": "1a2b3c4d-1111-4a2b-9c3d-4e5f6a7b8c01",
+          "productId": "9f8e7d6c-2222-4b3c-8d4e-5f6a7b8c9d02",
+          "skuId": "7c6b5a49-3333-4c4d-9e5f-6a7b8c9d0e03",
+          "productName": "Chuot gaming khong day",
+          "skuAttributes": { "color": "Black", "connectivity": "2.4GHz" },
+          "imageUrl": "https://img.example.com/mouse.png",
+          "quantity": 1,
+          "unitPriceSnapshot": 500000,
+          "currentUnitPrice": 500000,
+          "lineTotal": 500000,
+          "priceChanged": false,
+          "stockAvailable": 25,
+          "itemStatus": "OK"
+        },
+        {
+          "cartItemId": "2b3c4d5e-4444-4b5c-8d6e-7f8a9b0c1d04",
+          "productId": "8e7d6c5b-5555-4c6d-9e7f-8a9b0c1d2e05",
+          "skuId": "6d5c4b3a-6666-4d7e-8f8a-9b0c1d2e3f06",
+          "productName": "Ban phim co hoc",
+          "skuAttributes": { "switch": "Blue", "layout": "TKL" },
+          "imageUrl": "https://img.example.com/keyboard.png",
+          "quantity": 1,
+          "unitPriceSnapshot": 330000,
+          "currentUnitPrice": 330000,
+          "lineTotal": 330000,
+          "priceChanged": false,
+          "stockAvailable": 12,
+          "itemStatus": "OK"
+        }
+      ]
+    }
+  ],
+  "warnings": []
+}

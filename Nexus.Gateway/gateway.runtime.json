@@ -63,7 +63,7 @@
         "MockStatus": 200
       },
       "commerce": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8003",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
@@ -84,7 +84,7 @@
         "MockStatus": 200
       },
       "fulfillment": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8006",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
@@ -98,7 +98,7 @@
         "MockStatus": 200
       },
       "wallet": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8008",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,

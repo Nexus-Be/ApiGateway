@@ -1,0 +1,34 @@
+[
+  {
+    "Timestamp": "2026-10-26T02:36:21.6953849\u002B07:00",
+    "Level": "Information",
+    "Message": "MockEngine loaded 5 mock endpoint definitions from \u0022/home/yuikiri/Documents/Code/Yuikiri/Github/Nexus-Be/src/Services/ApiGateway/Nexus.Gateway/Mocks\u0022",
+    "Exception": null,
+    "Properties": {
+      "Count": "5",
+      "Dir": "\u0022/home/yuikiri/Documents/Code/Yuikiri/Github/Nexus-Be/src/Services/ApiGateway/Nexus.Gateway/Mocks\u0022",
+      "SourceContext": "\u0022Nexus.Gateway.MockEngine.MockEngine\u0022",
+      "RequestId": "\u00220HNPIPSVPESIH:00000001\u0022",
+      "RequestPath": "\u0022/health\u0022",
+      "ConnectionId": "\u00220HNPIPSVPESIH\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  },
+  {
+    "Timestamp": "2026-10-26T02:36:21.7762579\u002B07:00",
+    "Level": "Information",
+    "Message": "HTTP \u0022GET\u0022 \u0022/health\u0022 responded 404 in 113.5260 ms",
+    "Exception": null,
+    "Properties": {
+      "TraceId": "\u00220HNPIPSVPESIH:00000001\u0022",
+      "RequestMethod": "\u0022GET\u0022",
+      "RequestPath": "\u0022/health\u0022",
+      "StatusCode": "404",
+      "Elapsed": "113.525954",
+      "SourceContext": "\u0022Serilog.AspNetCore.RequestLoggingMiddleware\u0022",
+      "RequestId": "\u00220HNPIPSVPESIH:00000001\u0022",
+      "ConnectionId": "\u00220HNPIPSVPESIH\u0022",
+      "Application": "\u0022Nexus.Gateway\u0022"
+    }
+  }
+]

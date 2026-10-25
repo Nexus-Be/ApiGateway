@@ -1,0 +1,7 @@
+{
+  "withdrawalId": "11111111-1111-1111-1111-000000000006",
+  "amount": 200000,
+  "fee": 0,
+  "status": "PENDING",
+  "requestedAt": "2026-10-26T00:00:00Z"
+}

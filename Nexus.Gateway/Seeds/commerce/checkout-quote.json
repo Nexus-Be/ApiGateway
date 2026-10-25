@@ -1,0 +1,44 @@
+{
+  "orders": [
+    {
+      "sellerId": "5e9d1c2b-7f3a-4d8e-9c1b-2a4f6d8e0b12",
+      "items": [
+        {
+          "cartItemId": "1a2b3c4d-1111-4a2b-9c3d-4e5f6a7b8c01",
+          "skuId": "7c6b5a49-3333-4c4d-9e5f-6a7b8c9d0e03",
+          "productName": "Chuot gaming khong day",
+          "quantity": 1,
+          "unitPrice": 500000,
+          "lineTotal": 500000
+        }
+      ],
+      "itemsAmount": 500000,
+      "productDiscountAmount": 0,
+      "shopDiscountAmount": 50000,
+      "platformMarkupAmount": 0,
+      "systemDiscountAmount": 0,
+      "shippingFeeAmount": 30000,
+      "totalAmount": 480000,
+      "shippingOptions": [
+        {
+          "fee": 30000,
+          "serviceType": "Standard",
+          "estimatedDeliveryAt": "2026-10-28T18:00:00Z"
+        },
+        {
+          "fee": 55000,
+          "serviceType": "Express",
+          "estimatedDeliveryAt": "2026-10-27T18:00:00Z"
+        }
+      ],
+      "quoteId": "q-20261026-0001-5e9d"
+    }
+  ],
+  "grandTotal": 480000,
+  "appliedVouchers": [
+    { "code": "SHOP50K", "discountAmount": 50000, "scope": "Shop" }
+  ],
+  "invalidVouchers": [],
+  "walletBalance": 2500000,
+  "warnings": []
+}

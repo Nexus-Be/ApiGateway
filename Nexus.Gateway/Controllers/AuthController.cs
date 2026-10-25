@@ -72,7 +72,7 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> VerifyOtp([FromBody] VerifyOtpRequestDto body)
     {
-        if (string.IsNullOrWhiteSpace(body.Email) || string.IsNullOrWhiteSpace(body.Otp))
+        if (string.IsNullOrWhiteSpace(body.Email) || string.IsNullOrWhiteSpace(body.ResolvedOtp))
             throw new GatewayInputException("Email and OTP code are required.");
 
         return _dispatcher.DispatchAsync(
@@ -82,7 +82,7 @@ public sealed class AuthController : ControllerBase
             o => _client.VerifyOtpAsync(new VerifyOtpRequest
             {
                 Email = body.Email.Trim().ToLowerInvariant(),
-                Otp = body.Otp.Trim()
+                Otp = body.ResolvedOtp!.Trim()
             }, o),
             UserProfile.Parser,
             successMessage: "Account verified successfully."
@@ -181,6 +181,7 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpPost("password/reset")]
+    [HttpPut("password/reset")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<ResetPasswordResponse>), StatusCodes.Status200OK)]
