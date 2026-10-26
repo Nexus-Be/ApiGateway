@@ -15,7 +15,7 @@ public static class MoneyPrecision
     public static decimal EnsurePositive(string? text, string field = "Amount")
     {
         if (!TryParsePositive(text, out var amount))
-            throw new GatewayInputException($"{field} phải là số > 0", field);
+            throw new GatewayInputException($"{field} must be greater than zero.", field);
         return amount;
     }
 }

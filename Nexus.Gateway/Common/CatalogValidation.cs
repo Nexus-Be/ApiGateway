@@ -48,7 +48,7 @@ public static class CatalogValidation
     public static void EnsurePaged(int page, int pageSize)
     {
         if (page < 1 || pageSize < 1 || pageSize > MaxPageSize)
-            throw new GatewayInputException($"page must be at least 1 and pageSize must be between 1 and {MaxPageSize}.", "Pagination", ErrorCode);
+            throw new GatewayInputException($"Page must be at least 1 and pageSize must be between 1 and {MaxPageSize}.", "Pagination", ErrorCode);
     }
 
     public static void EnsureOptionalSortBy(string? sortBy, IReadOnlyList<string>? allowed = null)
@@ -56,28 +56,28 @@ public static class CatalogValidation
         if (string.IsNullOrWhiteSpace(sortBy)) return;
         var values = allowed ?? SortByValues;
         if (!values.Contains(sortBy, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"sortBy must be one of: {string.Join(", ", values)}.", "sortBy", ErrorCode);
+            throw new GatewayInputException($"SortBy must be one of: {string.Join(", ", values)}.", "sortBy", ErrorCode);
     }
 
     public static void EnsureOptionalSortDir(string? sortDir, string field = "sortDir")
     {
         if (string.IsNullOrWhiteSpace(sortDir)) return;
         if (!SortDirValues.Contains(sortDir, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"sortDir must be one of: {string.Join(", ", SortDirValues)}.", field, ErrorCode);
+            throw new GatewayInputException($"SortDir must be one of: {string.Join(", ", SortDirValues)}.", field, ErrorCode);
     }
 
     public static void EnsureOptionalSaleType(string? saleType)
     {
         if (string.IsNullOrWhiteSpace(saleType)) return;
         if (!SaleTypes.Contains(saleType, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"saleType must be one of: {string.Join(", ", SaleTypes)}.", "saleType", ErrorCode);
+            throw new GatewayInputException($"SaleType must be one of: {string.Join(", ", SaleTypes)}.", "saleType", ErrorCode);
     }
 
     public static void EnsureOptionalStatus(string? status, string field = "status")
     {
         if (string.IsNullOrWhiteSpace(status)) return;
         if (!ProductStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"status must be one of: {string.Join(", ", ProductStatuses)}.", field, ErrorCode);
+            throw new GatewayInputException($"Status must be one of: {string.Join(", ", ProductStatuses)}.", field, ErrorCode);
     }
 
     /// <summary>
@@ -88,22 +88,22 @@ public static class CatalogValidation
     {
         if (string.IsNullOrWhiteSpace(status)) return;
         if (!AuctionStatuses.Contains(status, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"status must be one of: {string.Join(", ", AuctionStatuses)}.", field, ErrorCode);
+            throw new GatewayInputException($"Status must be one of: {string.Join(", ", AuctionStatuses)}.", field, ErrorCode);
     }
 
     public static void EnsureRatingRange(decimal? minRating)
     {
         if (minRating is null) return;
         if (minRating < 0 || minRating > 5)
-            throw new GatewayInputException("minRating must be between 0 and 5.", "minRating", ErrorCode);
+            throw new GatewayInputException("MinRating must be between 0 and 5.", "minRating", ErrorCode);
     }
 
     public static void EnsurePriceRange(decimal? minPrice, decimal? maxPrice)
     {
         if (minPrice is < 0 || maxPrice is < 0)
-            throw new GatewayInputException("minPrice and maxPrice cannot be negative.", "price", ErrorCode);
+            throw new GatewayInputException("MinPrice and maxPrice cannot be negative.", "price", ErrorCode);
         if (minPrice.HasValue && maxPrice.HasValue && minPrice > maxPrice)
-            throw new GatewayInputException("minPrice cannot be greater than maxPrice.", "price", ErrorCode);
+            throw new GatewayInputException("MinPrice cannot be greater than maxPrice.", "price", ErrorCode);
     }
 
     // ---------------------------------------------------------------- products
@@ -122,11 +122,11 @@ public static class CatalogValidation
         {
             var variant = body.Variants[i];
             if (string.IsNullOrWhiteSpace(variant.SkuCode))
-                throw new GatewayInputException($"variants[{i}].skuCode is required.", "skuCode", ErrorCode);
+                throw new GatewayInputException($"Variants[{i}].skuCode is required.", "skuCode", ErrorCode);
             if (string.IsNullOrWhiteSpace(variant.Name))
-                throw new GatewayInputException($"variants[{i}].name is required.", "name", ErrorCode);
+                throw new GatewayInputException($"Variants[{i}].name is required.", "name", ErrorCode);
             if (variant.Price is null or <= 0)
-                throw new GatewayInputException($"variants[{i}].price must be greater than 0.", "price", ErrorCode);
+                throw new GatewayInputException($"Variants[{i}].price must be greater than 0.", "price", ErrorCode);
             if (variant.IsActive) defaults++;
             EnsureAttributes(variant.Attributes, $"variants[{i}].attributes");
         }
@@ -148,15 +148,15 @@ public static class CatalogValidation
     public static void EnsureProductStatus(UpdateProductStatusDto body)
     {
         if (string.IsNullOrWhiteSpace(body.Status) || !ProductStatuses.Contains(body.Status, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"status must be one of: {string.Join(", ", ProductStatuses)}.", "status", ErrorCode);
+            throw new GatewayInputException($"Status must be one of: {string.Join(", ", ProductStatuses)}.", "status", ErrorCode);
 
         var inactive = string.Equals(body.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase);
         if (inactive && string.IsNullOrWhiteSpace(body.StatusReason))
-            throw new GatewayInputException("statusReason is required when the status becomes INACTIVE.", "statusReason", ErrorCode);
+            throw new GatewayInputException("StatusReason is required when the status becomes INACTIVE.", "statusReason", ErrorCode);
         if (!inactive && !string.IsNullOrWhiteSpace(body.StatusReason))
-            throw new GatewayInputException("statusReason is only accepted when the status becomes INACTIVE.", "statusReason", ErrorCode);
+            throw new GatewayInputException("StatusReason is only accepted when the status becomes INACTIVE.", "statusReason", ErrorCode);
         if (inactive && !StatusReasons.Contains(body.StatusReason!, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"statusReason must be one of: {string.Join(", ", StatusReasons)}.", "statusReason", ErrorCode);
+            throw new GatewayInputException($"StatusReason must be one of: {string.Join(", ", StatusReasons)}.", "statusReason", ErrorCode);
     }
 
     public static void EnsureAttributes(List<AttributeDto>? attributes, string field)
@@ -168,7 +168,7 @@ public static class CatalogValidation
             if (string.IsNullOrWhiteSpace(attribute.AttrName) || string.IsNullOrWhiteSpace(attribute.AttrValue))
                 throw new GatewayInputException($"{field} requires both attrName and attrValue.", field, ErrorCode);
             if (!seen.Add(attribute.AttrName))
-                throw new GatewayInputException($"attrName '{attribute.AttrName}' is duplicated.", field, ErrorCode);
+                throw new GatewayInputException($"AttrName '{attribute.AttrName}' is duplicated.", field, ErrorCode);
         }
     }
 
@@ -203,11 +203,11 @@ public static class CatalogValidation
     {
         EnsureProductId(productId);
         if (string.IsNullOrWhiteSpace(skuCode))
-            throw new GatewayInputException("skuCode is required.", "skuCode", ErrorCode);
+            throw new GatewayInputException("SkuCode is required.", "skuCode", ErrorCode);
         if (string.IsNullOrWhiteSpace(name))
-            throw new GatewayInputException("name is required.", "name", ErrorCode);
+            throw new GatewayInputException("Name is required.", "name", ErrorCode);
         if (price is null or <= 0)
-            throw new GatewayInputException("price must be greater than 0.", "price", ErrorCode);
+            throw new GatewayInputException("Price must be greater than 0.", "price", ErrorCode);
         EnsureAttributes(attributes, "attributes");
     }
 
@@ -217,9 +217,9 @@ public static class CatalogValidation
         if (name is null && price is null)
             throw new GatewayInputException("At least one field must be provided.", "body", ErrorCode);
         if (name is not null && string.IsNullOrWhiteSpace(name))
-            throw new GatewayInputException("name cannot be empty.", "name", ErrorCode);
+            throw new GatewayInputException("Name cannot be empty.", "name", ErrorCode);
         if (price is <= 0)
-            throw new GatewayInputException("price must be greater than 0.", "price", ErrorCode);
+            throw new GatewayInputException("Price must be greater than 0.", "price", ErrorCode);
         EnsureAttributes(attributes, "attributes");
     }
 
@@ -238,9 +238,9 @@ public static class CatalogValidation
             if (item.SkuId is null || item.SkuId == Guid.Empty)
                 throw new GatewayInputException("Every stock-in line requires a valid skuId.", "skuId", ErrorCode);
             if (item.Quantity <= 0)
-                throw new GatewayInputException("quantity must be greater than 0.", "quantity", ErrorCode);
+                throw new GatewayInputException("Quantity must be greater than 0.", "quantity", ErrorCode);
             if (!seen.Add(item.SkuId.Value))
-                throw new GatewayInputException($"skuId '{item.SkuId}' appears more than once.", "skuId", ErrorCode);
+                throw new GatewayInputException($"SkuId '{item.SkuId}' appears more than once.", "skuId", ErrorCode);
         }
     }
 
@@ -248,7 +248,7 @@ public static class CatalogValidation
     {
         EnsureVariantId(variantId);
         if (quantity <= 0)
-            throw new GatewayInputException("quantity must be greater than 0.", "quantity", ErrorCode);
+            throw new GatewayInputException("Quantity must be greater than 0.", "quantity", ErrorCode);
     }
 
     // ---------------------------------------------------------------- categories
@@ -280,9 +280,9 @@ public static class CatalogValidation
         if (body.Variant is null)
             throw new GatewayInputException("A single variant is required.", "variant", ErrorCode);
         if (string.IsNullOrWhiteSpace(body.Variant.SkuCode))
-            throw new GatewayInputException("variant.skuCode is required.", "skuCode", ErrorCode);
+            throw new GatewayInputException("Variant.skuCode is required.", "skuCode", ErrorCode);
         if (string.IsNullOrWhiteSpace(body.Variant.Name))
-            throw new GatewayInputException("variant.name is required.", "name", ErrorCode);
+            throw new GatewayInputException("Variant.name is required.", "name", ErrorCode);
         EnsureAttributes(body.Variant.Attributes, "variant.attributes");
     }
 

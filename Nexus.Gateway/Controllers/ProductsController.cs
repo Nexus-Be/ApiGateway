@@ -405,7 +405,7 @@ public sealed class ProductsController : ControllerBase
         CatalogValidation.EnsureProductId(productId);
         CatalogValidation.EnsurePaged(pagination.Page, pagination.PageSize);
         if (rating is < 1 or > 5)
-            throw new GatewayInputException("rating must be between 1 and 5.", "rating", CatalogValidation.ErrorCode);
+            throw new GatewayInputException("Rating must be between 1 and 5.", "rating", CatalogValidation.ErrorCode);
         CatalogValidation.EnsureOptionalSortBy(sortBy, CatalogValidation.RatingSortByValues);
 
         return _dispatcher.DispatchAsync(
@@ -711,7 +711,7 @@ public sealed class ProductsController : ControllerBase
         {
             var parts = pair.Split('=', StringSplitOptions.TrimEntries);
             if (parts.Length != 2 || string.IsNullOrWhiteSpace(parts[0]) || string.IsNullOrWhiteSpace(parts[1]))
-                throw new GatewayInputException("attributes must use the AttrName=AttrValue form.", "attributes", CatalogValidation.ErrorCode);
+                throw new GatewayInputException("Attributes must use the AttrName=AttrValue form.", "attributes", CatalogValidation.ErrorCode);
         }
     }
 }
