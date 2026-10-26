@@ -1,7 +1,9 @@
 namespace Nexus.Gateway.HealthProber;
 
+using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Nexus.Gateway.Clients;
 
 public static class HealthProberExtensions
 {
@@ -12,6 +14,12 @@ public static class HealthProberExtensions
         services.Configure<HealthProberOptions>(configuration.GetSection(HealthProberOptions.SectionName));
 
         services.AddHttpClient("HealthProberClient");
+        services.AddHttpClient("HealthCheckService", client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+
+        services.AddSingleton<ICheckHealServiceClient, CheckHealServiceClient>();
 
         services.AddSingleton<IHealthIncidentLogger, FileRollingHealthIncidentLogger>();
         services.AddSingleton<IDockerContainerRecoveryService, DockerContainerRecoveryService>();

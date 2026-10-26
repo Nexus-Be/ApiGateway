@@ -1,0 +1,69 @@
+{
+  "summary": {
+    "overallStatus": "healthy",
+    "totalServices": 8,
+    "enabledServices": 8,
+    "healthyServices": 8,
+    "totalDatabases": 8,
+    "enabledDatabases": 8,
+    "healthyDatabases": 8,
+    "cronIntervalSeconds": 60,
+    "timestamp": "2026-10-26T12:00:00Z"
+  },
+  "services": [
+    {
+      "name": "users",
+      "kind": "service",
+      "isEnabled": true,
+      "targetAddress": "http://users:8001/health",
+      "currentStatus": "healthy",
+      "lastCheckedAt": "2026-10-26T12:00:00Z",
+      "lastLatencyMs": 12,
+      "consecutiveFailures": 0,
+      "totalChecks": 100,
+      "totalFailures": 0,
+      "lastError": null
+    },
+    {
+      "name": "catalog",
+      "kind": "service",
+      "isEnabled": true,
+      "targetAddress": "http://catalog:8002/health",
+      "currentStatus": "healthy",
+      "lastCheckedAt": "2026-10-26T12:00:00Z",
+      "lastLatencyMs": 10,
+      "consecutiveFailures": 0,
+      "totalChecks": 100,
+      "totalFailures": 0,
+      "lastError": null
+    }
+  ],
+  "databases": [
+    {
+      "name": "users",
+      "kind": "database",
+      "isEnabled": true,
+      "targetAddress": "Host=ep-cool-fog.ap-southeast-1.aws.neon.tech;Database=users_db",
+      "currentStatus": "healthy",
+      "lastCheckedAt": "2026-10-26T12:00:00Z",
+      "lastLatencyMs": 25,
+      "consecutiveFailures": 0,
+      "totalChecks": 100,
+      "totalFailures": 0,
+      "lastError": null
+    },
+    {
+      "name": "catalog",
+      "kind": "database",
+      "isEnabled": true,
+      "targetAddress": "Host=ep-cool-fog.ap-southeast-1.aws.neon.tech;Database=catalog_db",
+      "currentStatus": "healthy",
+      "lastCheckedAt": "2026-10-26T12:00:00Z",
+      "lastLatencyMs": 28,
+      "consecutiveFailures": 0,
+      "totalChecks": 100,
+      "totalFailures": 0,
+      "lastError": null
+    }
+  ]
+}
