@@ -1,0 +1,28 @@
+[
+  {
+    "name": "users",
+    "kind": "service",
+    "isEnabled": true,
+    "targetAddress": "http://users:8001/health",
+    "currentStatus": "healthy",
+    "lastCheckedAt": "2026-10-26T12:00:00Z",
+    "lastLatencyMs": 12,
+    "consecutiveFailures": 0,
+    "totalChecks": 100,
+    "totalFailures": 0,
+    "lastError": null
+  },
+  {
+    "name": "catalog",
+    "kind": "service",
+    "isEnabled": true,
+    "targetAddress": "http://catalog:8002/health",
+    "currentStatus": "healthy",
+    "lastCheckedAt": "2026-10-26T12:00:00Z",
+    "lastLatencyMs": 10,
+    "consecutiveFailures": 0,
+    "totalChecks": 100,
+    "totalFailures": 0,
+    "lastError": null
+  }
+]

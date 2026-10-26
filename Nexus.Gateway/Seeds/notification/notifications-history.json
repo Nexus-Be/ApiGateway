@@ -1,0 +1,21 @@
+{
+  "total": 1,
+  "items": [
+    {
+      "notificationId": "e1111111-1111-1111-1111-000000000001",
+      "userId": "11111111-1111-1111-1111-000000000004",
+      "notificationType": "ORDER_PAID",
+      "status": "COMPLETED",
+      "createdAt": "2026-10-26T00:00:00Z",
+      "deliveries": [
+        {
+          "deliveryId": "d1111111-1111-1111-1111-000000000001",
+          "channelCode": "EMAIL",
+          "destination": "u***@gmail.com",
+          "status": "SENT",
+          "attemptCount": 1
+        }
+      ]
+    }
+  ]
+}

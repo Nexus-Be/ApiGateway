@@ -1,0 +1,17 @@
+{
+  "valid": true,
+  "items": [
+    {
+      "cartItemId": "1a2b3c4d-1111-4a2b-9c3d-4e5f6a7b8c01",
+      "issues": [],
+      "currentUnitPrice": 500000,
+      "availableQty": 25
+    },
+    {
+      "cartItemId": "2b3c4d5e-4444-4b5c-8d6e-7f8a9b0c1d04",
+      "issues": [],
+      "currentUnitPrice": 330000,
+      "availableQty": 12
+    }
+  ]
+}

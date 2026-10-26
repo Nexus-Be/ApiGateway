@@ -1,0 +1,18 @@
+{
+  "shipmentId": "d3e4f5a6-1111-4b2c-8d3e-4f5a6b7c8d01",
+  "subOrderId": "b1c2d3e4-8888-4f9a-8b0c-2d3e4f5a6b08",
+  "carrierName": "GHN",
+  "trackingNumber": "GHN1029384756",
+  "status": "READY_TO_SHIP",
+  "receiverName": "Nguyen Van A",
+  "receiverPhone": "0901234567",
+  "receiverAddress": "123 Le Loi, Ben Nghe, Quan 1, TP.HCM",
+  "items": [
+    {
+      "skuId": "7c6b5a49-3333-4c4d-9e5f-6a7b8c9d0e03",
+      "productName": "Chuot gaming khong day",
+      "quantity": 1
+    }
+  ],
+  "createdAt": "2026-10-26T00:00:00Z"
+}

@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "registrationId": "reg_11111111-1111-1111-1111-000000000001",
+      "userId": "11111111-1111-1111-1111-000000000001",
+      "shopName": "Nexus Official Tech Store",
+      "identityCardNumber": "079090001234",
+      "warehouseAddress": "456 Nguyen Hue, District 1, Ho Chi Minh City",
+      "reputationScore": 120
+    }
+  ],
+  "total": 1
+}

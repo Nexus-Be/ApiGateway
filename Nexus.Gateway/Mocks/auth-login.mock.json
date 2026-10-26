@@ -14,10 +14,24 @@
   },
   "response": {
     "accessToken": "eyJhbGciOiJIUzI1NiJ9.dev-sample-jwt-token-for-local-testing",
-    "expiresAt": "2026-10-24T00:00:00Z",
-    "userId": "11111111-1111-1111-1111-000000000004",
-    "roles": [
-      "buyer"
-    ]
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9.dev-sample-refresh-token-for-local-testing",
+    "tokenType": "Bearer",
+    "expiresIn": 3600,
+    "user": {
+      "id": "11111111-1111-1111-1111-000000000004",
+      "email": "buyer01@mcs.local",
+      "username": "buyer01",
+      "firstName": "Bao",
+      "lastName": "Nguyen",
+      "roles": [
+        "buyer"
+      ],
+      "permissions": [
+        "CART.VIEW",
+        "CART.UPDATE",
+        "ORDER.VIEW",
+        "CHECKOUT.START"
+      ]
+    }
   }
 }

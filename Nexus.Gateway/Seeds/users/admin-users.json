@@ -1,0 +1,30 @@
+{
+  "items": [
+    {
+      "id": "11111111-1111-1111-1111-000000000001",
+      "email": "buyer01@mcs.local",
+      "firstName": "Alex",
+      "lastName": "Rivers",
+      "phoneNumber": "+84901234567",
+      "status": "ACTIVE",
+      "reputationScore": 120,
+      "roles": [
+        "buyer",
+        "seller"
+      ]
+    },
+    {
+      "id": "11111111-1111-1111-1111-000000000002",
+      "email": "seller02@mcs.local",
+      "firstName": "John",
+      "lastName": "Doe",
+      "phoneNumber": "+84909876543",
+      "status": "ACTIVE",
+      "reputationScore": 85,
+      "roles": [
+        "buyer"
+      ]
+    }
+  ],
+  "total": 2
+}

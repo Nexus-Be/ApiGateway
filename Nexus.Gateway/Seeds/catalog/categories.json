@@ -1,0 +1,20 @@
+{
+  "items": [
+    {
+      "categoryId": "33333333-3333-4333-8333-000000000001",
+      "name": "Electronics",
+      "level": 1,
+      "sortOrder": 1,
+      "children": [
+        { "categoryId": "33333333-3333-4333-8333-000000000002", "name": "Smartphones", "level": 2 },
+        { "categoryId": "33333333-3333-4333-8333-000000000003", "name": "Audio", "level": 2 }
+      ]
+    },
+    {
+      "categoryId": "33333333-3333-4333-8333-000000000004",
+      "name": "Home Appliances",
+      "level": 1,
+      "sortOrder": 2
+    }
+  ]
+}

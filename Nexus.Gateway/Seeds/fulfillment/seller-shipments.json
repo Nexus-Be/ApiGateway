@@ -1,0 +1,27 @@
+{
+  "items": [
+    {
+      "shipmentId": "d3e4f5a6-1111-4b2c-8d3e-4f5a6b7c8d01",
+      "subOrderId": "b1c2d3e4-8888-4f9a-8b0c-2d3e4f5a6b08",
+      "trackingNumber": "GHN1029384756",
+      "carrierName": "GHN",
+      "status": "READY_TO_SHIP",
+      "shippingFee": 30000,
+      "receiverName": "Nguyen Van A",
+      "receiverPhone": "0901234567",
+      "createdAt": "2026-10-26T00:00:00Z"
+    },
+    {
+      "shipmentId": "e4f5a6b7-2222-4c3d-9e4f-5a6b7c8d9e02",
+      "subOrderId": "f5a6b7c8-3333-4d4e-8f5a-6b7c8d9e0f03",
+      "trackingNumber": "GHN1029384757",
+      "carrierName": "GHN",
+      "status": "IN_TRANSIT",
+      "shippingFee": 30000,
+      "receiverName": "Tran Thi B",
+      "receiverPhone": "0912345678",
+      "createdAt": "2026-10-25T00:00:00Z"
+    }
+  ],
+  "total": 2
+}

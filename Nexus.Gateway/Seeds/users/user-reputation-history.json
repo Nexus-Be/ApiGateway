@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "changeAmount": 10,
+      "scoreAfter": 120,
+      "reason": "Successful auction completed with positive feedback",
+      "referenceType": "ORDER_COMPLETED",
+      "createdAt": "2026-10-24T15:30:00Z"
+    },
+    {
+      "id": 2,
+      "changeAmount": 5,
+      "scoreAfter": 110,
+      "reason": "Five star review received",
+      "referenceType": "REVIEW_RECEIVED",
+      "createdAt": "2026-10-22T11:20:00Z"
+    }
+  ],
+  "total": 2,
+  "page": 1,
+  "pageSize": 20
+}

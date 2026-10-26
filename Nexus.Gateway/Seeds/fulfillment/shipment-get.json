@@ -1,0 +1,29 @@
+{
+  "shipmentId": "d3e4f5a6-1111-4b2c-8d3e-4f5a6b7c8d01",
+  "orderId": "6a1b2c3d-7777-4e8f-9a0b-1c2d3e4f5a07",
+  "subOrderId": "b1c2d3e4-8888-4f9a-8b0c-2d3e4f5a6b08",
+  "carrierName": "GHN",
+  "trackingNumber": "GHN1029384756",
+  "status": "IN_TRANSIT",
+  "shippingFee": 30000,
+  "codAmount": 0,
+  "receiverName": "Nguyen Van A",
+  "receiverPhone": "0901234567",
+  "receiverAddress": "123 Le Loi, Ben Nghe, Quan 1, TP.HCM",
+  "events": [
+    {
+      "status": "PICKED_UP",
+      "location": "Kho Tan Binh",
+      "description": "Shipper picked up parcel from seller.",
+      "eventAt": "2026-10-26T08:00:00Z"
+    },
+    {
+      "status": "IN_TRANSIT",
+      "location": "Kho HN SOC",
+      "description": "Parcel is in transit to distribution hub.",
+      "eventAt": "2026-10-26T12:00:00Z"
+    }
+  ],
+  "estimatedDeliveryAt": "2026-10-28T18:00:00Z",
+  "createdAt": "2026-10-26T00:00:00Z"
+}

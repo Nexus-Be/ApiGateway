@@ -1,0 +1,43 @@
+{
+  "items": [
+    {
+      "auctionId": "a1000000-0000-0000-0000-000000000001",
+      "productId": "b1000000-0000-0000-0000-000000000001",
+      "productName": "iPhone 15 Pro Max 256GB",
+      "primaryImageUrl": "https://example.com/images/iphone15.jpg",
+      "auctionStatus": "RUNNING",
+      "myHighestBidAmount": 12000000,
+      "currentPriceAmount": 12500000,
+      "isLeading": false,
+      "endsAt": "2026-10-26T08:00:00+07:00",
+      "lastBidAt": "2026-10-24T13:10:00+07:00"
+    },
+    {
+      "auctionId": "a1000000-0000-0000-0000-000000000004",
+      "productId": "b1000000-0000-0000-0000-000000000004",
+      "productName": "Keychron Q1 Mechanical Keyboard",
+      "primaryImageUrl": "https://example.com/images/keychron.jpg",
+      "auctionStatus": "RUNNING",
+      "myHighestBidAmount": 2300000,
+      "currentPriceAmount": 2300000,
+      "isLeading": true,
+      "endsAt": "2026-10-26T08:00:00+07:00",
+      "lastBidAt": "2026-10-24T12:00:00+07:00"
+    },
+    {
+      "auctionId": "a1000000-0000-0000-0000-000000000003",
+      "productId": "b1000000-0000-0000-0000-000000000003",
+      "productName": "Casio G-Shock Watch",
+      "primaryImageUrl": "https://example.com/images/gshock.jpg",
+      "auctionStatus": "ENDED",
+      "myHighestBidAmount": 1800000,
+      "currentPriceAmount": 1800000,
+      "isLeading": true,
+      "endsAt": "2026-10-22T08:00:00+07:00",
+      "lastBidAt": "2026-10-22T07:58:00+07:00"
+    }
+  ],
+  "total": 3,
+  "page": 1,
+  "pageSize": 20
+}

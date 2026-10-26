@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "key": "user.registration.require_otp",
+      "value": "true",
+      "description": "Enforce email OTP verification upon user registration",
+      "dataType": "BOOLEAN",
+      "updatedAt": "2026-10-20T00:00:00Z"
+    },
+    {
+      "key": "user.reputation.min_score_to_bid",
+      "value": "50",
+      "description": "Minimum reputation score required to place bids in auctions",
+      "dataType": "INTEGER",
+      "updatedAt": "2026-10-20T00:00:00Z"
+    }
+  ]
+}

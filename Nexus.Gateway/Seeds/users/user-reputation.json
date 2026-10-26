@@ -1,0 +1,12 @@
+{
+  "userId": "11111111-1111-1111-1111-000000000001",
+  "reputationScore": 120,
+  "trustLevel": "PLATINUM",
+  "badges": [
+    "TOP_RATED"
+  ],
+  "canBid": true,
+  "canSell": true,
+  "totalReviews": 50,
+  "positiveRatio": 0.96
+}

@@ -118,4 +118,68 @@ public sealed class HealthProberControllerTests
         using var doc = JsonDocument.Parse(content);
         Assert.Equal("DOWNSTREAM_UNHEALTHY", doc.RootElement.GetProperty("errorCode").GetString());
     }
+
+    [Fact]
+    public async Task Database_prober_status_toggle_and_manual_check()
+    {
+        using var app = new Factory();
+        using var client = app.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
+
+        // 1. Get all databases status
+        var allResp = await client.GetAsync("/api/v1/gateway/prober/databases/status");
+        Assert.Equal(HttpStatusCode.OK, allResp.StatusCode);
+        var allContent = await allResp.Content.ReadAsStringAsync();
+        using var allDoc = JsonDocument.Parse(allContent);
+        Assert.True(allDoc.RootElement.GetProperty("success").GetBoolean());
+        var allData = allDoc.RootElement.GetProperty("data");
+        Assert.Equal(8, allData.GetArrayLength());
+
+        // 2. Toggle database for catalog
+        var toggleResp = await client.PutAsJsonAsync("/api/v1/gateway/prober/databases/catalog", new
+        {
+            enabled = true,
+            connectionString = "Host=ep-cool-fog.ap-southeast-1.aws.neon.tech;Database=catalog_db;"
+        });
+        Assert.Equal(HttpStatusCode.OK, toggleResp.StatusCode);
+
+        // 3. Get single database status
+        var singleResp = await client.GetAsync("/api/v1/gateway/prober/databases/status/catalog");
+        Assert.Equal(HttpStatusCode.OK, singleResp.StatusCode);
+        var singleContent = await singleResp.Content.ReadAsStringAsync();
+        using var singleDoc = JsonDocument.Parse(singleContent);
+        Assert.True(singleDoc.RootElement.GetProperty("data").GetProperty("isEnabled").GetBoolean());
+
+        // 4. Manual database check
+        var checkResp = await client.PostAsync("/api/v1/gateway/prober/databases/catalog/check", null);
+        Assert.Equal(HttpStatusCode.OK, checkResp.StatusCode);
+        var checkContent = await checkResp.Content.ReadAsStringAsync();
+        using var checkDoc = JsonDocument.Parse(checkContent);
+        Assert.True(checkDoc.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("healthy", checkDoc.RootElement.GetProperty("data").GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task CheckHealService_self_probe_endpoints()
+    {
+        using var app = new Factory();
+        using var client = app.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
+
+        // 1. CheckHealService operational status
+        var statusResp = await client.GetAsync("/api/v1/gateway/prober/healthcheck-service/status");
+        Assert.Equal(HttpStatusCode.OK, statusResp.StatusCode);
+        var statusContent = await statusResp.Content.ReadAsStringAsync();
+        using var statusDoc = JsonDocument.Parse(statusContent);
+        Assert.True(statusDoc.RootElement.GetProperty("success").GetBoolean());
+        Assert.True(statusDoc.RootElement.GetProperty("data").GetProperty("isHealthy").GetBoolean());
+
+        // 2. Active probe to CheckHealService
+        var probeResp = await client.PostAsync("/api/v1/gateway/prober/healthcheck-service/check", null);
+        Assert.Equal(HttpStatusCode.OK, probeResp.StatusCode);
+        var probeContent = await probeResp.Content.ReadAsStringAsync();
+        using var probeDoc = JsonDocument.Parse(probeContent);
+        Assert.True(probeDoc.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("healthy", probeDoc.RootElement.GetProperty("data").GetProperty("status").GetString());
+    }
 }

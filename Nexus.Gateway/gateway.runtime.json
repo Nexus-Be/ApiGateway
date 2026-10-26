@@ -45,7 +45,7 @@
     "AllowAnonymousMockAuthInDevelopment": true,
     "AllowMockTokenAuth": true,
     "DefaultMockUserId": "11111111-1111-1111-1111-000000000004",
-    "DefaultMockRole": "buyer",
+    "DefaultMockRole": "Buyer",
     "AuthMode": "Enforce",
     "Services": {
       "users": {
@@ -56,21 +56,21 @@
         "MockStatus": 200
       },
       "catalog": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8002",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
         "MockStatus": 200
       },
       "commerce": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8003",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
         "MockStatus": 200
       },
       "log": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8004",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
@@ -84,7 +84,7 @@
         "MockStatus": 200
       },
       "fulfillment": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8006",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
@@ -98,8 +98,15 @@
         "MockStatus": 200
       },
       "wallet": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8008",
+        "TimeoutSeconds": 5,
+        "MockDelayMs": 0,
+        "MockStatus": 200
+      },
+      "healthcheck": {
+        "Mode": "Mock",
+        "Address": "http://localhost:8009",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
         "MockStatus": 200

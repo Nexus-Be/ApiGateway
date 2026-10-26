@@ -1,0 +1,16 @@
+{
+  "currentStatus": "UP",
+  "lastCheckedAt": "2026-10-26T00:00:00Z",
+  "latestLatencyMs": 5,
+  "latestQueueDepth": 0,
+  "history": [
+    {
+      "id": "h1111111-1111-1111-1111-000000000001",
+      "brokerName": "rabbitmq",
+      "status": "UP",
+      "latencyMs": 5,
+      "queueDepth": 0,
+      "checkedAt": "2026-10-26T00:00:00Z"
+    }
+  ]
+}

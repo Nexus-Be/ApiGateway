@@ -155,10 +155,10 @@ public static class SecurityConfiguration
         {
             o.AddPolicy(GatewayPolicies.Authenticated, p => p.RequireAuthenticatedUser().RequireClaim("sub"));
             o.AddPolicy(GatewayPolicies.Customer, p => p.RequireAuthenticatedUser().RequireClaim("sub"));
-            o.AddPolicy(GatewayPolicies.Seller, p => p.RequireAuthenticatedUser().RequireRole("seller", "admin"));
-            o.AddPolicy(GatewayPolicies.Staff, p => p.RequireAuthenticatedUser().RequireRole("staff", "admin"));
-            o.AddPolicy(GatewayPolicies.Admin, p => p.RequireAuthenticatedUser().RequireRole("admin"));
-            o.AddPolicy(GatewayPolicies.GatewayAdmin, p => p.RequireAuthenticatedUser().RequireRole("admin"));
+            o.AddPolicy(GatewayPolicies.Seller, p => p.RequireAuthenticatedUser().RequireRole("seller", "admin", "Seller", "Admin"));
+            o.AddPolicy(GatewayPolicies.Staff, p => p.RequireAuthenticatedUser().RequireRole("staff", "admin", "Staff", "Admin"));
+            o.AddPolicy(GatewayPolicies.Admin, p => p.RequireAuthenticatedUser().RequireRole("admin", "Admin"));
+            o.AddPolicy(GatewayPolicies.GatewayAdmin, p => p.RequireAuthenticatedUser().RequireRole("admin", "Admin"));
         });
 
         return services;

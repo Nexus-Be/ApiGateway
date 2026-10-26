@@ -1,0 +1,14 @@
+{
+  "orderId": "6a1b2c3d-7777-4e8f-9a0b-1c2d3e4f5a07",
+  "shipments": [
+    {
+      "shipmentId": "d3e4f5a6-1111-4b2c-8d3e-4f5a6b7c8d01",
+      "subOrderId": "b1c2d3e4-8888-4f9a-8b0c-2d3e4f5a6b08",
+      "carrierName": "GHN",
+      "trackingNumber": "GHN1029384756",
+      "status": "IN_TRANSIT",
+      "shippingFee": 30000,
+      "estimatedDeliveryAt": "2026-10-28T18:00:00Z"
+    }
+  ]
+}

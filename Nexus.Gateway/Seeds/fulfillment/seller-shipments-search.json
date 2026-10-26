@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "shipmentId": "d3e4f5a6-1111-4b2c-8d3e-4f5a6b7c8d01",
+      "trackingNumber": "GHN1029384756",
+      "subOrderId": "b1c2d3e4-8888-4f9a-8b0c-2d3e4f5a6b08",
+      "carrierName": "GHN",
+      "status": "IN_TRANSIT",
+      "receiverName": "Nguyen Van A",
+      "createdAt": "2026-10-26T00:00:00Z"
+    }
+  ],
+  "total": 1
+}

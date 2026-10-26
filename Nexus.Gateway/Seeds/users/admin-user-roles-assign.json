@@ -1,0 +1,9 @@
+{
+  "userId": "11111111-1111-1111-1111-000000000001",
+  "roles": [
+    "buyer",
+    "seller",
+    "staff"
+  ],
+  "updatedBy": "admin@nexus.local"
+}

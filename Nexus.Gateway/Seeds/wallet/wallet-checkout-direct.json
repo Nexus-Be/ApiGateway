@@ -1,0 +1,8 @@
+{
+  "transactionId": "11111111-1111-1111-1111-000000000004",
+  "orderId": "11111111-1111-1111-1111-000000000005",
+  "amount": 480000,
+  "paymentUrl": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=48000000&vnp_TxnRef=DIRECT-20261026-5678",
+  "status": "PENDING",
+  "createdAt": "2026-10-26T00:00:00Z"
+}

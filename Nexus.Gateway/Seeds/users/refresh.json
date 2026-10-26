@@ -1,0 +1,5 @@
+{
+  "accessToken": "mock-refreshed-jwt-token-access",
+  "refreshToken": "mock-refreshed-jwt-token-refresh",
+  "expiresIn": 3600
+}

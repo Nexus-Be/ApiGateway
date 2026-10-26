@@ -1,0 +1,10 @@
+{
+  "walletId": "11111111-1111-1111-1111-000000000001",
+  "userId": "11111111-1111-1111-1111-000000000002",
+  "balance": 1500000.00,
+  "lockedBalance": 200000.00,
+  "availableBalance": 1300000.00,
+  "currency": "VND",
+  "status": "ACTIVE",
+  "updatedAt": "2026-10-26T00:00:00Z"
+}

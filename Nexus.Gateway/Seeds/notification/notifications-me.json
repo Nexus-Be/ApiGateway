@@ -1,0 +1,32 @@
+{
+  "unreadCount": 3,
+  "totalCount": 10,
+  "items": [
+    {
+      "id": "e1111111-1111-1111-1111-000000000001",
+      "notificationType": "ORDER_PAID",
+      "title": "Don hang #SUB-01 da duoc thanh toan",
+      "body": "Don hang tri gia 480.000d da duoc thanh toan thanh cong.",
+      "payload": {
+        "orderId": "c1111111-1111-1111-1111-000000000001",
+        "subOrderId": "c1111111-1111-1111-1111-000000000002"
+      },
+      "isRead": false,
+      "readAt": null,
+      "createdAt": "2026-10-26T00:00:00Z"
+    },
+    {
+      "id": "e1111111-1111-1111-1111-000000000002",
+      "notificationType": "AUCTION_OUTBID",
+      "title": "Ban da bi vuot gia dau",
+      "body": "Co nguoi da dat gia cao hon tai phien dau gia #AUC-01.",
+      "payload": {
+        "auctionId": "a1111111-1111-1111-1111-000000000001",
+        "currentBid": 550000
+      },
+      "isRead": false,
+      "readAt": null,
+      "createdAt": "2026-10-26T00:10:00Z"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "items": [
+    {
+      "configKey": "DEFAULT_AUCTION_POLICY",
+      "configValue": {
+        "antiSnipingExtensionMinutes": 5,
+        "maxExtensionCount": 10,
+        "minReputationToBid": 40,
+        "minReputationToSell": 50
+      },
+      "description": "Marketplace default bidding and anti-sniping policy",
+      "version": 1,
+      "updatedBy": null,
+      "updatedAt": "2026-10-20T08:00:00+07:00"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "id": "t1111111-1111-1111-1111-000000000001",
+      "code": "ORDER_PAID_EMAIL",
+      "notificationType": "ORDER_PAID",
+      "channelCode": "EMAIL",
+      "subjectTemplate": "Don hang {{orderNo}} thanh toan thanh cong",
+      "bodyTemplate": "<p>Xin chao {{userName}}, don hang {{orderNo}} da duoc xac nhan.</p>",
+      "isMandatory": true,
+      "locale": "vi-VN",
+      "isActive": true
+    },
+    {
+      "id": "t1111111-1111-1111-1111-000000000002",
+      "code": "AUCTION_OUTBID_PUSH",
+      "notificationType": "AUCTION_OUTBID",
+      "channelCode": "PUSH",
+      "subjectTemplate": null,
+      "bodyTemplate": "Ban da bi vuot gia tai san pham {{productName}}",
+      "isMandatory": false,
+      "locale": "vi-VN",
+      "isActive": true
+    }
+  ]
+}

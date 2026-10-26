@@ -10,7 +10,9 @@ public static class GrpcClientsExtension
     {
         // Core User/Auth Service Client
         services.AddNamedGrpcClient<UsersApi.UsersApiClient>("users");
-
+        services.AddNamedGrpcClient<UserApi.UserApiClient>("users");
+        services.AddNamedGrpcClient<CatalogApi.CatalogApiClient>("catalog");
+        services.AddNamedGrpcClient<AuctionApi.AuctionApiClient>("auction");
         // NOTE (Team): Khi phát triển các Microservices tiếp theo (Catalog, Commerce, etc.),
         // bổ sung contract tương ứng vào shop.proto và đăng ký AddNamedGrpcClient tại đây.
 

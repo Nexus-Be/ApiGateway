@@ -1,0 +1,6 @@
+{
+  "cartItemId": "1a2b3c4d-1111-4a2b-9c3d-4e5f6a7b8c01",
+  "quantity": 2,
+  "lineTotal": 1000000,
+  "cart": { "itemCount": 3, "subtotalAmount": 1330000 }
+}

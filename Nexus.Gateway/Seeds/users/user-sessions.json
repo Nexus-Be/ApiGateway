@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "sessionId": "session_001",
+      "deviceInfo": "Chrome / macOS",
+      "ipAddress": "127.0.0.1",
+      "lastActiveAt": "2026-10-25T12:00:00Z",
+      "isCurrent": true
+    },
+    {
+      "sessionId": "session_002",
+      "deviceInfo": "Safari / iOS",
+      "ipAddress": "127.0.0.2",
+      "lastActiveAt": "2026-10-24T18:30:00Z",
+      "isCurrent": false
+    }
+  ]
+}

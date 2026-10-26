@@ -1,0 +1,21 @@
+{
+  "variantId": "44444444-4444-4444-8444-000000000001",
+  "productId": "22222222-2222-4222-8222-000000000001",
+  "skuCode": "NX-HP-001-BLK",
+  "name": "Matte Black",
+  "price": 1250000,
+  "currency": "VND",
+  "status": "ACTIVE",
+  "isDefault": true,
+  "hasOrder": true,
+  "attributes": [
+    { "attrName": "Color", "attrValue": "Black" }
+  ],
+  "images": [
+    {
+      "imageId": "66666666-6666-4666-8666-000000000001",
+      "url": "https://cdn.nexus.local/catalog/headphones-1.jpg",
+      "isActive": true
+    }
+  ]
+}
