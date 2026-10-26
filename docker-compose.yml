@@ -28,8 +28,8 @@ services:
       - Gateway__Services__notification__Address=${NOTIFICATION_SERVICE_URL:-http://notification-service:8007}
       - Gateway__Services__wallet__Address=${WALLET_SERVICE_URL:-http://wallet-service:8008}
       - Gateway__Services__healthcheck__Address=${HEALTHCHECK_SERVICE_URL:-http://checkheal-service:8009}
-      - Gateway__HealthProber__ApiKey=${CHECKHEAL_API_KEY:-j-E<34$h_R}K2[Q1&Yo:SbM6({I?6M88[23!nQ3bJinj@P5:u8?JRw3RKnMRm93E0Q*H1D=)]S#,=ZcEa+KmKC}
-      - CHECKHEAL_API_KEY=${CHECKHEAL_API_KEY:-j-E<34$h_R}K2[Q1&Yo:SbM6({I?6M88[23!nQ3bJinj@P5:u8?JRw3RKnMRm93E0Q*H1D=)]S#,=ZcEa+KmKC}
+      - Gateway__HealthProber__ApiKey=${CHECKHEAL_API_KEY}
+      - CHECKHEAL_API_KEY=${CHECKHEAL_API_KEY}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
