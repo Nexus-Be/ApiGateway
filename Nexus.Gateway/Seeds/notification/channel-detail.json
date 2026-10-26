@@ -1,0 +1,13 @@
+{
+  "id": "c1111111-1111-1111-1111-000000000001",
+  "code": "EMAIL",
+  "name": "Email Service",
+  "provider": "SMTP",
+  "config": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "fromAddress": "noreply@shop.example.com"
+  },
+  "isEnabled": true,
+  "updatedAt": "2026-10-26T00:00:00Z"
+}

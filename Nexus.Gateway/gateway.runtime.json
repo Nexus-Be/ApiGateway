@@ -45,7 +45,7 @@
     "AllowAnonymousMockAuthInDevelopment": true,
     "AllowMockTokenAuth": true,
     "DefaultMockUserId": "11111111-1111-1111-1111-000000000004",
-    "DefaultMockRole": "buyer",
+    "DefaultMockRole": "Buyer",
     "AuthMode": "Enforce",
     "Services": {
       "users": {
@@ -70,7 +70,7 @@
         "MockStatus": 200
       },
       "log": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8004",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,
@@ -91,7 +91,7 @@
         "MockStatus": 200
       },
       "notification": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8007",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,

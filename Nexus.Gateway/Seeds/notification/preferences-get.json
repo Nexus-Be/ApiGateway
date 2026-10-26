@@ -1,0 +1,28 @@
+{
+  "items": [
+    {
+      "notificationType": "ORDER_PAID",
+      "channelCode": "EMAIL",
+      "isEnabled": true,
+      "isMandatory": true
+    },
+    {
+      "notificationType": "ORDER_PAID",
+      "channelCode": "PUSH",
+      "isEnabled": true,
+      "isMandatory": false
+    },
+    {
+      "notificationType": "AUCTION_OUTBID",
+      "channelCode": "PUSH",
+      "isEnabled": true,
+      "isMandatory": false
+    },
+    {
+      "notificationType": "PROMOTION",
+      "channelCode": "EMAIL",
+      "isEnabled": false,
+      "isMandatory": false
+    }
+  ]
+}

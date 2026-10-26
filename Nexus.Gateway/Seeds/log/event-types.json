@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "code": "ORDER_CREATED",
+      "serviceName": "Commerce",
+      "category": "Order",
+      "description": "Triggered when a new checkout order is created.",
+      "isEnabled": true,
+      "createdAt": "2026-10-26T00:00:00Z",
+      "updatedAt": "2026-10-26T00:00:00Z"
+    },
+    {
+      "code": "WALLET_DEBITED",
+      "serviceName": "Wallet",
+      "category": "Payment",
+      "description": "Triggered when wallet balance is debited for checkout.",
+      "isEnabled": true,
+      "createdAt": "2026-10-26T00:00:00Z",
+      "updatedAt": "2026-10-26T00:00:00Z"
+    },
+    {
+      "code": "LOGIN_SUCCESS",
+      "serviceName": "User",
+      "category": "Security",
+      "description": "Triggered when a user successfully authenticates.",
+      "isEnabled": true,
+      "createdAt": "2026-10-26T00:00:00Z",
+      "updatedAt": "2026-10-26T00:00:00Z"
+    }
+  ],
+  "total": 3
+}

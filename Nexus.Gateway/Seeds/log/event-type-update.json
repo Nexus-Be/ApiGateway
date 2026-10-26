@@ -1,0 +1,8 @@
+{
+  "code": "ORDER_CREATED",
+  "serviceName": "Commerce",
+  "category": "Order",
+  "description": "Triggered when a new checkout order is created.",
+  "isEnabled": true,
+  "updatedAt": "2026-10-26T12:00:00Z"
+}

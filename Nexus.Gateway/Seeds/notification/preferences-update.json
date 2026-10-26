@@ -1,0 +1,10 @@
+{
+  "updatedCount": 1,
+  "preferences": [
+    {
+      "notificationType": "ORDER_PAID",
+      "channelCode": "EMAIL",
+      "isEnabled": true
+    }
+  ]
+}

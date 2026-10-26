@@ -1,0 +1,20 @@
+{
+  "id": "a1b2c3d4-1111-4444-8888-123456789001",
+  "occurredAt": "2026-10-26T00:15:30Z",
+  "recordedAt": "2026-10-26T00:15:31Z",
+  "serviceName": "Commerce",
+  "eventType": "ORDER_CREATED",
+  "action": "CREATE",
+  "entityName": "Order",
+  "entityId": "e1f2a3b4-5555-4666-8777-999900000001",
+  "actorUserId": "11111111-1111-1111-1111-000000000004",
+  "actorUsername": "buyer01",
+  "actorRole": "Buyer",
+  "correlationId": "corr-order-001",
+  "causationId": "cause-checkout-001",
+  "messageId": "msg-order-001",
+  "schemaVersion": 1,
+  "traceId": "trace-nexus-001",
+  "payload": "{\"orderId\":\"e1f2a3b4-5555-4666-8777-999900000001\",\"totalAmount\":150000}",
+  "logLevel": "INFO"
+}

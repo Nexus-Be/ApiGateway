@@ -1,0 +1,9 @@
+{
+  "id": "t1111111-1111-1111-1111-000000000001",
+  "code": "ORDER_PAID_EMAIL",
+  "notificationType": "ORDER_PAID",
+  "channelCode": "EMAIL",
+  "isMandatory": true,
+  "locale": "vi-VN",
+  "isActive": true
+}
