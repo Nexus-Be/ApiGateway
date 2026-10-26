@@ -91,7 +91,7 @@
         "MockStatus": 200
       },
       "notification": {
-        "Mode": "Real",
+        "Mode": "Mock",
         "Address": "http://localhost:8007",
         "TimeoutSeconds": 5,
         "MockDelayMs": 0,

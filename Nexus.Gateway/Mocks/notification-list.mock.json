@@ -1,0 +1,22 @@
+{
+  "id": "mock-notification-list",
+  "service": "notification",
+  "method": "GET",
+  "path": "/api/v1/notification",
+  "description": "Sample notifications for frontend development",
+  "policy": "authenticated",
+  "statusCode": 200,
+  "responseType": "paged",
+  "response": {
+    "items": [
+      {
+        "id": "77777777-7777-7777-7777-000000000001",
+        "title": "Order paid",
+        "body": "Your order has been paid successfully.",
+        "isRead": false,
+        "createdAt": "2026-10-26T00:00:00Z"
+      }
+    ],
+    "total": 1
+  }
+}

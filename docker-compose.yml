@@ -16,6 +16,7 @@ services:
       - "host.docker.internal:host-gateway"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - Gateway__AuthMode=${GATEWAY_AUTH_MODE:-Enforce}
       - Gateway__RedisConnectionString=${REDIS_CONNECTION_STRING:-redis:6379}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4317}
       - Gateway__Services__users__Address=${USERS_SERVICE_URL:-http://user-service:8001}
