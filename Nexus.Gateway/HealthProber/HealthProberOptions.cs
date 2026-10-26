@@ -43,4 +43,9 @@ public sealed class HealthProberOptions
     /// Giới hạn số dòng tối đa trên 1 tệp log trước khi xoay sang tệp mới (mặc định 1000 dòng)
     /// </summary>
     public int MaxLinesPerLogFile { get; set; } = 1000;
+
+    /// <summary>
+    /// Mã API Key bảo mật dùng để xác thực quyền thao tác các API CheckHeal tại Gateway và CheckHealService
+    /// </summary>
+    public string ApiKey { get; set; } = string.Empty;
 }

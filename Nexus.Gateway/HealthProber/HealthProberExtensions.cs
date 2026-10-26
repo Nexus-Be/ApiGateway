@@ -11,12 +11,29 @@ public static class HealthProberExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.Configure<HealthProberOptions>(configuration.GetSection(HealthProberOptions.SectionName));
+        services.Configure<HealthProberOptions>(options =>
+        {
+            configuration.GetSection(HealthProberOptions.SectionName).Bind(options);
+            var envKey = configuration["CHECKHEAL_API_KEY"];
+            if (!string.IsNullOrWhiteSpace(envKey))
+            {
+                options.ApiKey = envKey;
+            }
+        });
 
         services.AddHttpClient("HealthProberClient");
-        services.AddHttpClient("HealthCheckService", client =>
+        services.AddHttpClient("HealthCheckService", (sp, client) =>
         {
             client.Timeout = TimeSpan.FromSeconds(10);
+            var proberOpts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<HealthProberOptions>>().Value;
+            var config = sp.GetRequiredService<IConfiguration>();
+            var apiKey = !string.IsNullOrWhiteSpace(proberOpts.ApiKey)
+                ? proberOpts.ApiKey
+                : config["CHECKHEAL_API_KEY"] ?? config["CheckHeal:ApiKey"] ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                client.DefaultRequestHeaders.TryAddWithoutValidation("X-Api-Key", apiKey);
+            }
         });
 
         services.AddSingleton<ICheckHealServiceClient, CheckHealServiceClient>();

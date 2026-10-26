@@ -9,15 +9,19 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Nexus.Gateway.Dtos.HealthProber;
+using Nexus.Gateway.HealthProber;
 
 public sealed class CheckHealServiceClient : ICheckHealServiceClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOptionsMonitor<GatewayOptions> _gatewayOptions;
     private readonly ILogger<CheckHealServiceClient> _logger;
+    private readonly IOptionsMonitor<HealthProberOptions>? _proberOptions;
+    private readonly IConfiguration? _configuration;
 
     // In-memory mock store for Mock mode / fallback during testing
     private readonly ConcurrentDictionary<string, CheckHealTargetDto> _mockServices = new(StringComparer.OrdinalIgnoreCase);
@@ -26,11 +30,15 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
     public CheckHealServiceClient(
         IHttpClientFactory httpClientFactory,
         IOptionsMonitor<GatewayOptions> gatewayOptions,
-        ILogger<CheckHealServiceClient> logger)
+        ILogger<CheckHealServiceClient> logger,
+        IOptionsMonitor<HealthProberOptions>? proberOptions = null,
+        IConfiguration? configuration = null)
     {
         _httpClientFactory = httpClientFactory;
         _gatewayOptions = gatewayOptions;
         _logger = logger;
+        _proberOptions = proberOptions;
+        _configuration = configuration;
 
         InitializeMockData();
     }
@@ -87,6 +95,19 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
             : "http://localhost:8009";
     }
 
+    private HttpClient CreateHttpClient()
+    {
+        var client = CreateHttpClient();
+        var apiKey = !string.IsNullOrWhiteSpace(_proberOptions?.CurrentValue?.ApiKey)
+            ? _proberOptions.CurrentValue.ApiKey
+            : _configuration?["CHECKHEAL_API_KEY"];
+        if (!string.IsNullOrWhiteSpace(apiKey) && !client.DefaultRequestHeaders.Contains("X-Api-Key"))
+        {
+            client.DefaultRequestHeaders.TryAddWithoutValidation("X-Api-Key", apiKey);
+        }
+        return client;
+    }
+
     public async Task<CheckHealDashboardDto?> GetDashboardAsync(CancellationToken ct = default)
     {
         if (IsMockMode())
@@ -110,7 +131,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/status";
             return await client.GetFromJsonAsync<CheckHealDashboardDto>(url, ct);
         }
@@ -130,7 +151,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/services";
             var result = await client.GetFromJsonAsync<List<CheckHealTargetDto>>(url, ct);
             return result ?? new List<CheckHealTargetDto>();
@@ -152,7 +173,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/services/{canonical}";
             return await client.GetFromJsonAsync<CheckHealTargetDto>(url, ct);
         }
@@ -184,7 +205,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var reqUrl = $"{GetBaseUrl()}/api/v1/healthcheck/services/{canonical}/toggle";
             var response = await client.PutAsJsonAsync(reqUrl, new { enabled, url }, ct);
             if (response.IsSuccessStatusCode)
@@ -217,7 +238,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/services/{canonical}/check";
             var response = await client.PostAsync(url, null, ct);
             if (response.IsSuccessStatusCode)
@@ -242,7 +263,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/databases";
             var result = await client.GetFromJsonAsync<List<CheckHealTargetDto>>(url, ct);
             return result ?? new List<CheckHealTargetDto>();
@@ -264,7 +285,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/databases/{canonical}";
             return await client.GetFromJsonAsync<CheckHealTargetDto>(url, ct);
         }
@@ -296,7 +317,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var reqUrl = $"{GetBaseUrl()}/api/v1/healthcheck/databases/{canonical}/toggle";
             var response = await client.PutAsJsonAsync(reqUrl, new { enabled, connectionString }, ct);
             if (response.IsSuccessStatusCode)
@@ -329,7 +350,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/databases/{canonical}/check";
             var response = await client.PostAsync(url, null, ct);
             if (response.IsSuccessStatusCode)
@@ -369,7 +390,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var url = $"{GetBaseUrl()}/api/v1/healthcheck/bulk-toggle";
             var response = await client.PutAsJsonAsync(url, new { enabled, kind }, ct);
             return response.IsSuccessStatusCode;
@@ -400,7 +421,7 @@ public sealed class CheckHealServiceClient : ICheckHealServiceClient
 
         try
         {
-            var client = _httpClientFactory.CreateClient("HealthCheckService");
+            var client = CreateHttpClient();
             var response = await client.GetAsync(targetUrl, ct);
             sw.Stop();
 

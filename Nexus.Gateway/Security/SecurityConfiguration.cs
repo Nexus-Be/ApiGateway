@@ -58,6 +58,32 @@ public static class SecurityConfiguration
                 {
                     OnMessageReceived = context =>
                     {
+                        var config = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                        var checkHealApiKey = config["CHECKHEAL_API_KEY"] ?? config["Gateway:HealthProber:ApiKey"];
+
+                        if (!string.IsNullOrWhiteSpace(checkHealApiKey))
+                        {
+                            var providedKey = context.Request.Headers.TryGetValue("X-Api-Key", out var apiKeyVals)
+                                ? apiKeyVals.FirstOrDefault()
+                                : null;
+
+                            if (string.Equals(providedKey, checkHealApiKey, StringComparison.Ordinal))
+                            {
+                                var claims = new[]
+                                {
+                                    new Claim("sub", "checkheal-system"),
+                                    new Claim(ClaimTypes.NameIdentifier, "checkheal-system"),
+                                    new Claim(ClaimTypes.Role, "admin"),
+                                    new Claim("role", "admin"),
+                                    new Claim("auth_method", "api_key")
+                                };
+                                var identity = new ClaimsIdentity(claims, "ApiKey");
+                                context.Principal = new ClaimsPrincipal(identity);
+                                context.Success();
+                                return Task.CompletedTask;
+                            }
+                        }
+
                         var env = context.HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
                         var opts = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GatewayOptions>>().CurrentValue;
 

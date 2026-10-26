@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+
 namespace Nexus.Gateway.Controllers;
 
 using System.Linq;
@@ -18,20 +22,92 @@ using Nexus.Gateway.Security;
 [EnableRateLimiting("api")]
 [Authorize(GatewayPolicies.GatewayAdmin)]
 [DisableMockAuthorizationBypass]
-public sealed class HealthProberController : ControllerBase
+public sealed class HealthProberController : ControllerBase, IActionFilter
 {
     private readonly IHealthProberManager _manager;
     private readonly ICheckHealServiceClient _checkHealClient;
     private readonly IApiResponseFactory _factory;
+    private readonly IOptionsMonitor<HealthProberOptions> _proberOptions;
+    private readonly IConfiguration _configuration;
 
     public HealthProberController(
         IHealthProberManager manager,
         ICheckHealServiceClient checkHealClient,
-        IApiResponseFactory factory)
+        IApiResponseFactory factory,
+        IOptionsMonitor<HealthProberOptions> proberOptions,
+        IConfiguration configuration)
     {
         _manager = manager;
         _checkHealClient = checkHealClient;
         _factory = factory;
+        _proberOptions = proberOptions;
+        _configuration = configuration;
+    }
+
+    [NonAction]
+    public void OnActionExecuting(ActionExecutingContext context)
+    {
+        var expectedKey = !string.IsNullOrWhiteSpace(_proberOptions.CurrentValue.ApiKey)
+            ? _proberOptions.CurrentValue.ApiKey
+            : _configuration["CHECKHEAL_API_KEY"];
+
+        if (!string.IsNullOrWhiteSpace(expectedKey))
+        {
+            if (!TryExtractApiKey(context.HttpContext, out var providedKey) ||
+                !string.Equals(providedKey, expectedKey, StringComparison.Ordinal))
+            {
+                var failure = ApiResponseFactory.Failure(
+                    context.HttpContext,
+                    "Invalid or missing CheckHeal API key.",
+                    StatusCodes.Status401Unauthorized,
+                    errorCode: "UNAUTHORIZED");
+
+                context.Result = new ObjectResult(failure)
+                {
+                    StatusCode = StatusCodes.Status401Unauthorized
+                };
+            }
+        }
+    }
+
+    [NonAction]
+    public void OnActionExecuted(ActionExecutedContext context)
+    {
+    }
+
+    private static bool TryExtractApiKey(HttpContext context, out string apiKey)
+    {
+        if (context.Request.Headers.TryGetValue("X-Api-Key", out var headerValues) &&
+            !string.IsNullOrWhiteSpace(headerValues.FirstOrDefault()))
+        {
+            apiKey = headerValues.First()!.Trim();
+            return true;
+        }
+
+        if (context.Request.Headers.TryGetValue("X-CheckHeal-Key", out var chValues) &&
+            !string.IsNullOrWhiteSpace(chValues.FirstOrDefault()))
+        {
+            apiKey = chValues.First()!.Trim();
+            return true;
+        }
+
+        if (context.Request.Headers.TryGetValue("Authorization", out var authValues) &&
+            !string.IsNullOrWhiteSpace(authValues.FirstOrDefault()))
+        {
+            var authVal = authValues.First()!.Trim();
+            if (authVal.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                var token = authVal["Bearer ".Length..].Trim();
+                if (!string.IsNullOrEmpty(token) && !token.Contains('.')) // exclude JWT
+                {
+                    apiKey = token;
+                    return true;
+                }
+            }
+        }
+
+        apiKey = string.Empty;
+        return false;
     }
 
     [HttpGet("gateway/prober/status")]

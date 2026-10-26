@@ -11,13 +11,15 @@ using Xunit;
 
 public sealed class HealthProberControllerTests
 {
+    private const string ValidApiKey = "j-E<34$h_R}K2[Q1&Yo:SbM6({I?6M88[23!nQ3bJinj@P5:u8?JRw3RKnMRm93E0Q*H1D=)]S#,=ZcEa+KmKC";
+
     [Fact]
-    public async Task Get_prober_status_requires_admin_and_returns_all_8_services()
+    public async Task Get_prober_status_requires_admin_and_valid_api_key()
     {
         using var app = new Factory();
         using var client = app.CreateClient();
 
-        // 1. Không có token -> 401 Unauthorized
+        // 1. Không có token và không có API key -> 401 Unauthorized
         var unauthResp = await client.GetAsync("/api/v1/gateway/prober/status");
         Assert.Equal(HttpStatusCode.Unauthorized, unauthResp.StatusCode);
 
@@ -26,8 +28,19 @@ public sealed class HealthProberControllerTests
         var forbiddenResp = await client.GetAsync("/api/v1/gateway/prober/status");
         Assert.Equal(HttpStatusCode.Forbidden, forbiddenResp.StatusCode);
 
-        // 3. Token admin -> 200 OK
+        // 3. Token admin nhưng không truyền API key -> 401 Unauthorized
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
+        var noKeyResp = await client.GetAsync("/api/v1/gateway/prober/status");
+        Assert.Equal(HttpStatusCode.Unauthorized, noKeyResp.StatusCode);
+
+        // 4. Token admin nhưng sai API key -> 401 Unauthorized
+        client.DefaultRequestHeaders.Add("X-Api-Key", "invalid-key-xyz");
+        var badKeyResp = await client.GetAsync("/api/v1/gateway/prober/status");
+        Assert.Equal(HttpStatusCode.Unauthorized, badKeyResp.StatusCode);
+
+        // 5. Token admin và đúng API key -> 200 OK
+        client.DefaultRequestHeaders.Remove("X-Api-Key");
+        client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
         var okResp = await client.GetAsync("/api/v1/gateway/prober/status");
         Assert.Equal(HttpStatusCode.OK, okResp.StatusCode);
 
@@ -37,6 +50,12 @@ public sealed class HealthProberControllerTests
 
         var data = doc.RootElement.GetProperty("data");
         Assert.Equal(8, data.GetArrayLength());
+
+        // 6. Truy cập chỉ bằng API key hợp lệ (không cần JWT token) -> 200 OK
+        using var apiKeyOnlyClient = app.CreateClient();
+        apiKeyOnlyClient.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
+        var apiKeyOkResp = await apiKeyOnlyClient.GetAsync("/api/v1/gateway/prober/status");
+        Assert.Equal(HttpStatusCode.OK, apiKeyOkResp.StatusCode);
     }
 
     [Fact]
@@ -45,6 +64,7 @@ public sealed class HealthProberControllerTests
         using var app = new Factory();
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
+        client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
 
         // 1. Bật catalog prober
         var enableResp = await client.PutAsJsonAsync("/api/v1/gateway/prober/catalog", new { enabled = true, intervalSeconds = 30 });
@@ -80,6 +100,7 @@ public sealed class HealthProberControllerTests
         using var app = new Factory();
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
+        client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
 
         // Gọi API check thủ công trên service catalog
         var resp = await client.PostAsync("/api/v1/gateway/prober/catalog/check", null);
@@ -125,6 +146,7 @@ public sealed class HealthProberControllerTests
         using var app = new Factory();
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
+        client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
 
         // 1. Get all databases status
         var allResp = await client.GetAsync("/api/v1/gateway/prober/databases/status");
@@ -165,6 +187,7 @@ public sealed class HealthProberControllerTests
         using var app = new Factory();
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
+        client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
 
         // 1. CheckHealService operational status
         var statusResp = await client.GetAsync("/api/v1/gateway/prober/healthcheck-service/status");
