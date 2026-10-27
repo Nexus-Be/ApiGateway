@@ -1,8 +1,9 @@
 namespace Nexus.Gateway.Controllers;
 
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -21,21 +22,13 @@ using Nexus.Gateway.Security;
 [Route("api/v1")]
 [BackendTag("notification")]
 [EnableRateLimiting("api")]
-public sealed class NotificationController : ControllerBase
+public sealed class NotificationController : GatewayBaseController
 {
     private const string Service = "notification";
 
-    private static readonly MessageParser<Struct> SeedParser = Struct.Parser;
-
-    private readonly IGatewayDispatcher _dispatcher;
-
-    public NotificationController(IGatewayDispatcher dispatcher)
+    public NotificationController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
     }
-
-    private static AsyncUnaryCall<Struct> PendingRealCall(CallOptions _) =>
-        throw new NotSupportedException("The notification gRPC contract is not wired yet.");
 
     /// <summary>Đăng ký hoặc làm mới device token (NOTI-01)</summary>
     [HttpPost("notifications/devices")]
@@ -55,9 +48,14 @@ public sealed class NotificationController : ControllerBase
             throw new GatewayInputException("Device token cannot be empty and cannot exceed 2048 characters.", "Token");
         }
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "device-register", PendingRealCall, SeedParser,
-            successMessage: "Device token registered successfully.");
+        return ForwardAsync(
+            Service,
+            "/api/v1/notifications/devices",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "device-register",
+            successMessage: "Device token registered successfully."
+        );
     }
 
     /// <summary>Thu hồi hoặc vô hiệu hóa device token qua DELETE body (NOTI-02)</summary>
@@ -70,8 +68,13 @@ public sealed class NotificationController : ControllerBase
             throw new GatewayInputException("Token is required.", "Token");
         }
 
-        return _dispatcher.DispatchNoContentAsync(
-            HttpContext, Service, "device-revoke", PendingRealCall, SeedParser);
+        return ForwardNoContentAsync(
+            Service,
+            "/api/v1/notifications/devices",
+            HttpMethod.Delete,
+            body: body,
+            mockSeed: "device-revoke"
+        );
     }
 
     /// <summary>Thu hồi hoặc vô hiệu hóa device token qua route parameter (NOTI-02 alias)</summary>
@@ -84,8 +87,12 @@ public sealed class NotificationController : ControllerBase
             throw new GatewayInputException("Token is required.", "Token");
         }
 
-        return _dispatcher.DispatchNoContentAsync(
-            HttpContext, Service, "device-revoke", PendingRealCall, SeedParser);
+        return ForwardNoContentAsync(
+            Service,
+            $"/api/v1/notifications/devices/{token}",
+            HttpMethod.Delete,
+            mockSeed: "device-revoke"
+        );
     }
 
     /// <summary>Lấy danh sách cấu hình bật/tắt nhận thông báo của người dùng (NOTI-03)</summary>
@@ -93,9 +100,13 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Authenticated)]
     public Task<IResult> GetMyPreferences()
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "preferences-get", PendingRealCall, SeedParser,
-            successMessage: "Notification preferences retrieved successfully.");
+        return ForwardAsync(
+            Service,
+            "/api/v1/notifications/preferences",
+            HttpMethod.Get,
+            mockSeed: "preferences-get",
+            successMessage: "Notification preferences retrieved successfully."
+        );
     }
 
     /// <summary>Cập nhật tùy chọn bật/tắt nhận thông báo (NOTI-04)</summary>
@@ -108,9 +119,14 @@ public sealed class NotificationController : ControllerBase
             throw new GatewayInputException("At least one preference must be provided.", "Preferences");
         }
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "preferences-update", PendingRealCall, SeedParser,
-            successMessage: "Notification preferences updated successfully.");
+        return ForwardAsync(
+            Service,
+            "/api/v1/notifications/preferences",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "preferences-update",
+            successMessage: "Notification preferences updated successfully."
+        );
     }
 
     /// <summary>Lấy danh sách lịch sử thông báo in-app quả chuông (NOTI-05)</summary>
@@ -127,9 +143,20 @@ public sealed class NotificationController : ControllerBase
             throw new GatewayInputException("PageIndex must be >= 1 and PageSize between 1 and 100.", "Pagination");
         }
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "notifications-me", PendingRealCall, SeedParser,
-            successMessage: "Notifications retrieved successfully.");
+        var query = new Dictionary<string, string?>();
+        if (isRead.HasValue) query["isRead"] = isRead.Value.ToString().ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(notificationType)) query["notificationType"] = notificationType;
+        query["pageIndex"] = pageIndex.ToString();
+        query["pageSize"] = pageSize.ToString();
+
+        return ForwardAsync(
+            Service,
+            "/api/v1/notifications/me",
+            HttpMethod.Get,
+            mockSeed: "notifications-me",
+            successMessage: "Notifications retrieved successfully.",
+            queryParams: query
+        );
     }
 
     /// <summary>Lấy số lượng thông báo chưa đọc (NOTI-06 alias)</summary>
@@ -137,9 +164,13 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Authenticated)]
     public Task<IResult> GetUnreadCount()
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "notifications-read", PendingRealCall, SeedParser,
-            successMessage: "Unread notification count retrieved successfully.");
+        return ForwardAsync(
+            Service,
+            "/api/v1/notifications/unread-count",
+            HttpMethod.Get,
+            mockSeed: "notifications-read",
+            successMessage: "Unread notification count retrieved successfully."
+        );
     }
 
     /// <summary>Đánh dấu thông báo đã đọc qua batch body (NOTI-06 / NOTI-08)</summary>
@@ -148,9 +179,14 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Authenticated)]
     public Task<IResult> MarkNotificationsAsRead([FromBody] MarkReadRequest body)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "notifications-read", PendingRealCall, SeedParser,
-            successMessage: "Notifications marked as read successfully.");
+        return ForwardAsync(
+            Service,
+            "/api/v1/notifications/me/read",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "notifications-read",
+            successMessage: "Notifications marked as read successfully."
+        );
     }
 
     /// <summary>Đánh dấu một thông báo cụ thể là đã đọc (NOTI-07)</summary>
@@ -158,9 +194,13 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Authenticated)]
     public Task<IResult> MarkSingleNotificationAsRead([FromRoute] Guid id)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "notifications-read", PendingRealCall, SeedParser,
-            successMessage: "Notification marked as read successfully.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/notifications/{id}/read",
+            HttpMethod.Patch,
+            mockSeed: "notifications-read",
+            successMessage: "Notification marked as read successfully."
+        );
     }
 
     /// <summary>Admin xem cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
@@ -168,9 +208,13 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> GetNotificationChannel([FromRoute] string code)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "channel-detail", PendingRealCall, SeedParser,
-            successMessage: "Notification channel retrieved successfully.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/admin/notifications/channels/{code}",
+            HttpMethod.Get,
+            mockSeed: "channel-detail",
+            successMessage: "Notification channel retrieved successfully."
+        );
     }
 
     /// <summary>Admin cập nhật cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
@@ -178,9 +222,14 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> UpdateNotificationChannel([FromRoute] string code, [FromBody] UpdateChannelRequest body)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "channel-detail", PendingRealCall, SeedParser,
-            successMessage: "Notification channel updated successfully.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/admin/notifications/channels/{code}",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "channel-detail",
+            successMessage: "Notification channel updated successfully."
+        );
     }
 
     /// <summary>Admin xem danh sách mẫu thông báo (NOTI-08 sheet / NOTI-12)</summary>
@@ -190,9 +239,18 @@ public sealed class NotificationController : ControllerBase
         [FromQuery] string? channelCode = null,
         [FromQuery] string? notificationType = null)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "templates-get", PendingRealCall, SeedParser,
-            successMessage: "Notification templates retrieved successfully.");
+        var query = new Dictionary<string, string?>();
+        if (!string.IsNullOrWhiteSpace(channelCode)) query["channelCode"] = channelCode;
+        if (!string.IsNullOrWhiteSpace(notificationType)) query["notificationType"] = notificationType;
+
+        return ForwardAsync(
+            Service,
+            "/api/v1/admin/notifications/templates",
+            HttpMethod.Get,
+            mockSeed: "templates-get",
+            successMessage: "Notification templates retrieved successfully.",
+            queryParams: query
+        );
     }
 
     /// <summary>Admin tạo mẫu nội dung thông báo mới (NOTI-08 sheet / NOTI-10)</summary>
@@ -207,10 +265,15 @@ public sealed class NotificationController : ControllerBase
             throw new GatewayInputException("Code, NotificationType and BodyTemplate are required.", "Template");
         }
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "template-create", PendingRealCall, SeedParser,
+        return ForwardAsync(
+            Service,
+            "/api/v1/admin/notifications/templates",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "template-create",
             successStatusCode: StatusCodes.Status201Created,
-            successMessage: "Notification template created successfully.");
+            successMessage: "Notification template created successfully."
+        );
     }
 
     /// <summary>Admin cập nhật mẫu nội dung thông báo (NOTI-11)</summary>
@@ -218,9 +281,14 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> UpdateNotificationTemplate([FromRoute] string templateCode, [FromBody] SaveTemplateRequest body)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "template-create", PendingRealCall, SeedParser,
-            successMessage: "Notification template updated successfully.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/admin/notifications/templates/{templateCode}",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "template-create",
+            successMessage: "Notification template updated successfully."
+        );
     }
 
     /// <summary>Admin gửi thông báo hệ thống (NOTI-09)</summary>
@@ -228,10 +296,15 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> SendSystemNotification([FromBody] object body)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "notifications-read", PendingRealCall, SeedParser,
+        return ForwardAsync(
+            Service,
+            "/api/v1/admin/notifications/system",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "notifications-read",
             successStatusCode: StatusCodes.Status200OK,
-            successMessage: "System notification queued successfully.");
+            successMessage: "System notification queued successfully."
+        );
     }
 
     /// <summary>Admin/Staff tra cứu lịch sử thông báo toàn hệ thống (NOTI-09 sheet)</summary>
@@ -244,9 +317,21 @@ public sealed class NotificationController : ControllerBase
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 20)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "notifications-history", PendingRealCall, SeedParser,
-            successMessage: "Notification history retrieved successfully.");
+        var query = new Dictionary<string, string?>();
+        if (userId.HasValue) query["userId"] = userId.Value.ToString();
+        if (!string.IsNullOrWhiteSpace(notificationType)) query["notificationType"] = notificationType;
+        if (!string.IsNullOrWhiteSpace(status)) query["status"] = status;
+        query["pageIndex"] = pageIndex.ToString();
+        query["pageSize"] = pageSize.ToString();
+
+        return ForwardAsync(
+            Service,
+            "/api/v1/admin/notifications",
+            HttpMethod.Get,
+            mockSeed: "notifications-history",
+            successMessage: "Notification history retrieved successfully.",
+            queryParams: query
+        );
     }
 
     /// <summary>Admin tra cứu nhật ký sự kiện kỹ thuật message bus (NOTI-13)</summary>
@@ -259,9 +344,20 @@ public sealed class NotificationController : ControllerBase
         [FromQuery] int pageIndex = 1,
         [FromQuery] int pageSize = 20)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "event-logs-list", PendingRealCall, SeedParser,
-            successMessage: "Event logs retrieved successfully.");
+        var query = new Dictionary<string, string?>();
+        if (!string.IsNullOrWhiteSpace(sourceService)) query["sourceService"] = sourceService;
+        if (!string.IsNullOrWhiteSpace(eventType)) query["eventType"] = eventType;
+        query["pageIndex"] = pageIndex.ToString();
+        query["pageSize"] = pageSize.ToString();
+
+        return ForwardAsync(
+            Service,
+            "/api/v1/admin/notifications/event-logs",
+            HttpMethod.Get,
+            mockSeed: "event-logs-list",
+            successMessage: "Event logs retrieved successfully.",
+            queryParams: query
+        );
     }
 
     /// <summary>Admin xem chi tiết toàn bộ raw JSON payload của sự kiện kỹ thuật (NOTI-14)</summary>
@@ -269,9 +365,13 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> GetEventLogDetail([FromRoute] Guid id)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "event-log-detail", PendingRealCall, SeedParser,
-            successMessage: "Event log detail retrieved successfully.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/admin/event-logs/{id}",
+            HttpMethod.Get,
+            mockSeed: "event-log-detail",
+            successMessage: "Event log detail retrieved successfully."
+        );
     }
 
     /// <summary>Admin theo dõi trạng thái sức khỏe Message Broker (NOTI-16 sheet / NOTI-14)</summary>
@@ -280,8 +380,18 @@ public sealed class NotificationController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> GetBrokerHealthStatus([FromQuery] int limit = 50)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "broker-health", PendingRealCall, SeedParser,
-            successMessage: "Broker health status retrieved successfully.");
+        var query = new Dictionary<string, string?>
+        {
+            ["limit"] = limit.ToString()
+        };
+
+        return ForwardAsync(
+            Service,
+            "/api/v1/admin/notifications/brokers/health",
+            HttpMethod.Get,
+            mockSeed: "broker-health",
+            successMessage: "Broker health status retrieved successfully.",
+            queryParams: query
+        );
     }
 }

@@ -1,5 +1,8 @@
 namespace Nexus.Gateway.Controllers;
 
+using System;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,19 +19,17 @@ using ShoppingCart.Contracts.V1;
 [Route("api/v1/auth")]
 [BackendTag("users")]
 [EnableRateLimiting("api")]
-public sealed class AuthController : ControllerBase
+public sealed class AuthController : GatewayBaseController
 {
     private const string Service = "users";
-    private readonly IGatewayDispatcher _dispatcher;
     private readonly UsersApi.UsersApiClient _client;
     private readonly UserApi.UserApiClient _userClient;
 
     public AuthController(
         IGatewayDispatcher dispatcher,
         UsersApi.UsersApiClient client,
-        UserApi.UserApiClient userClient)
+        UserApi.UserApiClient userClient) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
         _client = client;
         _userClient = userClient;
     }
@@ -46,11 +47,11 @@ public sealed class AuthController : ControllerBase
         var displayName = body.DisplayName ?? $"{body.FirstName} {body.LastName}".Trim();
         if (string.IsNullOrWhiteSpace(displayName)) displayName = username;
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "register",
-            o => _client.RegisterAsync(new RegisterRequest
+            "/api/v1/auth/register",
+            HttpMethod.Post,
+            grpcCall: o => _client.RegisterAsync(new RegisterRequest
             {
                 Username = username,
                 Email = body.Email.Trim().ToLowerInvariant(),
@@ -60,7 +61,9 @@ public sealed class AuthController : ControllerBase
                 LastName = body.LastName ?? "",
                 PhoneNumber = body.PhoneNumber ?? ""
             }, o),
-            UserProfile.Parser,
+            parser: UserProfile.Parser,
+            body: body,
+            mockSeed: "register",
             successMessage: "User registered successfully."
         );
     }
@@ -75,16 +78,18 @@ public sealed class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Email) || string.IsNullOrWhiteSpace(body.ResolvedOtp))
             throw new GatewayInputException("Email and OTP code are required.");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "verify-otp",
-            o => _client.VerifyOtpAsync(new VerifyOtpRequest
+            "/api/v1/auth/otp/verify",
+            HttpMethod.Post,
+            grpcCall: o => _client.VerifyOtpAsync(new VerifyOtpRequest
             {
                 Email = body.Email.Trim().ToLowerInvariant(),
                 Otp = body.ResolvedOtp!.Trim()
             }, o),
-            UserProfile.Parser,
+            parser: UserProfile.Parser,
+            body: body,
+            mockSeed: "verify-otp",
             successMessage: "Account verified successfully."
         );
     }
@@ -99,15 +104,17 @@ public sealed class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Email))
             throw new GatewayInputException("Email address is required.");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "resend-otp",
-            o => _client.ResendOtpAsync(new ResendOtpRequest
+            "/api/v1/auth/otp/resend",
+            HttpMethod.Post,
+            grpcCall: o => _client.ResendOtpAsync(new ResendOtpRequest
             {
                 Email = body.Email.Trim().ToLowerInvariant()
             }, o),
-            OtpResponse.Parser,
+            parser: OtpResponse.Parser,
+            body: body,
+            mockSeed: "resend-otp",
             successMessage: "Verification code has been resent to your email."
         );
     }
@@ -122,16 +129,18 @@ public sealed class AuthController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Username) || string.IsNullOrEmpty(body.Password))
             throw new GatewayInputException("Username and password are required.");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "login",
-            o => _client.LoginAsync(new LoginRequest
+            "/api/v1/auth/login",
+            HttpMethod.Post,
+            grpcCall: o => _client.LoginAsync(new LoginRequest
             {
                 Username = body.Username.Trim(),
                 Password = body.Password
             }, o),
-            LoginResponse.Parser,
+            parser: LoginResponse.Parser,
+            body: body,
+            mockSeed: "login",
             successMessage: "Login successful."
         );
     }
@@ -145,16 +154,18 @@ public sealed class AuthController : ControllerBase
         Response.Headers.CacheControl = "no-store";
         var refreshToken = UserValidation.EnsureRequired(body.RefreshToken, "RefreshToken", "Refresh token");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "refresh",
-            o => _userClient.RefreshTokenAsync(new RefreshTokenRequest
+            "/api/v1/auth/refresh",
+            HttpMethod.Post,
+            grpcCall: o => _userClient.RefreshTokenAsync(new RefreshTokenRequest
             {
                 RefreshToken = refreshToken,
                 DeviceInfo = body.DeviceInfo ?? string.Empty
             }, o),
-            RefreshTokenResponse.Parser,
+            parser: RefreshTokenResponse.Parser,
+            body: body,
+            mockSeed: "refresh",
             successMessage: "Token refreshed successfully."
         );
     }
@@ -167,15 +178,17 @@ public sealed class AuthController : ControllerBase
     {
         var email = UserValidation.EnsureEmail(body.Email);
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "password-forgot",
-            o => _userClient.ForgotPasswordAsync(new ForgotPasswordRequest
+            "/api/v1/auth/password/forgot",
+            HttpMethod.Post,
+            grpcCall: o => _userClient.ForgotPasswordAsync(new ForgotPasswordRequest
             {
                 Email = email
             }, o),
-            ForgotPasswordResponse.Parser,
+            parser: ForgotPasswordResponse.Parser,
+            body: body,
+            mockSeed: "password-forgot",
             successMessage: "Password reset instructions have been sent to your email."
         );
     }
@@ -197,18 +210,20 @@ public sealed class AuthController : ControllerBase
             throw new GatewayInputException("Password confirmation does not match.", "ConfirmPassword", UserValidation.ErrorCode);
         }
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "password-reset",
-            o => _userClient.ResetPasswordAsync(new ResetPasswordRequest
+            "/api/v1/auth/password/reset",
+            HttpMethod.Put,
+            grpcCall: o => _userClient.ResetPasswordAsync(new ResetPasswordRequest
             {
                 Email = email,
                 OtpCode = otp,
                 NewPassword = newPassword,
                 ConfirmPassword = confirmPassword
             }, o),
-            ResetPasswordResponse.Parser,
+            parser: ResetPasswordResponse.Parser,
+            body: body,
+            mockSeed: "password-reset",
             successMessage: "Password has been reset successfully."
         );
     }
@@ -228,18 +243,20 @@ public sealed class AuthController : ControllerBase
             throw new GatewayInputException("Password confirmation does not match.", "ConfirmPassword", UserValidation.ErrorCode);
         }
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "password-change",
-            o => _userClient.ChangePasswordAsync(new ChangePasswordRequest
+            "/api/v1/auth/password",
+            HttpMethod.Patch,
+            grpcCall: o => _userClient.ChangePasswordAsync(new ChangePasswordRequest
             {
                 OldPassword = oldPassword,
                 NewPassword = newPassword,
                 ConfirmPassword = confirmPassword,
                 Caller = UserValidation.Caller(HttpContext)
             }, o),
-            ChangePasswordResponse.Parser,
+            parser: ChangePasswordResponse.Parser,
+            body: body,
+            mockSeed: "password-change",
             successMessage: "Password changed successfully."
         );
     }
@@ -249,16 +266,18 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<LogoutResponse>), StatusCodes.Status200OK)]
     public Task<IResult> Logout([FromBody] LogoutDto? body)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "logout",
-            o => _userClient.LogoutAsync(new LogoutRequest
+            "/api/v1/auth/logout",
+            HttpMethod.Post,
+            grpcCall: o => _userClient.LogoutAsync(new LogoutRequest
             {
                 RefreshToken = body?.RefreshToken ?? string.Empty,
                 Caller = UserValidation.Caller(HttpContext)
             }, o),
-            LogoutResponse.Parser,
+            parser: LogoutResponse.Parser,
+            body: body,
+            mockSeed: "logout",
             successMessage: "Logged out successfully."
         );
     }
@@ -268,15 +287,16 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<LogoutAllResponse>), StatusCodes.Status200OK)]
     public Task<IResult> LogoutAll()
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "logout-all",
-            o => _userClient.LogoutAllAsync(new LogoutAllRequest
+            "/api/v1/auth/logout-all",
+            HttpMethod.Post,
+            grpcCall: o => _userClient.LogoutAllAsync(new LogoutAllRequest
             {
                 Caller = UserValidation.Caller(HttpContext)
             }, o),
-            LogoutAllResponse.Parser,
+            parser: LogoutAllResponse.Parser,
+            mockSeed: "logout-all",
             successMessage: "All sessions have been revoked."
         );
     }

@@ -1,8 +1,8 @@
 namespace Nexus.Gateway.Controllers;
 
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,43 +16,30 @@ using Nexus.Gateway.Security;
 /// F5 wallet surface (WAL-02, WAL-03, WAL-04, WAL-05B, WAL-07, WAL-08, WAL-09, WAL-10).
 /// Routes follow the F5 contract sheet: <c>/api/v1/wallets/*</c> and <c>/api/v1/admin/wallets/*</c>.
 /// </summary>
-/// <remarks>
-/// <para>Mock đọc <c>Seeds/wallet/*.json</c> qua <c>IGatewayDispatcher</c>; response bọc trong
-/// <c>ApiResponse&lt;T&gt;</c> và có header <c>X-Gateway-Mode</c>. Ngoại lệ duy nhất: <c>POST vnpay/ipn</c>
-/// (WAL-04) là webhook VNPay công khai, trả nguyên định dạng <c>{ RspCode, Message }</c> của VNPay.</para>
-/// <para>Real chưa nối: contract gRPC của Wallet chưa tồn tại và <c>shop.proto</c> không được sửa,
-/// nên <c>realCall</c> chỉ là placeholder không bao giờ được gọi trong Mock mode.</para>
-/// </remarks>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("wallet")]
 [EnableRateLimiting("api")]
-public sealed class WalletController : ControllerBase
+public sealed class WalletController : GatewayBaseController
 {
     private const string Service = "wallet";
 
-    // Mock-only pass-through: in Mock mode GatewayDispatcher never invokes realCall, only the
-    // parser. Struct round-trips the seed JSON object, so no wallet.proto is needed for Q2.
-    private static readonly MessageParser<Struct> SeedParser = Struct.Parser;
-
-    private readonly IGatewayDispatcher _dispatcher;
-
-    public WalletController(IGatewayDispatcher dispatcher)
+    public WalletController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
     }
-
-    private static AsyncUnaryCall<Struct> PendingRealCall(CallOptions _) =>
-        throw new NotSupportedException("The wallet gRPC contract is not wired yet.");
 
     /// <summary>Lấy thông tin ví và số dư khả dụng/bị khóa của cá nhân (WAL-02)</summary>
     [HttpGet("wallets/me")]
     [Authorize(Policy = GatewayPolicies.Authenticated)]
     public Task<IResult> GetMyWallet()
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "wallet-me", PendingRealCall, SeedParser,
-            successMessage: "Wallet retrieved successfully.");
+        return ForwardAsync(
+            Service,
+            "/api/v1/wallets/me",
+            HttpMethod.Get,
+            mockSeed: "wallet-me",
+            successMessage: "Wallet retrieved successfully."
+        );
     }
 
     /// <summary>Tạo yêu cầu nạp tiền qua VNPay và lấy URL thanh toán (WAL-03)</summary>
@@ -63,10 +50,15 @@ public sealed class WalletController : ControllerBase
         if (body.Amount < 10000m)
             throw new GatewayInputException("Deposit amount must be at least 10,000 VND.", "Amount", "VAL_INVALID_AMOUNT");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "wallet-topup", PendingRealCall, SeedParser,
+        return ForwardAsync(
+            Service,
+            "/api/v1/wallets/topups/vnpay",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "wallet-topup",
             successMessage: "Top-up request created successfully.",
-            successStatusCode: StatusCodes.Status201Created);
+            successStatusCode: StatusCodes.Status201Created
+        );
     }
 
     /// <summary>Webhook nhận kết quả IPN từ VNPay (nạp ví hoặc thanh toán đơn trực tiếp) (WAL-04)</summary>
@@ -88,9 +80,14 @@ public sealed class WalletController : ControllerBase
         if (body.Amount <= 0)
             throw new GatewayInputException("Payment amount must be greater than zero.", "Amount", "VAL_INVALID_AMOUNT");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "wallet-checkout-direct", PendingRealCall, SeedParser,
-            successMessage: "Direct payment session created successfully.");
+        return ForwardAsync(
+            Service,
+            "/api/v1/wallets/checkout/direct",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "wallet-checkout-direct",
+            successMessage: "Direct payment session created successfully."
+        );
     }
 
     /// <summary>Seller tạo yêu cầu rút tiền từ ví về tài khoản ngân hàng (WAL-07)</summary>
@@ -107,10 +104,15 @@ public sealed class WalletController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.AccountHolderName))
             throw new GatewayInputException("Account holder name is required.", "AccountHolderName");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "wallet-withdrawal", PendingRealCall, SeedParser,
+        return ForwardAsync(
+            Service,
+            "/api/v1/wallets/withdrawals",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "wallet-withdrawal",
             successMessage: "Withdrawal request created successfully.",
-            successStatusCode: StatusCodes.Status201Created);
+            successStatusCode: StatusCodes.Status201Created
+        );
     }
 
     /// <summary>Admin duyệt hoặc từ chối yêu cầu rút tiền của Seller (WAL-08)</summary>
@@ -123,9 +125,14 @@ public sealed class WalletController : ControllerBase
         if (body.Action != "APPROVE" && body.Action != "REJECT")
             throw new GatewayInputException("Action must be APPROVE or REJECT.", "Action");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "wallet-withdrawal-process", PendingRealCall, SeedParser,
-            successMessage: "Withdrawal request processed successfully.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/admin/wallets/withdrawals/{withdrawalId}",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "wallet-withdrawal-process",
+            successMessage: "Withdrawal request processed successfully."
+        );
     }
 
     /// <summary>Tra cứu lịch sử biến động sổ cái (wallet_transactions) cá nhân (WAL-09)</summary>
@@ -141,9 +148,20 @@ public sealed class WalletController : ControllerBase
         if (page < 1 || limit < 1 || limit > 100)
             throw new GatewayInputException("Page or limit is invalid.", "Pagination");
 
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext, Service, "wallet-transactions",
-            page, limit, PendingRealCall, SeedParser);
+        var query = new Dictionary<string, string?>();
+        if (!string.IsNullOrWhiteSpace(type)) query["type"] = type;
+        if (!string.IsNullOrWhiteSpace(fromDate)) query["fromDate"] = fromDate;
+        if (!string.IsNullOrWhiteSpace(toDate)) query["toDate"] = toDate;
+
+        return ForwardPagedAsync(
+            Service,
+            "/api/v1/wallets/transactions",
+            page,
+            limit,
+            HttpMethod.Get,
+            mockSeed: "wallet-transactions",
+            queryParams: query
+        );
     }
 
     /// <summary>Admin điều chỉnh số dư ví thủ công kèm kiểm toán (WAL-10)</summary>
@@ -158,8 +176,13 @@ public sealed class WalletController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Reason))
             throw new GatewayInputException("Adjustment reason is required.", "Reason");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "wallet-adjustment", PendingRealCall, SeedParser,
-            successMessage: "Wallet balance adjusted successfully.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/admin/wallets/{walletId}/adjustments",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "wallet-adjustment",
+            successMessage: "Wallet balance adjusted successfully."
+        );
     }
 }

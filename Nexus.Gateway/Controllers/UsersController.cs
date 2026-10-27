@@ -15,19 +15,17 @@ using ShoppingCart.Contracts.V1;
 [Route("api/v1")]
 [BackendTag("users")]
 [EnableRateLimiting("api")]
-public sealed class UsersController : ControllerBase
+public sealed class UsersController : GatewayBaseController
 {
     private const string Service = "users";
-    private readonly IGatewayDispatcher _dispatcher;
     private readonly UsersApi.UsersApiClient _client;
     private readonly UserApi.UserApiClient _userClient;
 
     public UsersController(
         IGatewayDispatcher dispatcher,
         UsersApi.UsersApiClient client,
-        UserApi.UserApiClient userClient)
+        UserApi.UserApiClient userClient) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
         _client = client;
         _userClient = userClient;
     }
@@ -39,7 +37,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
     public Task<IResult> GetMe()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "profile",
@@ -54,7 +52,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SessionListResponse>), StatusCodes.Status200OK)]
     public Task<IResult> ListMySessions()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-sessions",
@@ -74,7 +72,7 @@ public sealed class UsersController : ControllerBase
     {
         var id = UserValidation.EnsureRequired(sessionId, "SessionId");
 
-        return _dispatcher.DispatchNoContentAsync(
+        return Dispatcher.DispatchNoContentAsync(
             HttpContext,
             Service,
             "user-session-revoke",
@@ -93,7 +91,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<MyProfileUpdatedResponse>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateMe([FromBody] UpdateMyProfileDto body)
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-profile-update",
@@ -116,7 +114,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AvatarResponse>), StatusCodes.Status200OK)]
     public Task<IResult> GetMyAvatar()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-my-avatar",
@@ -137,7 +135,7 @@ public sealed class UsersController : ControllerBase
     {
         var fileName = form.File?.FileName ?? "avatar.png";
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-my-avatar-upload",
@@ -156,7 +154,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<MyReputationResponse>), StatusCodes.Status200OK)]
     public Task<IResult> GetMyReputation()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-my-reputation",
@@ -176,7 +174,7 @@ public sealed class UsersController : ControllerBase
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext,
             Service,
             "user-my-penalties",
@@ -199,7 +197,7 @@ public sealed class UsersController : ControllerBase
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-public-profile",
@@ -219,7 +217,7 @@ public sealed class UsersController : ControllerBase
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-avatar",
@@ -239,7 +237,7 @@ public sealed class UsersController : ControllerBase
     {
         UserValidation.EnsureUuid(sellerId, "SellerId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-public-profile",
@@ -259,7 +257,7 @@ public sealed class UsersController : ControllerBase
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-reputation",
@@ -280,7 +278,7 @@ public sealed class UsersController : ControllerBase
         UserValidation.EnsureUuid(userId, "UserId");
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext,
             Service,
             "user-reputation-history",
@@ -309,7 +307,7 @@ public sealed class UsersController : ControllerBase
         UserValidation.EnsureUuid(userId, "UserId");
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-reviews",
@@ -335,7 +333,7 @@ public sealed class UsersController : ControllerBase
         var req = new UploadFilesRequest { Caller = UserValidation.Caller(HttpContext) };
         req.FileNames.AddRange(fileNames);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "review-files-upload",
@@ -367,7 +365,7 @@ public sealed class UsersController : ControllerBase
         };
         if (body.MediaUrls != null) req.MediaUrls.AddRange(body.MediaUrls);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "review-create",
@@ -388,7 +386,7 @@ public sealed class UsersController : ControllerBase
         var req = new UploadFilesRequest { Caller = UserValidation.Caller(HttpContext) };
         req.FileNames.AddRange(fileNames);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "report-files-upload",
@@ -416,7 +414,7 @@ public sealed class UsersController : ControllerBase
         };
         if (body.EvidenceUrls != null) req.EvidenceUrls.AddRange(body.EvidenceUrls);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "user-report-create",
@@ -437,7 +435,7 @@ public sealed class UsersController : ControllerBase
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext,
             Service,
             "user-my-reports",
@@ -464,7 +462,7 @@ public sealed class UsersController : ControllerBase
         UserValidation.EnsureRequired(body.Hotline, "Hotline");
         UserValidation.EnsureRequired(body.IdentityCardNumber, "IdentityCardNumber", "Identity card number");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-registration-create",
@@ -491,7 +489,7 @@ public sealed class UsersController : ControllerBase
         UserValidation.EnsureRequired(body.RegistrationId, "RegistrationId");
         UserValidation.EnsureEmail(body.BusinessEmail, "BusinessEmail");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-registration-otp-resend",
@@ -522,7 +520,7 @@ public sealed class UsersController : ControllerBase
         };
         req.FileNames.AddRange(fileNames);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-registration-documents",
@@ -540,7 +538,7 @@ public sealed class UsersController : ControllerBase
         UserValidation.EnsureRequired(body.RegistrationId, "RegistrationId");
         UserValidation.EnsureOtp(body.OtpCode);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-otp-verify",
@@ -560,7 +558,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SellerRegistrationStatusResponse>), StatusCodes.Status200OK)]
     public Task<IResult> GetSellerRegistrationStatus()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-registration-status",
@@ -578,7 +576,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SellerOwnProfileResponse>), StatusCodes.Status200OK)]
     public Task<IResult> GetSellerOwnProfile()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-own-profile",
@@ -596,7 +594,7 @@ public sealed class UsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SellerOwnProfileUpdatedResponse>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateSellerOwnProfile([FromBody] UpdateSellerOwnProfileDto body)
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "seller-own-profile-update",

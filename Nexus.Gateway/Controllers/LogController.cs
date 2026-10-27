@@ -1,8 +1,8 @@
 namespace Nexus.Gateway.Controllers;
 
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,31 +16,17 @@ using Nexus.Gateway.Security;
 /// Log surface (specs/02_GATEWAY_CONTROLLERS_ROUTING.md §14).
 /// Provides audit and system log querying, log event type management, and batch ingestion.
 /// </summary>
-/// <remarks>
-/// <para>Mock mode reads <c>Seeds/log/*.json</c> via <c>IGatewayDispatcher</c>.</para>
-/// <para>Real mode connects to Log.Api gRPC server (port 8004) once enabled.</para>
-/// </remarks>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("log")]
 [EnableRateLimiting("api")]
-public sealed class LogController : ControllerBase
+public sealed class LogController : GatewayBaseController
 {
     private const string Service = "log";
 
-    // Mock-only pass-through: in Mock mode GatewayDispatcher never invokes realCall, only the
-    // parser. Struct round-trips the seed JSON object, so no log.proto is needed for Gateway Mock.
-    private static readonly MessageParser<Struct> SeedParser = Struct.Parser;
-
-    private readonly IGatewayDispatcher _dispatcher;
-
-    public LogController(IGatewayDispatcher dispatcher)
+    public LogController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
     }
-
-    private static AsyncUnaryCall<Struct> PendingRealCall(CallOptions _) =>
-        throw new NotSupportedException("The log gRPC contract is not wired yet in Gateway client.");
 
     /// <summary>Truy vấn nhật ký hệ thống có phân trang và bộ lọc (LogApi.QueryLogs)</summary>
     [HttpGet("log/logs")]
@@ -59,14 +45,26 @@ public sealed class LogController : ControllerBase
     {
         pagination.EnsureValid();
 
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext,
+        var query = new Dictionary<string, string?>();
+        if (!string.IsNullOrWhiteSpace(from)) query["from"] = from;
+        if (!string.IsNullOrWhiteSpace(to)) query["to"] = to;
+        if (!string.IsNullOrWhiteSpace(serviceName)) query["serviceName"] = serviceName;
+        if (!string.IsNullOrWhiteSpace(eventType)) query["eventType"] = eventType;
+        if (!string.IsNullOrWhiteSpace(entityName)) query["entityName"] = entityName;
+        if (!string.IsNullOrWhiteSpace(entityId)) query["entityId"] = entityId;
+        if (!string.IsNullOrWhiteSpace(actorUserId)) query["actorUserId"] = actorUserId;
+        if (!string.IsNullOrWhiteSpace(correlationId)) query["correlationId"] = correlationId;
+        if (!string.IsNullOrWhiteSpace(logLevel)) query["logLevel"] = logLevel;
+
+        return ForwardPagedAsync(
             Service,
-            "logs",
+            "/api/v1/log/logs",
             pagination.Page,
             pagination.PageSize,
-            PendingRealCall,
-            SeedParser);
+            HttpMethod.Get,
+            mockSeed: "logs",
+            queryParams: query
+        );
     }
 
     /// <summary>Alias truy vấn nhật ký dành cho Admin/Staff</summary>
@@ -86,14 +84,26 @@ public sealed class LogController : ControllerBase
     {
         pagination.EnsureValid();
 
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext,
+        var query = new Dictionary<string, string?>();
+        if (!string.IsNullOrWhiteSpace(from)) query["from"] = from;
+        if (!string.IsNullOrWhiteSpace(to)) query["to"] = to;
+        if (!string.IsNullOrWhiteSpace(serviceName)) query["serviceName"] = serviceName;
+        if (!string.IsNullOrWhiteSpace(eventType)) query["eventType"] = eventType;
+        if (!string.IsNullOrWhiteSpace(entityName)) query["entityName"] = entityName;
+        if (!string.IsNullOrWhiteSpace(entityId)) query["entityId"] = entityId;
+        if (!string.IsNullOrWhiteSpace(actorUserId)) query["actorUserId"] = actorUserId;
+        if (!string.IsNullOrWhiteSpace(correlationId)) query["correlationId"] = correlationId;
+        if (!string.IsNullOrWhiteSpace(logLevel)) query["logLevel"] = logLevel;
+
+        return ForwardPagedAsync(
             Service,
-            "logs",
+            "/api/v1/admin/logs",
             pagination.Page,
             pagination.PageSize,
-            PendingRealCall,
-            SeedParser);
+            HttpMethod.Get,
+            mockSeed: "logs",
+            queryParams: query
+        );
     }
 
     /// <summary>Xem chi tiết một bản ghi nhật ký (LogApi.GetLog)</summary>
@@ -104,12 +114,12 @@ public sealed class LogController : ControllerBase
         if (string.IsNullOrWhiteSpace(id))
             throw new GatewayInputException("Log ID is required.", "Id");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "log",
-            PendingRealCall,
-            SeedParser);
+            $"/api/v1/log/logs/{id}",
+            HttpMethod.Get,
+            mockSeed: "log"
+        );
     }
 
     /// <summary>Danh mục các loại sự kiện nhật ký hệ thống (LogApi.ListLogEventTypes)</summary>
@@ -117,12 +127,12 @@ public sealed class LogController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Staff)]
     public Task<IResult> ListLogEventTypes()
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "event-types",
-            PendingRealCall,
-            SeedParser);
+            "/api/v1/log/event-types",
+            HttpMethod.Get,
+            mockSeed: "event-types"
+        );
     }
 
     /// <summary>Bật hoặc tắt ghi nhật ký cho một loại sự kiện (LogApi.SetLogEventTypeEnabled)</summary>
@@ -133,13 +143,14 @@ public sealed class LogController : ControllerBase
         if (string.IsNullOrWhiteSpace(code))
             throw new GatewayInputException("Event type code is required.", "Code");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "event-type-update",
-            PendingRealCall,
-            SeedParser,
-            successMessage: "Log event type status updated successfully.");
+            $"/api/v1/log/event-types/{code}",
+            HttpMethod.Put,
+            body: dto,
+            mockSeed: "event-type-update",
+            successMessage: "Log event type status updated successfully."
+        );
     }
 
     /// <summary>Gửi batch log bất đồng bộ từ các client/hạ tầng</summary>
@@ -147,13 +158,14 @@ public sealed class LogController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Staff)]
     public Task<IResult> BatchLog([FromBody] BatchLogRequestDto request)
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "batch",
-            PendingRealCall,
-            SeedParser,
+            "/api/v1/log/batch",
+            HttpMethod.Post,
+            body: request,
+            mockSeed: "batch",
             successMessage: "Log batch accepted.",
-            successStatusCode: StatusCodes.Status202Accepted);
+            successStatusCode: StatusCodes.Status202Accepted
+        );
     }
 }

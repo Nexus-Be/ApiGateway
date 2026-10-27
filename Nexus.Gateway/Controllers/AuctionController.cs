@@ -25,16 +25,15 @@ using ShoppingCart.Contracts.V1;
 [Route("api/v1")]
 [BackendTag("auction")]
 [EnableRateLimiting("api")]
-public sealed class AuctionController : ControllerBase
+public sealed class AuctionController : GatewayBaseController
 {
     private const string Service = "auction";
 
-    private readonly IGatewayDispatcher _dispatcher;
     private readonly AuctionApi.AuctionApiClient _client;
 
     public AuctionController(IGatewayDispatcher dispatcher, AuctionApi.AuctionApiClient client)
+        : base(dispatcher)
     {
-        _dispatcher = dispatcher;
         _client = client;
     }
 
@@ -61,7 +60,7 @@ public sealed class AuctionController : ControllerBase
         pagination.EnsureValid();
         AuctionValidation.EnsureStatus(status);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "auctions",
             pagination.Page, pagination.PageSize,
             o => _client.ListAuctionsAsync(BuildListRequest(pagination, status), o),
@@ -87,7 +86,7 @@ public sealed class AuctionController : ControllerBase
     {
         AuctionValidation.EnsureAuctionId(auctionId);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction",
             o => _client.GetAuctionAsync(new AuctionIdRequest { AuctionId = auctionId }, o),
             AuctionDetailResponse.Parser,
@@ -115,7 +114,7 @@ public sealed class AuctionController : ControllerBase
         AuctionValidation.EnsureAuctionId(auctionId);
         pagination.EnsureValid();
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "auction-bids",
             pagination.Page, pagination.PageSize,
             o => _client.ListAuctionBidsAsync(new ListAuctionBidsRequest
@@ -162,7 +161,7 @@ public sealed class AuctionController : ControllerBase
         AuctionValidation.EnsureBidHeaders(idempotencyKey, ifMatch);
         AuctionValidation.EnsureBidAmount(body.Amount);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-bid-place",
             o => _client.PlaceBidAsync(new PlaceBidRequest
             {
@@ -196,7 +195,7 @@ public sealed class AuctionController : ControllerBase
         pagination.EnsureValid();
         AuctionValidation.EnsureStatus(status);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "me-bids",
             pagination.Page, pagination.PageSize,
             o =>
@@ -228,7 +227,7 @@ public sealed class AuctionController : ControllerBase
     {
         AuctionValidation.EnsureAuctionId(auctionId);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-result",
             o => _client.GetAuctionResultAsync(new AuctionIdRequest { AuctionId = auctionId }, o),
             AuctionResultResponse.Parser,
@@ -260,7 +259,7 @@ public sealed class AuctionController : ControllerBase
     {
         AuctionValidation.EnsureCreate(body);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-create",
             o =>
             {
@@ -304,7 +303,7 @@ public sealed class AuctionController : ControllerBase
         AuctionValidation.EnsureAuctionId(auctionId);
         AuctionValidation.EnsureUpdate(body);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-update",
             o =>
             {
@@ -345,7 +344,7 @@ public sealed class AuctionController : ControllerBase
         AuctionValidation.EnsureAuctionId(auctionId);
         AuctionValidation.EnsureOptionalReason(body?.Reason);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-cancel",
             o =>
             {
@@ -382,7 +381,7 @@ public sealed class AuctionController : ControllerBase
         AuctionValidation.EnsureAuctionId(auctionId);
         AuctionValidation.EnsureRecreate(body);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-recreate",
             o =>
             {
@@ -423,7 +422,7 @@ public sealed class AuctionController : ControllerBase
         pagination.EnsureValid();
         AuctionValidation.EnsureStatus(status);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "seller-auctions",
             pagination.Page, pagination.PageSize,
             o => _client.ListSellerAuctionsAsync(BuildListRequest(pagination, status), o),
@@ -452,7 +451,7 @@ public sealed class AuctionController : ControllerBase
     {
         AuctionValidation.EnsureAuctionId(auctionId);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-status-history",
             o => _client.GetAuctionStatusHistoryAsync(new AuctionIdRequest { AuctionId = auctionId }, o),
             AuctionStatusHistoryResponse.Parser,
@@ -484,7 +483,7 @@ public sealed class AuctionController : ControllerBase
         AuctionValidation.EnsureAuctionId(auctionId);
         AuctionValidation.EnsureRequiredReason(body.Reason);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-force-cancel",
             o => _client.ForceCancelAuctionAsync(new ForceCancelAuctionRequest
             {
@@ -515,7 +514,7 @@ public sealed class AuctionController : ControllerBase
     {
         AuctionValidation.EnsureAuctionId(auctionId);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-saga",
             o => _client.GetAuctionSagaAsync(new AuctionIdRequest { AuctionId = auctionId }, o),
             AuctionSagaResponse.Parser,
@@ -536,7 +535,7 @@ public sealed class AuctionController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AuctionConfigListResponse>), StatusCodes.Status200OK)]
     public Task<IResult> ListAuctionConfigs()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-configs",
             o => _client.ListAuctionConfigsAsync(new ListAuctionConfigsRequest(), o),
             AuctionConfigListResponse.Parser,
@@ -565,7 +564,7 @@ public sealed class AuctionController : ControllerBase
     {
         AuctionValidation.EnsureConfig(key, body.ConfigValue);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-config-update",
             o =>
             {

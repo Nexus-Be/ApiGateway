@@ -1,45 +1,32 @@
 namespace Nexus.Gateway.Controllers;
 
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Nexus.Gateway.Common;
 using Nexus.Gateway.Dispatching;
+using Nexus.Gateway.Dtos.Commerce;
 using Nexus.Gateway.Dtos.Fulfillment;
 using Nexus.Gateway.Security;
 
 /// <summary>
-/// F1 shipment surface (FUL-17 .. FUL-23). Routes follow the F1 contract sheet:
-/// <c>/api/v1/shipments/*</c> and <c>/api/v1/seller/shipment*</c>.
+/// Fulfillment HTTP API — gateway-side slice of the F4 shipping flows (FUL-17 .. FUL-23).
 /// </summary>
-/// <remarks>
-/// <para>Mock đọc <c>Seeds/fulfillment/*.json</c>; response bọc trong <c>ApiResponse&lt;T&gt;</c>.</para>
-/// <para>Real chưa nối: contract gRPC của Fulfillment chưa tồn tại và <c>shop.proto</c> không được sửa,
-/// nên <c>realCall</c> chỉ là placeholder không bao giờ được gọi trong Mock mode.</para>
-/// </remarks>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("fulfillment")]
 [EnableRateLimiting("api")]
-public sealed class FulfillmentController : ControllerBase
+public sealed class FulfillmentController : GatewayBaseController
 {
     private const string Service = "fulfillment";
 
-    private static readonly MessageParser<Struct> SeedParser = Struct.Parser;
-
-    private readonly IGatewayDispatcher _dispatcher;
-
-    public FulfillmentController(IGatewayDispatcher dispatcher)
+    public FulfillmentController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
     }
-
-    private static AsyncUnaryCall<Struct> PendingRealCall(CallOptions _) =>
-        throw new NotSupportedException("The fulfillment gRPC contract is not wired yet.");
 
     /// <summary>Xem chi tiết một vận đơn kèm lịch sử hành trình (FUL-19)</summary>
     [HttpGet("shipments/{shipmentId}")]
@@ -49,8 +36,12 @@ public sealed class FulfillmentController : ControllerBase
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "shipment-get", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/shipments/{shipmentId}",
+            HttpMethod.Get,
+            mockSeed: "shipment-get"
+        );
     }
 
     /// <summary>Liệt kê các vận đơn của một đơn hàng (FUL-18)</summary>
@@ -61,8 +52,12 @@ public sealed class FulfillmentController : ControllerBase
         if (string.IsNullOrWhiteSpace(orderId))
             throw new GatewayInputException("Order ID is required.", "OrderId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "shipments-by-order", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/shipments/order/{orderId}",
+            HttpMethod.Get,
+            mockSeed: "shipments-by-order"
+        );
     }
 
     /// <summary>Danh sách vận đơn của người bán, lọc theo trạng thái (FUL-20)</summary>
@@ -72,10 +67,18 @@ public sealed class FulfillmentController : ControllerBase
     {
         pagination.EnsureValid();
 
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext, Service, "seller-shipments",
-            pagination.Page, pagination.PageSize,
-            PendingRealCall, SeedParser);
+        var query = new Dictionary<string, string?>();
+        if (!string.IsNullOrWhiteSpace(status)) query["status"] = status;
+
+        return ForwardPagedAsync(
+            Service,
+            "/api/v1/seller/shipment",
+            pagination.Page,
+            pagination.PageSize,
+            HttpMethod.Get,
+            mockSeed: "seller-shipments",
+            queryParams: query
+        );
     }
 
     /// <summary>Tìm kiếm vận đơn của người bán theo từ khoá và khoảng ngày (FUL-20)</summary>
@@ -90,10 +93,21 @@ public sealed class FulfillmentController : ControllerBase
     {
         pagination.EnsureValid();
 
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext, Service, "seller-shipments-search",
-            pagination.Page, pagination.PageSize,
-            PendingRealCall, SeedParser);
+        var query = new Dictionary<string, string?>();
+        if (!string.IsNullOrWhiteSpace(keyword)) query["keyword"] = keyword;
+        if (!string.IsNullOrWhiteSpace(status)) query["status"] = status;
+        if (!string.IsNullOrWhiteSpace(fromDate)) query["fromDate"] = fromDate;
+        if (!string.IsNullOrWhiteSpace(toDate)) query["toDate"] = toDate;
+
+        return ForwardPagedAsync(
+            Service,
+            "/api/v1/seller/shipment/search",
+            pagination.Page,
+            pagination.PageSize,
+            HttpMethod.Get,
+            mockSeed: "seller-shipments-search",
+            queryParams: query
+        );
     }
 
     /// <summary>Người bán xem chi tiết vận đơn của mình (FUL-19, FUL-20)</summary>
@@ -104,8 +118,12 @@ public sealed class FulfillmentController : ControllerBase
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "seller-shipment-get", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/seller/shipment/{shipmentId}",
+            HttpMethod.Get,
+            mockSeed: "seller-shipment-get"
+        );
     }
 
     /// <summary>Cập nhật trạng thái vận đơn nhận từ đơn vị vận chuyển (FUL-17)</summary>
@@ -120,8 +138,13 @@ public sealed class FulfillmentController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Location))
             throw new GatewayInputException("Location is required.", "Location");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "shipment-tracking-update", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/shipments/{shipmentId}/tracking",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "shipment-tracking-update"
+        );
     }
 
     /// <summary>Người mua xác nhận đã nhận hàng (FUL-23)</summary>
@@ -132,8 +155,12 @@ public sealed class FulfillmentController : ControllerBase
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "shipment-complete", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/shipment/{shipmentId}/complete",
+            HttpMethod.Post,
+            mockSeed: "shipment-complete"
+        );
     }
 
     /// <summary>Nhận webhook trạng thái từ đơn vị vận chuyển (FUL-17)</summary>
@@ -146,7 +173,12 @@ public sealed class FulfillmentController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.Status))
             throw new GatewayInputException("Shipment status is required.", "Status");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "shipment-webhook", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            "/api/v1/shipments/webhook",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "shipment-webhook"
+        );
     }
 }

@@ -24,16 +24,15 @@ using ShoppingCart.Contracts.V1;
 [Route("api/v1")]
 [BackendTag("catalog")]
 [EnableRateLimiting("api")]
-public sealed class ProductsController : ControllerBase
+public sealed class ProductsController : GatewayBaseController
 {
     private const string Service = "catalog";
 
-    private readonly IGatewayDispatcher _dispatcher;
     private readonly CatalogApi.CatalogApiClient _client;
 
     public ProductsController(IGatewayDispatcher dispatcher, CatalogApi.CatalogApiClient client)
+        : base(dispatcher)
     {
-        _dispatcher = dispatcher;
         _client = client;
     }
 
@@ -65,7 +64,7 @@ public sealed class ProductsController : ControllerBase
         CatalogValidation.EnsureOptionalSortBy(sortBy);
         CatalogValidation.EnsureOptionalSortDir(sortDir);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "products", pagination.Page, pagination.PageSize,
             o => _client.ListProductsAsync(new ListProductsRequest
             {
@@ -131,7 +130,7 @@ public sealed class ProductsController : ControllerBase
         if (maxPrice.HasValue) request.MaxPrice = (double)maxPrice.Value;
         if (minRating.HasValue) request.MinRating = (double)minRating.Value;
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "product-search", pagination.Page, pagination.PageSize,
             o => _client.SearchProductsAsync(request, o),
             ProductListResponse.Parser);
@@ -157,7 +156,7 @@ public sealed class ProductsController : ControllerBase
         var request = new GetProductRequest { ProductId = productId };
         if (!string.IsNullOrWhiteSpace(auctionId)) request.AuctionId = auctionId;
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product",
             o => _client.GetProductAsync(request, o),
             ProductDetailResponse.Parser);
@@ -202,7 +201,7 @@ public sealed class ProductsController : ControllerBase
             });
         }
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product-create",
             o => _client.CreateProductAsync(request, o),
             ProductCreatedResponse.Parser,
@@ -238,7 +237,7 @@ public sealed class ProductsController : ControllerBase
             Caller = CatalogValidation.Caller(HttpContext)
         };
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product-update",
             o => _client.UpdateProductAsync(request, o),
             ProductUpdatedResponse.Parser);
@@ -260,7 +259,7 @@ public sealed class ProductsController : ControllerBase
     {
         CatalogValidation.EnsureProductId(productId);
 
-        return _dispatcher.DispatchNoContentAsync(
+        return Dispatcher.DispatchNoContentAsync(
             HttpContext, Service, "product-delete",
             o => _client.DeleteProductAsync(new DeleteProductRequest
             {
@@ -303,7 +302,7 @@ public sealed class ProductsController : ControllerBase
         if (form.VariantId.HasValue) request.VariantId = form.VariantId.Value.ToString();
         foreach (var file in form.Files!) request.FileNames.Add(file.FileName);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product-images-add",
             o => _client.AddProductImagesAsync(request, o),
             ProductImageAddResponse.Parser,
@@ -329,7 +328,7 @@ public sealed class ProductsController : ControllerBase
         var request = new ListProductImagesRequest { ProductId = productId };
         if (!string.IsNullOrWhiteSpace(variantId)) request.VariantId = variantId;
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product-images",
             o => _client.ListProductImagesAsync(request, o),
             ProductImageListResponse.Parser);
@@ -359,7 +358,7 @@ public sealed class ProductsController : ControllerBase
         };
         request.ImageIds.AddRange(CatalogValidation.ParseImageIds(ids!));
 
-        return _dispatcher.DispatchNoContentAsync(
+        return Dispatcher.DispatchNoContentAsync(
             HttpContext, Service, "product-images-delete",
             o => _client.DeleteProductImagesAsync(request, o),
             DeleteResponse.Parser);
@@ -380,7 +379,7 @@ public sealed class ProductsController : ControllerBase
     {
         CatalogValidation.EnsureProductId(productId);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product-rating-total",
             o => _client.GetProductTotalRatingAsync(new ProductIdRequest { ProductId = productId }, o),
             ProductRatingSummaryResponse.Parser);
@@ -408,7 +407,7 @@ public sealed class ProductsController : ControllerBase
             throw new GatewayInputException("Rating must be between 1 and 5.", "rating", CatalogValidation.ErrorCode);
         CatalogValidation.EnsureOptionalSortBy(sortBy, CatalogValidation.RatingSortByValues);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product-rating",
             o => _client.GetProductRatingAsync(new GetProductRatingRequest
             {
@@ -449,7 +448,7 @@ public sealed class ProductsController : ControllerBase
         };
         if (!string.IsNullOrWhiteSpace(body.StatusReason)) request.StatusReason = body.StatusReason.ToUpperInvariant();
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "product-status",
             o => _client.UpdateProductStatusAsync(request, o),
             ProductStatusResponse.Parser);
@@ -474,7 +473,7 @@ public sealed class ProductsController : ControllerBase
     {
         CatalogValidation.EnsureCreateVariant(productId, body.SkuCode, body.Name, body.Price, body.Attributes);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "variant-create",
             o => _client.CreateVariantAsync(new CreateVariantRequest
             {
@@ -507,7 +506,7 @@ public sealed class ProductsController : ControllerBase
     {
         CatalogValidation.EnsureVariantId(variantId);
 
-        return _dispatcher.DispatchNoContentAsync(
+        return Dispatcher.DispatchNoContentAsync(
             HttpContext, Service, "variant-delete",
             o => _client.DeleteVariantAsync(new DeleteVariantRequest
             {
@@ -543,7 +542,7 @@ public sealed class ProductsController : ControllerBase
         };
         if (body.Price.HasValue) request.Price = (double)body.Price.Value;
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "variant-update",
             o => _client.UpdateVariantAsync(request, o),
             VariantUpdatedResponse.Parser);
@@ -565,7 +564,7 @@ public sealed class ProductsController : ControllerBase
     {
         CatalogValidation.EnsureVariantId(variantId);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "variant",
             o => _client.GetVariantAsync(new VariantIdRequest { VariantId = variantId }, o),
             VariantDetailResponse.Parser);
@@ -590,7 +589,7 @@ public sealed class ProductsController : ControllerBase
     {
         CatalogValidation.EnsureCreateAuctionProduct(body);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-product-create",
             o => _client.CreateAuctionProductAsync(new CreateAuctionProductRequest
             {
@@ -637,7 +636,7 @@ public sealed class ProductsController : ControllerBase
         CatalogValidation.EnsureOptionalSortBy(sortBy);
         CatalogValidation.EnsureOptionalSortDir(sortDir);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "auction-product-search", pagination.Page, pagination.PageSize,
             o => _client.SearchAuctionProductsAsync(new SearchAuctionProductsRequest
             {
@@ -670,7 +669,7 @@ public sealed class ProductsController : ControllerBase
         CatalogValidation.EnsurePaged(pagination.Page, pagination.PageSize);
         CatalogValidation.EnsureOptionalAuctionStatus(status);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext, Service, "auction-products", pagination.Page, pagination.PageSize,
             o => _client.ListAuctionProductsAsync(new ListAuctionProductsRequest
             {
@@ -697,7 +696,7 @@ public sealed class ProductsController : ControllerBase
     {
         CatalogValidation.EnsureAuctionId(auctionId);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext, Service, "auction-product",
             o => _client.GetAuctionProductAsync(new GetAuctionProductRequest { AuctionId = auctionId }, o),
             AuctionProductDetailResponse.Parser);

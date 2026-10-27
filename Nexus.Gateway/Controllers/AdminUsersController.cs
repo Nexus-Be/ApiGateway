@@ -15,15 +15,14 @@ using ShoppingCart.Contracts.V1;
 [Route("api/v1/admin")]
 [BackendTag("users")]
 [EnableRateLimiting("api")]
-public sealed class AdminUsersController : ControllerBase
+public sealed class AdminUsersController : GatewayBaseController
 {
     private const string Service = "users";
-    private readonly IGatewayDispatcher _dispatcher;
     private readonly UserApi.UserApiClient _client;
 
     public AdminUsersController(IGatewayDispatcher dispatcher, UserApi.UserApiClient client)
+        : base(dispatcher)
     {
-        _dispatcher = dispatcher;
         _client = client;
     }
 
@@ -37,7 +36,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext,
             Service,
             "admin-seller-registrations",
@@ -61,7 +60,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsureRequired(registrationId, "RegistrationId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-seller-registration-detail",
@@ -84,7 +83,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsureRequired(registrationId, "RegistrationId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-seller-registration-approve",
@@ -109,7 +108,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureRequired(registrationId, "RegistrationId");
         var reason = UserValidation.EnsureRequired(body.RejectionReason, "RejectionReason", "Rejection reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-seller-registration-reject",
@@ -135,7 +134,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext,
             Service,
             "admin-reports",
@@ -163,7 +162,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureRequired(reportId, "ReportId");
         var action = UserValidation.EnsureRequired(body.Action, "Action");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-report-resolve",
@@ -190,7 +189,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureRequired(reportId, "ReportId");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-report-dismiss",
@@ -215,7 +214,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureRequired(reviewId, "ReviewId");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-review-hide",
@@ -243,7 +242,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext,
             Service,
             "admin-users",
@@ -284,7 +283,7 @@ public sealed class AdminUsersController : ControllerBase
         };
         if (body.RoleCodes != null) req.RoleCodes.AddRange(body.RoleCodes);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-user-create",
@@ -303,7 +302,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-user-detail",
@@ -328,7 +327,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureUuid(userId, "UserId");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-user-update",
@@ -358,7 +357,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureUuid(userId, "UserId");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchNoContentAsync(
+        return Dispatcher.DispatchNoContentAsync(
             HttpContext,
             Service,
             "admin-user-delete",
@@ -383,7 +382,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureUuid(userId, "UserId");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-user-ban",
@@ -410,7 +409,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureUuid(userId, "UserId");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-user-unban",
@@ -432,7 +431,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsureUuid(sellerId, "SellerId");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-seller-detail",
@@ -466,7 +465,7 @@ public sealed class AdminUsersController : ControllerBase
         if (body.RoleCodes != null) req.RoleCodes.AddRange(body.RoleCodes);
         if (body.RoleIds != null) req.RoleIds.AddRange(body.RoleIds);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-user-roles-assign",
@@ -487,7 +486,7 @@ public sealed class AdminUsersController : ControllerBase
         UserValidation.EnsureUuid(userId, "UserId");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-user-reputation-adjust",
@@ -508,7 +507,7 @@ public sealed class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AdminRoleListResponse>), StatusCodes.Status200OK)]
     public Task<IResult> ListRoles()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-roles",
@@ -526,7 +525,7 @@ public sealed class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AdminPermissionListResponse>), StatusCodes.Status200OK)]
     public Task<IResult> ListPermissions()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-permissions",
@@ -554,7 +553,7 @@ public sealed class AdminUsersController : ControllerBase
         };
         if (body.PermissionIds != null) req.PermissionIds.AddRange(body.PermissionIds);
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-role-permissions-update",
@@ -577,7 +576,7 @@ public sealed class AdminUsersController : ControllerBase
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return _dispatcher.DispatchPagedAsync(
+        return Dispatcher.DispatchPagedAsync(
             HttpContext,
             Service,
             "admin-audit-logs",
@@ -602,7 +601,7 @@ public sealed class AdminUsersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<AdminConfigListResponse>), StatusCodes.Status200OK)]
     public Task<IResult> ListConfigs()
     {
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-configs",
@@ -626,7 +625,7 @@ public sealed class AdminUsersController : ControllerBase
         var cfgVal = UserValidation.EnsureRequired(body.Value, "Value");
         var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return _dispatcher.DispatchAsync(
+        return Dispatcher.DispatchAsync(
             HttpContext,
             Service,
             "admin-config-update",

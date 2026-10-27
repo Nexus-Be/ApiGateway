@@ -1,8 +1,7 @@
 namespace Nexus.Gateway.Controllers;
 
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,29 +15,17 @@ using Nexus.Gateway.Security;
 /// F1 checkout and order surface (CHK-01, ORD-01 .. ORD-05). Routes follow the F1 contract sheet:
 /// <c>/api/v1/checkout/*</c>, <c>/api/v1/orders/*</c>, <c>/api/v1/order/{orderId}</c>.
 /// </summary>
-/// <remarks>
-/// <para>Mock đọc <c>Seeds/commerce/*.json</c>; response bọc trong <c>ApiResponse&lt;T&gt;</c>.</para>
-/// <para>Real chưa nối — xem <see cref="CartController"/>.</para>
-/// </remarks>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("commerce")]
 [EnableRateLimiting("api")]
-public sealed class OrdersController : ControllerBase
+public sealed class OrdersController : GatewayBaseController
 {
     private const string Service = "commerce";
 
-    private static readonly MessageParser<Struct> SeedParser = Struct.Parser;
-
-    private readonly IGatewayDispatcher _dispatcher;
-
-    public OrdersController(IGatewayDispatcher dispatcher)
+    public OrdersController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
     }
-
-    private static AsyncUnaryCall<Struct> PendingRealCall(CallOptions _) =>
-        throw new NotSupportedException("The commerce gRPC contract is not wired yet.");
 
     /// <summary>Tính trước tiền hàng, giảm giá và phí ship (CHK-01)</summary>
     [HttpPost("checkout/quote")]
@@ -56,8 +43,13 @@ public sealed class OrdersController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.ContactPhone))
             throw new GatewayInputException("Contact phone number is required.", "ContactPhone");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "checkout-quote", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            "/api/v1/checkout/quote",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "checkout-quote"
+        );
     }
 
     /// <summary>Tạo đơn hàng từ quote đã tính (ORD-01)</summary>
@@ -70,10 +62,15 @@ public sealed class OrdersController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.ShippingAddress) || string.IsNullOrWhiteSpace(body.ContactPhone))
             throw new GatewayInputException("Shipping address and phone number are required.", "ShippingAddress");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "order-create", PendingRealCall, SeedParser,
+        return ForwardAsync(
+            Service,
+            "/api/v1/orders",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "order-create",
             successMessage: "Order created successfully.",
-            successStatusCode: StatusCodes.Status201Created);
+            successStatusCode: StatusCodes.Status201Created
+        );
     }
 
     /// <summary>Xem chi tiết một đơn hàng (ORD-02)</summary>
@@ -84,8 +81,12 @@ public sealed class OrdersController : ControllerBase
         if (string.IsNullOrWhiteSpace(orderId))
             throw new GatewayInputException("Order ID is required.", "OrderId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "order-get", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/order/{orderId}",
+            HttpMethod.Get,
+            mockSeed: "order-get"
+        );
     }
 
     /// <summary>Xem chi tiết một đơn con theo người bán (ORD-03)</summary>
@@ -96,8 +97,12 @@ public sealed class OrdersController : ControllerBase
         if (string.IsNullOrWhiteSpace(subOrderId))
             throw new GatewayInputException("Sub-order ID is required.", "SubOrderId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "sub-order-get", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/subOrder/{subOrderId}",
+            HttpMethod.Get,
+            mockSeed: "sub-order-get"
+        );
     }
 
     /// <summary>Người mua huỷ đơn khi chưa thanh toán (ORD-06)</summary>
@@ -108,9 +113,14 @@ public sealed class OrdersController : ControllerBase
         if (string.IsNullOrWhiteSpace(orderId))
             throw new GatewayInputException("Order ID is required.", "OrderId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "order-cancel", PendingRealCall, SeedParser,
-            successMessage: "Order has been successfully cancelled.");
+        return ForwardAsync(
+            Service,
+            $"/api/v1/orders/{orderId}/cancel",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "order-cancel",
+            successMessage: "Order has been successfully cancelled."
+        );
     }
 
     /// <summary>Người bán chấp nhận đơn con (ORD-04)</summary>
@@ -123,8 +133,13 @@ public sealed class OrdersController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.SubOrderId))
             throw new GatewayInputException("Sub-order ID is required.", "SubOrderId");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "sub-order-accept", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/orders/{orderId}/accept",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "sub-order-accept"
+        );
     }
 
     /// <summary>Người bán từ chối đơn con (ORD-05)</summary>
@@ -139,7 +154,12 @@ public sealed class OrdersController : ControllerBase
         if (string.IsNullOrWhiteSpace(body.ReasonCode))
             throw new GatewayInputException("Rejection reason code is required.", "ReasonCode");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "sub-order-reject", PendingRealCall, SeedParser);
+        return ForwardAsync(
+            Service,
+            $"/api/v1/orders/{orderId}/reject",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "sub-order-reject"
+        );
     }
 }
