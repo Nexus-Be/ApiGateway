@@ -70,7 +70,7 @@ Tạo file `Seeds/catalog/products.json`:
 > ⚠️ File này **chưa tồn tại**; cần tạo cùng lúc với message protobuf `ProductList` (hiện `Contracts/shop.proto` không có). Nếu message không tồn tại thì không có parser để validate và nhánh Mock không chạy được.
 
 ### 👉 Bước 3: Mở Swagger kiểm tra kết quả ngay!
-1. Truy cập `http://localhost:8000/swagger`.
+1. Truy cập `http://localhost:8080/swagger`.
 2. Bấm vào endpoint vừa tạo → **Try it out** → **Execute**.
 3. Gateway bọc dữ liệu vào vỏ chuẩn:
 ```json

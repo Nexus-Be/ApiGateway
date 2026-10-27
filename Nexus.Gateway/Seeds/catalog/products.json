@@ -4,41 +4,31 @@
       "productId": "22222222-2222-4222-8222-000000000001",
       "name": "Nexus Wireless Headphones",
       "brand": "NexusAudio",
-      "saleType": "REGULAR",
       "minPrice": 1250000,
       "maxPrice": 1490000,
       "primaryImageUrl": "https://cdn.nexus.local/catalog/headphones-1.jpg",
       "avgRating": 4.6,
-      "status": "ACTIVE",
-      "auctionStatus": null,
-      "isOpen": true,
-      "isSold": false
+      "status": "ACTIVE"
     },
     {
       "productId": "22222222-2222-4222-8222-000000000002",
       "name": "Nexus Smart Watch",
       "brand": "NexusWear",
-      "saleType": "REGULAR",
       "minPrice": 3200000,
       "maxPrice": 3200000,
       "primaryImageUrl": "https://cdn.nexus.local/catalog/watch-1.jpg",
       "avgRating": 4.2,
-      "status": "ACTIVE",
-      "isOpen": true,
-      "isSold": false
+      "status": "ACTIVE"
     },
     {
       "productId": "22222222-2222-4222-8222-000000000003",
       "name": "Nexus Bluetooth Speaker",
       "brand": "NexusAudio",
-      "saleType": "REGULAR",
       "minPrice": 890000,
       "maxPrice": 890000,
       "primaryImageUrl": "https://cdn.nexus.local/catalog/speaker-1.jpg",
       "avgRating": 4.0,
-      "status": "INACTIVE",
-      "isOpen": false,
-      "isSold": false
+      "status": "INACTIVE"
     }
   ],
   "total": 3

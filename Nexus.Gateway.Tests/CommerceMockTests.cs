@@ -373,4 +373,107 @@ public sealed class CommerceMockTests
         Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
         Assert.Equal("REFUNDED", root.GetProperty("data").GetProperty("status").GetString());
     }
+
+    [Fact]
+    public async Task ListOrders_ReturnsPagedOrdersList()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.GetAsync("/api/v1/orders?page=1&pageSize=10");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
+
+        var data = root.GetProperty("data");
+        Assert.True(data.TryGetProperty("items", out var items));
+        Assert.Equal(JsonValueKind.Array, items.ValueKind);
+        Assert.True(items.GetArrayLength() > 0);
+    }
+
+    [Fact]
+    public async Task ListOrders_SingularRoute_ReturnsPagedOrdersList()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.GetAsync("/api/v1/order?page=1&pageSize=10");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
+    }
+
+    [Theory]
+    [InlineData("PendingPayment")]
+    [InlineData("pending_payment")]
+    [InlineData("PAID")]
+    [InlineData("Cancelled")]
+    public async Task ListOrders_WithValidOrderStatus_ReturnsSuccess(string status)
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.GetAsync($"/api/v1/orders?status={status}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ListOrders_WithInvalidOrderStatus_ReturnsBadRequest()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.GetAsync("/api/v1/orders?status=INVALID_STATUS");
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.Equal(400, root.GetProperty("status").GetInt32());
+        Assert.Equal("VAL_INVALID_INPUT", root.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task CreateOrder_WithInvalidPaymentMethod_ReturnsBadRequest()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.PostAsJsonAsync("/api/v1/orders", new
+        {
+            quoteId = "quote-123",
+            shippingAddress = "123 Le Loi",
+            contactPhone = "0901234567",
+            paymentMethod = "CryptoCurrency"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.Equal(400, root.GetProperty("status").GetInt32());
+        Assert.Equal("VAL_INVALID_INPUT", root.GetProperty("errorCode").GetString());
+    }
+
+    [Fact]
+    public async Task CancelOrder_WithInvalidReasonCode_ReturnsBadRequest()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.PostAsJsonAsync($"/api/v1/orders/{OrderId}/cancel", new
+        {
+            reasonCode = "UNKNOWN_REASON_CODE"
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.Equal(400, root.GetProperty("status").GetInt32());
+        Assert.Equal("VAL_INVALID_INPUT", root.GetProperty("errorCode").GetString());
+    }
 }

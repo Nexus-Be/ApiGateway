@@ -1,6 +1,4 @@
 {
-  "success": true,
-  "message": "New OTP verification code has been dispatched to your email address.",
   "email": "user@mcs.local",
   "resendCooldown": 60
 }

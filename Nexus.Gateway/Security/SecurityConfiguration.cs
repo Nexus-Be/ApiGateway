@@ -181,10 +181,12 @@ public static class SecurityConfiguration
         {
             o.AddPolicy(GatewayPolicies.Authenticated, p => p.RequireAuthenticatedUser().RequireClaim("sub"));
             o.AddPolicy(GatewayPolicies.Customer, p => p.RequireAuthenticatedUser().RequireClaim("sub"));
-            o.AddPolicy(GatewayPolicies.Seller, p => p.RequireAuthenticatedUser().RequireRole("seller", "admin", "Seller", "Admin"));
+            o.AddPolicy(GatewayPolicies.Seller, p => p.RequireAuthenticatedUser().RequireRole("seller", "staff", "admin", "Seller", "Staff", "Admin"));
             o.AddPolicy(GatewayPolicies.Staff, p => p.RequireAuthenticatedUser().RequireRole("staff", "admin", "Staff", "Admin"));
             o.AddPolicy(GatewayPolicies.Admin, p => p.RequireAuthenticatedUser().RequireRole("admin", "Admin"));
             o.AddPolicy(GatewayPolicies.GatewayAdmin, p => p.RequireAuthenticatedUser().RequireRole("admin", "Admin"));
+            o.AddPolicy(GatewayPolicies.StaffOrAdmin, p => p.RequireAuthenticatedUser().RequireRole("staff", "admin", "Staff", "Admin"));
+            o.AddPolicy(GatewayPolicies.SellerOrStaffOrAdmin, p => p.RequireAuthenticatedUser().RequireRole("seller", "staff", "admin", "Seller", "Staff", "Admin"));
         });
 
         return services;
@@ -236,8 +238,8 @@ public static class SecurityConfiguration
             {
                 var requiredPolicy = GatewaySecurityHelper.ResolveRequiredPolicy(context);
                 if (requiredPolicy is "admin") role = "admin";
-                else if (requiredPolicy is "staff") role = "staff";
-                else if (requiredPolicy is "seller") role = "seller";
+                else if (requiredPolicy is "staff" or "staff-admin") role = "staff";
+                else if (requiredPolicy is "seller" or "seller-staff-admin") role = "seller";
                 else role = opts.DefaultMockRole;
             }
             else

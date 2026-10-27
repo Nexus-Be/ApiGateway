@@ -103,4 +103,4 @@ Trong thư mục `Mocks/` này có sẵn **5 Mock API chuẩn mẫu** đại di�
 1. Tạo file mới trong thư mục `Mocks/` với đuôi `.mock.json` (ví dụ: `my-feature.mock.json`).
 2. Copy nội dung từ một trong 5 file mẫu (`auth-register.mock.json` hoặc `users-me.mock.json`).
 3. Cập nhật `path`, `method`, `request`, `response` phù hợp với nghiệp vụ.
-4. Mở Swagger UI (`http://localhost:8000/swagger`) $\rightarrow$ API mock mới sẽ tự động hiển thị và sẵn sàng test ngay mà không cần khởi động lại Gateway (Hot-Reload).
+4. Mở Swagger UI (`http://localhost:8080/swagger`) $\rightarrow$ API mock mới sẽ tự động hiển thị và sẵn sàng test ngay mà không cần khởi động lại Gateway (Hot-Reload).

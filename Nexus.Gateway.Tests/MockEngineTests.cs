@@ -86,7 +86,7 @@ public sealed class MockEngineTests
 
         var data = doc.RootElement.GetProperty("data");
         Assert.Equal("john.doe@example.com", data.GetProperty("email").GetString());
-        Assert.Equal("PendingVerification", data.GetProperty("status").GetString());
+        Assert.Equal(300, data.GetProperty("otpExpiresIn").GetInt32());
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed class MockEngineTests
 
         Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
         var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.GetProperty("success").GetBoolean());
+        Assert.Equal(60, data.GetProperty("resendCooldown").GetInt32());
         Assert.Equal("user@mcs.local", data.GetProperty("email").GetString());
     }
 
@@ -131,7 +131,8 @@ public sealed class MockEngineTests
         using var doc = JsonDocument.Parse(content);
         Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
         Assert.Equal(200, doc.RootElement.GetProperty("statusCode").GetInt32());
-        Assert.Equal("Alex Rivers", doc.RootElement.GetProperty("data").GetProperty("displayName").GetString());
+        Assert.Equal("Alex", doc.RootElement.GetProperty("data").GetProperty("firstName").GetString());
+        Assert.Equal("Rivers", doc.RootElement.GetProperty("data").GetProperty("lastName").GetString());
     }
 
     [Fact]

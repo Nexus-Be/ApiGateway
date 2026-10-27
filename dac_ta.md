@@ -31,7 +31,7 @@ Trong kiến trúc Microservices của hệ sinh thái Nexus, **ApiGateway** đ�
 ```
 [ Khách Hàng: Web Browser / Next.js / Mobile App ]
                        │
-                       ▼ (HTTP/REST JSON: /api/v1/... - Cổng 8000)
+                       ▼ (HTTP/REST JSON: /api/v1/... - Cổng 8080)
            ┌────────────────────────┐
            │       ApiGateway       │ ──(RateLimit Cache)──▶ [ Redis : 6379 ]
            └────────────────────────┘
@@ -50,7 +50,7 @@ Nếu không có Gateway, các ứng dụng Client (Frontend, Mobile) sẽ phả
 - **Bất đồng bộ giao thức**: Frontend chỉ hiểu HTTP/REST JSON, trong khi các microservices backend giao tiếp hiệu năng cao bằng gRPC Protobuf v3.
 - **Khó khăn khi phát triển giao diện (FE bị block)**: Nếu Backend chưa code xong hoặc chưa dựng database, Frontend hoàn toàn bị tê liệt vì không có API để test.
 ### 1.2. Những gì ApiGateway làm được (Bảng Tóm Tắt Năng Lực):
-1. **Cổng vào tập trung duy nhất (Single Point of Entry)** — ✅ CÓ: mọi request ngoại vi vào cổng `8000` với tiền tố `/api/v1/...` (`Properties/launchSettings.json`, `Dockerfile EXPOSE 8000`). ⚠️ Nhưng tiền tố **không** đồng nhất `/api/v1/{service}/...`: route thật gồm `/api/v1/auth/*`, `/api/v1/users/me`, `/api/v1/gateway/*`, `/api/v1/mock-engine/*`, `/api/v1/catalog/products`, `/api/v1/commerce/orders`, `/api/v1/wallet`...
+1. **Cổng vào tập trung duy nhất (Single Point of Entry)** — ✅ CÓ: mọi request ngoại vi vào cổng `8080` với tiền tố `/api/v1/...` (`Properties/launchSettings.json`, `Dockerfile EXPOSE 8080`). ⚠️ Nhưng tiền tố **không** đồng nhất `/api/v1/{service}/...`: route thật gồm `/api/v1/auth/*`, `/api/v1/users/me`, `/api/v1/gateway/*`, `/api/v1/mock-engine/*`, `/api/v1/catalog/products`, `/api/v1/commerce/orders`, `/api/v1/wallet`...
 2. **Chuyển đổi giao thức thông minh (Protocol Translation)** — ⚠️ MỘT PHẦN: cơ chế REST → gRPC có thật (`Dispatching/GrpcServiceCaller.cs`, `Dispatching/GatewayDispatcher.cs`), nhưng **chỉ 1/8 service** có client (`UsersApi.UsersApiClient` đăng ký bởi `Extensions/GrpcClientsExtension.cs`). 7 service còn lại chưa có rpc trong `Contracts/shop.proto` nên không thể gọi thật.
 3. **Môi trường phát triển độc lập (Mock Engine tích hợp)** — ⚠️ MỘT PHẦN: có **hai** cơ chế mock chạy song song: (a) seed fixture đọc theo từng request (`Dispatching/MockDataMapper.cs`) với **9 file** trong `Seeds/` chỉ cho `auth` (4) và `users` (5); (b) declarative mock `Mocks/*.mock.json` (**6 file**) do `MockEngine/MockEngineMiddleware.cs` phục vụ khi route **không** khớp action nào. **Không** có seed cho `catalog`, `commerce`, `log`, `auction`, `fulfillment`, `notification`, `wallet`.
 4. **Chuyển đổi trạng thái Gateway linh hoạt** — ✅ CÓ: cấu hình `Gateway:AuthMode` với giá trị `Enforce` / `Standard`; `Bypass` (và `Mock`, `MockBypass`) **chỉ hợp lệ ở Development** (`GatewayOptions.IsValid`). Tên cũ `GatewayMode` chỉ còn là alias đọc-legacy. Ở `Bypass`, Frontend test giao diện không cần đăng nhập, trừ control-plane (xem mục 3.2).
@@ -200,7 +200,7 @@ Gateway cho phép cô lập trạng thái Mock/Real độc lập cho từng serv
 ---
 ## 3.4. Tính Năng CORS (Cross-Origin Resource Sharing)
 ### Vấn đề thực tế:
-Khi ứng dụng Frontend chạy tại `http://localhost:3000` (React/Next.js) gọi API sang Gateway chạy tại `http://localhost:8000`, trình duyệt web sẽ tự động chặn request theo chính sách bảo mật Same-Origin Policy nếu Gateway không cấu hình CORS chuẩn.
+Khi ứng dụng Frontend chạy tại `http://localhost:3000` (React/Next.js) gọi API sang Gateway chạy tại `http://localhost:8080`, trình duyệt web sẽ tự động chặn request theo chính sách bảo mật Same-Origin Policy nếu Gateway không cấu hình CORS chuẩn.
 ### Cách Gateway xử lý CORS:
 Triển khai trong [EdgeMiddlewareConfiguration.cs](Nexus.Gateway/Security/EdgeMiddlewareConfiguration.cs):
 - **Cấu hình nguồn cho phép (`CorsOrigins`)**: Đọc từ cấu hình `Gateway:CorsOrigins` (hỗ trợ nhiều origin như `http://localhost:3000`, `http://localhost:5173`).
@@ -540,9 +540,9 @@ src/Services/ApiGateway/
 ├── input.md                              # Mẫu JSON envelope request/response + bảng mã lỗi
 ├── global.json                           # Cố định phiên bản .NET SDK (8.0.x)
 ├── docker-compose.yml                    # CHỈ định nghĩa service `gateway` (KHÔNG kèm Redis/Tempo/Grafana)
-├── Dockerfile                            # aspnet:8.0 runtime, EXPOSE 8000, KHÔNG cài docker CLI
+├── Dockerfile                            # aspnet:8.0 runtime, EXPOSE 8080, KHÔNG cài docker CLI
 ├── .env / .env.example                   # Biến môi trường local (.env bị gitignore, .env.example được track)
-├── run-dev.sh / run-dev.ps1              # Script khởi chạy Development: `dotnet run --urls http://127.0.0.1:8000`
+├── run-dev.sh / run-dev.ps1              # Script khởi chạy Development: `dotnet run --urls http://127.0.0.1:8080`
 ├── .github/workflows/ci-cd.yml           # CI build + push Docker image khi push/PR vào `main`
 │
 ├── Nexus.Gateway/                        # PROJECT CHÍNH (ASP.NET Core 8 Web API / Gateway)
@@ -555,7 +555,7 @@ src/Services/ApiGateway/
 │   ├── appsettings.Development.example.json
 │   ├── gateway.runtime.json              # Cấu hình runtime động (hot-reload) — ĐƯỢC TRACK trong git
 │   ├── gateway.runtime.example.json
-│   ├── Properties/launchSettings.json    # Profile `http` → http://localhost:8000, env Development
+│   ├── Properties/launchSettings.json    # Profile `http` → http://localhost:8080, env Development
 │   │
 │   ├── Contracts/
 │   │   └── shop.proto                    # Chỉ có `service UsersApi` (5 rpc) — KHÔNG phải nguồn sự thật duy nhất

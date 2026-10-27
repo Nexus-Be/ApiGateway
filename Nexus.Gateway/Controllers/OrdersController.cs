@@ -27,6 +27,37 @@ public sealed class OrdersController : GatewayBaseController
     {
     }
 
+    /// <summary>Lấy danh sách đơn hàng của người mua (Row 78 / ORD-07)</summary>
+    [HttpGet("orders")]
+    [HttpGet("order")]
+    [Authorize(Policy = GatewayPolicies.Customer)]
+    public Task<IResult> ListOrders(
+        [FromQuery] PaginationRequest pagination,
+        [FromQuery] string? status = null,
+        [FromQuery] string? fromDate = null,
+        [FromQuery] string? toDate = null)
+    {
+        pagination.EnsureValid();
+        CommerceValidation.EnsureOptionalOrderStatus(status);
+
+        return ForwardPagedAsync(
+            Service,
+            "/api/v1/orders",
+            pagination.Page,
+            pagination.PageSize,
+            HttpMethod.Get,
+            mockSeed: "order-list",
+            queryParams: new Dictionary<string, string?>
+            {
+                ["page"] = pagination.Page.ToString(),
+                ["pageSize"] = pagination.PageSize.ToString(),
+                ["status"] = status,
+                ["fromDate"] = fromDate,
+                ["toDate"] = toDate
+            }
+        );
+    }
+
     /// <summary>Tính trước tiền hàng, giảm giá và phí ship (CHK-01)</summary>
     [HttpPost("checkout/quote")]
     [Authorize(Policy = GatewayPolicies.Customer)]
@@ -42,6 +73,7 @@ public sealed class OrdersController : GatewayBaseController
             throw new GatewayInputException("Shipping address is incomplete.", "ShippingAddress");
         if (string.IsNullOrWhiteSpace(body.ContactPhone))
             throw new GatewayInputException("Contact phone number is required.", "ContactPhone");
+        CommerceValidation.EnsureOptionalPaymentMethod(body.PaymentMethod);
 
         return ForwardAsync(
             Service,
@@ -61,6 +93,7 @@ public sealed class OrdersController : GatewayBaseController
             throw new GatewayInputException("Checkout quote ID is required.", "QuoteId");
         if (string.IsNullOrWhiteSpace(body.ShippingAddress) || string.IsNullOrWhiteSpace(body.ContactPhone))
             throw new GatewayInputException("Shipping address and phone number are required.", "ShippingAddress");
+        CommerceValidation.EnsureOptionalPaymentMethod(body.PaymentMethod);
 
         return ForwardAsync(
             Service,
@@ -112,6 +145,7 @@ public sealed class OrdersController : GatewayBaseController
     {
         if (string.IsNullOrWhiteSpace(orderId))
             throw new GatewayInputException("Order ID is required.", "OrderId");
+        CommerceValidation.EnsureOptionalCancellationReason(body.ReasonCode);
 
         return ForwardAsync(
             Service,

@@ -14,10 +14,53 @@ public static class UserValidation
         @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-    public static readonly string[] AllowedUserStatuses = ["ACTIVE", "INACTIVE", "BANNED", "SUSPENDED", "PENDING_VERIFICATION"];
-    public static readonly string[] AllowedViolationTypes = ["SPAM", "HARASSMENT", "FRAUD", "COUNTERFEIT", "INAPPROPRIATE_CONTENT", "OTHER"];
-    public static readonly string[] AllowedReportStatuses = ["PENDING", "RESOLVED", "DISMISSED"];
-    public static readonly string[] AllowedSellerRegistrationStatuses = ["PENDING", "APPROVED", "REJECTED"];
+    public static readonly string[] AllowedUserStatuses = ["PendingVerification", "Active", "Banned", "Deleted"];
+    public static readonly string[] AllowedViolationTypes = ["Fraud", "Harassment", "Counterfeit", "Spam", "Other"];
+    public static readonly string[] AllowedReportStatuses = ["Pending", "UnderReview", "Resolved", "Rejected"];
+    public static readonly string[] AllowedSellerRegistrationStatuses = ["Pending", "Approved", "Rejected"];
+    public static readonly string[] AllowedRoles = ["Buyer", "Seller", "SupportStaff", "Admin"];
+    public static readonly string[] AllowedTrustLevels = ["Untrusted", "Probation", "Standard", "Good", "Excellent"];
+    public static readonly string[] AllowedPenaltyViolationTypes = ["PaymentTimeout", "AuctionNonPayment", "CancellationWithoutReason", "Fraud", "Other"];
+    public static readonly string[] AllowedPenaltyTypes = ["Warning", "DeductPoints", "SuspendBidding3Days", "BanAccount", "Other"];
+    public static readonly string[] AllowedPenaltyStatuses = ["Active", "Expired", "Revoked"];
+    public static readonly string[] AllowedReferenceTypes = ["Order", "Auction", "Dispute", "System"];
+
+    public static void EnsureOptionalUserStatus(string? status, string field = "status")
+    {
+        if (string.IsNullOrWhiteSpace(status)) return;
+        EnumValidationHelper.EnsureOneOf(status, field, AllowedUserStatuses);
+    }
+
+    public static void EnsureOptionalReportStatus(string? status, string field = "status")
+    {
+        if (string.IsNullOrWhiteSpace(status)) return;
+        EnumValidationHelper.EnsureOneOf(status, field, AllowedReportStatuses);
+    }
+
+    public static void EnsureOptionalReportViolationType(string? violationType, string field = "violationType")
+    {
+        if (string.IsNullOrWhiteSpace(violationType)) return;
+        EnumValidationHelper.EnsureOneOf(violationType, field, AllowedViolationTypes);
+    }
+
+    public static void EnsureOptionalSellerRegistrationStatus(string? status, string field = "status")
+    {
+        if (string.IsNullOrWhiteSpace(status)) return;
+        EnumValidationHelper.EnsureOneOf(status, field, AllowedSellerRegistrationStatuses);
+    }
+
+    public static void EnsureOptionalRole(string? role, string field = "role")
+    {
+        if (string.IsNullOrWhiteSpace(role)) return;
+        var allowed = new List<string>(AllowedRoles) { "Staff" };
+        EnumValidationHelper.EnsureOneOf(role, field, allowed);
+    }
+
+    public static void EnsureOptionalPenaltyViolationType(string? violationType, string field = "violationType")
+    {
+        if (string.IsNullOrWhiteSpace(violationType)) return;
+        EnumValidationHelper.EnsureOneOf(violationType, field, AllowedPenaltyViolationTypes);
+    }
 
     public static string EnsureRequired(string? value, string field, string? label = null)
     {

@@ -65,7 +65,7 @@ Dùng admin API để xem/đổi mode chung, dùng header cho một request test
 | `Gateway:RateLimits:<policy>:PermitLimit` | `Gateway__RateLimits__<policy>__PermitLimit` | `5` (`auth-strict`), `10` (`auth-login`), `120` (`user-frequent`) | Giới hạn request theo từng policy. Policy thật đang dùng: `auth-strict`, `auth-login`, `user-frequent`, `api`, `default`. | ✅ CÓ |
 | `Gateway:RateLimits:<policy>:WindowSeconds` | `Gateway__RateLimits__<policy>__WindowSeconds` | `60` | Độ dài cửa sổ theo giây cho từng policy. | ✅ CÓ |
 | `Gateway:ConcurrencyLimit` | `Gateway__ConcurrencyLimit` | `100` | Số request đồng thời tối đa Gateway tiếp nhận. | ✅ CÓ |
-| `Gateway:RedisConnectionString` | `Gateway__RedisConnectionString` | `"localhost:6379"` | Địa chỉ Redis cho Distributed Rate Limiting. Compose override thành `redis:6379`. | ✅ CÓ |
+| `Gateway:RedisConnectionString` | `Gateway__RedisConnectionString` | `"localhost:6379"` | Địa chỉ Redis cho Distributed Rate Limiting (500MB shared limit). Compose override thành `redis:6379`. | ✅ CÓ |
 | `Gateway:RedisKeyPrefix` | `Gateway__RedisKeyPrefix` | `"nexus:gateway"` | Tiền tố khoá Redis. | ✅ CÓ |
 | `Gateway:RedisFailOpenInDevelopment` | `Gateway__RedisFailOpenInDevelopment` | `true` (Dev) | Nếu Redis sập và cờ bật: cho request đi qua + log cảnh báo thay vì chặn. Prod mặc định `false`. | ✅ CÓ |
 | `Gateway:CorsOrigins` | `Gateway__CorsOrigins__0`, `__1` | `["http://localhost:3000", ...]` | Danh sách URL Frontend được phép gọi API. | ✅ CÓ |

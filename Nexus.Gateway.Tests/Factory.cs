@@ -14,6 +14,11 @@ namespace Nexus.Gateway.Tests;
 
 public sealed class Factory : WebApplicationFactory<Program>
 {
+    static Factory()
+    {
+        Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "1");
+    }
+
     public const string Secret = "test-only-signing-key-not-used-by-production-123456";
     public Action<GatewayOptions>? Configure { get; init; }
 

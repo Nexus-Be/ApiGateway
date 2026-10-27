@@ -156,9 +156,9 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin xem cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
+    /// <summary>Admin/Staff xem cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
     [HttpGet("admin/notifications/channels/{code}")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> GetNotificationChannel([FromRoute] string code)
     {
         return ForwardAsync(
@@ -170,9 +170,9 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin cập nhật cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
+    /// <summary>Admin/Staff cập nhật cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
     [HttpPut("admin/notifications/channels/{code}")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> UpdateNotificationChannel([FromRoute] string code, [FromBody] UpdateChannelRequest body)
     {
         return ForwardAsync(
@@ -185,9 +185,9 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin xem danh sách mẫu thông báo (NOTI-08 sheet / NOTI-12)</summary>
+    /// <summary>Admin/Staff xem danh sách mẫu thông báo (NOTI-08 sheet / NOTI-12)</summary>
     [HttpGet("admin/notifications/templates")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> GetNotificationTemplates(
         [FromQuery] string? channelCode = null,
         [FromQuery] string? notificationType = null)
@@ -206,9 +206,9 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin tạo mẫu nội dung thông báo mới (NOTI-08 sheet / NOTI-10)</summary>
+    /// <summary>Admin/Staff tạo mẫu nội dung thông báo mới (NOTI-08 sheet / NOTI-10)</summary>
     [HttpPost("admin/notifications/templates")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> CreateNotificationTemplate([FromBody] SaveTemplateRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.Code) ||
@@ -231,7 +231,7 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff tra cứu lịch sử thông báo toàn hệ thống (NOTI-09 sheet)</summary>
     [HttpGet("admin/notifications")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> SearchNotificationHistory(
         [FromQuery] Guid? userId = null,
         [FromQuery] string? notificationType = null,
@@ -256,9 +256,9 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin tra cứu nhật ký sự kiện kỹ thuật message bus (NOTI-13)</summary>
+    /// <summary>Admin/Staff tra cứu nhật ký sự kiện kỹ thuật message bus (NOTI-13)</summary>
     [HttpGet("admin/event-logs")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> GetEventLogs(
         [FromQuery] string? sourceService = null,
         [FromQuery] string? eventType = null,
@@ -281,9 +281,9 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin xem chi tiết toàn bộ raw JSON payload của sự kiện kỹ thuật (NOTI-14)</summary>
+    /// <summary>Admin/Staff xem chi tiết toàn bộ raw JSON payload của sự kiện kỹ thuật (NOTI-14)</summary>
     [HttpGet("admin/event-logs/{id:guid}")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> GetEventLogDetail([FromRoute] Guid id)
     {
         return ForwardAsync(
@@ -295,9 +295,9 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin theo dõi trạng thái sức khỏe Message Broker (NOTI-16 sheet / NOTI-14)</summary>
+    /// <summary>Admin/Staff theo dõi trạng thái sức khỏe Message Broker (NOTI-16 sheet / NOTI-14)</summary>
     [HttpGet("admin/health/broker")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> GetBrokerHealthStatus([FromQuery] int limit = 50)
     {
         var query = new Dictionary<string, string?>

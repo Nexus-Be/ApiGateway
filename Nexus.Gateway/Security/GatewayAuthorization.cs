@@ -10,6 +10,8 @@ public static class GatewayPolicies
     public const string Staff = "staff";
     public const string Admin = "admin";
     public const string GatewayAdmin = "gateway-admin";
+    public const string StaffOrAdmin = "staff-admin";
+    public const string SellerOrStaffOrAdmin = "seller-staff-admin";
 
     public static bool IsMockPolicy(string? policy) =>
         string.IsNullOrWhiteSpace(policy) ||
@@ -19,7 +21,9 @@ public static class GatewayPolicies
         policy.Equals(Customer, StringComparison.OrdinalIgnoreCase) ||
         policy.Equals(Seller, StringComparison.OrdinalIgnoreCase) ||
         policy.Equals(Staff, StringComparison.OrdinalIgnoreCase) ||
-        policy.Equals(Admin, StringComparison.OrdinalIgnoreCase);
+        policy.Equals(Admin, StringComparison.OrdinalIgnoreCase) ||
+        policy.Equals(StaffOrAdmin, StringComparison.OrdinalIgnoreCase) ||
+        policy.Equals(SellerOrStaffOrAdmin, StringComparison.OrdinalIgnoreCase);
 }
 
 // Control-plane endpoints must always authenticate with a real administrator.

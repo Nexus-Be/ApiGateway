@@ -1,12 +1,5 @@
 {
   "userId": "11111111-1111-1111-1111-000000000099",
-  "id": "11111111-1111-1111-1111-000000000099",
   "email": "john.doe@example.com",
-  "otpExpiresIn": 300,
-  "displayName": "John Doe",
-  "roles": [
-    "Buyer"
-  ],
-  "status": "PendingVerification",
-  "shopName": ""
+  "otpExpiresIn": 300
 }

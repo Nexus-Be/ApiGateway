@@ -32,7 +32,6 @@
       "name": "Matte Black",
       "price": 1250000,
       "status": "ACTIVE",
-      "isDefault": true,
       "attributes": [
         { "attrName": "Color", "attrValue": "Black" }
       ]
@@ -43,7 +42,6 @@
       "name": "Pearl White",
       "price": 1490000,
       "status": "ACTIVE",
-      "isDefault": false,
       "attributes": [
         { "attrName": "Color", "attrValue": "White" }
       ]
@@ -51,19 +49,12 @@
   ],
   "images": [
     {
-      "imageId": "66666666-6666-4666-8666-000000000001",
       "url": "https://cdn.nexus.local/catalog/headphones-1.jpg",
-      "altText": "Nexus Wireless Headphones front view",
-      "isActive": true,
-      "sortOrder": 1,
-      "variantId": "44444444-4444-4444-8444-000000000001"
+      "altText": "Front view of black headphones"
     },
     {
-      "imageId": "66666666-6666-4666-8666-000000000002",
       "url": "https://cdn.nexus.local/catalog/headphones-2.jpg",
-      "altText": "Nexus Wireless Headphones side view",
-      "isActive": true,
-      "sortOrder": 2
+      "altText": "Side view of black headphones"
     }
   ],
   "rating": {

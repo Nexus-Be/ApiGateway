@@ -41,11 +41,11 @@ Tài liệu này ghi nhận kế hoạch tổng thể, các kế hoạch con (su
   - [ ] Chạy `dotnet test ApiGateway.sln -c Release`: **không ghi con số** trong tài liệu; phải lấy từ output thực tế. Quy mô test hiện tại: **62 attribute `[Fact]`/`[Theory]` trên 19 file** (49 `[Fact]` + 13 `[Theory]`, trong đó 49 dòng `[InlineData]`).
   - *Checkpoint*: nhật ký cũ ghi "46/46" và "40 tests" — **hai con số này mâu thuẫn nhau và không tái lập được**, đã bị xoá.
 - **Plan 6: Chạy live server Gateway, test trực tiếp cả 2 luồng và nghiệm thu**
-  - [x] Chạy live server Gateway thực tế cổng **8000** (`Properties/launchSettings.json`, `Dockerfile EXPOSE 8000`, `run-dev.sh`):
+  - [x] Chạy live server Gateway thực tế cổng **8080** (`Properties/launchSettings.json`, `Dockerfile EXPOSE 8080`, `run-dev.sh`):
     - Luồng `Enforce`: Gọi không token ➔ 401; Đăng nhập lấy token ➔ 200 OK *(login phụ thuộc GW-03)*.
     - Luồng `Bypass`: Đổi mode sang `Bypass` ➔ gọi `GET /api/v1/users/me` không cần token ➔ 200 OK. Lưu ý: `/api/v1/catalog/inventory` (`api/v1/catalog/inventory`) và `/api/v1/admin/users` (`api/v1/admin/users`) là **stub 0 action** nên trả **404**, không trả 200 — tài liệu cũ ghi `/seller/inventory`, `/admin/roles` là **route không tồn tại**.
     - Reset về `Enforce`: Gọi lại không token ➔ Lập tức bị chặn 401 như thường.
-  - *Ghi chú*: tài liệu cũ ghi cổng `5200` — sai với port bất biến `8000`.
+  - *Ghi chú*: tài liệu cũ ghi cổng `5200` và `8000` — cập nhật sang port **8080** (tránh xung đột với Portainer port 8000).
 - **Plan 7: Tái cấu trúc 3 Khối Độc Lập (3-Tier Decoupling: Input → Middle → Output)**
   - [x] **Tầng Common & Responses**: Chuẩn hóa `ApiResponseFactory`, `ValidationHelpers`, `HttpContextUserExtensions`, attributes.
   - [x] **Khối Phần Giữa (Dispatching Core)**: `ModeEvaluator`, `MockDataMapper`, `GrpcServiceCaller`, `GatewayDispatcher`, `BackendDispatcher`.
@@ -79,7 +79,7 @@ Tài liệu này ghi nhận kế hoạch tổng thể, các kế hoạch con (su
 | Số action | (không nêu) | 16 (`GET` 5, `POST` 6, `PUT` 5) | ✅ CÓ |
 | gRPC client | (không nêu) | 1/8 — chỉ `users` (`Extensions/GrpcClientsExtension.cs`) | ⚠️ MỘT PHẦN |
 | DTOs | "toàn bộ 10 domains" | 4/8: Auth, GatewayControl, HealthProber, Users | ⚠️ MỘT PHẦN |
-| Cổng live run | 5200 | 8000 (port bất biến) | ✅ CÓ |
+| Cổng live run | 5200 | 8080 (cổng bất biến mới) | ✅ CÓ |
 | Tên mode | `GatewayMode` | `AuthMode` (`Enforce`/`Standard`/`Bypass`), `GatewayMode` = alias legacy | ⚠️ MỘT PHẦN |
 | Runtime manager API | `GetGatewayMode`/`SetGatewayModeAsync`/`IsAuthBypassed` | `GetAuthMode`/`SetAuthModeAsync`/`GetServiceModes`/`SetServiceModeAsync`/`SetBulkServiceModesAsync`/`SetBulkModesAsync` | ✅ CÓ |
 | Số test | 46/46, 40, 111/111, 120/120 | 62 attribute / 19 file (49 `[Fact]` + 13 `[Theory]`) | ❌ Số cũ sai |

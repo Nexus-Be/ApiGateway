@@ -1,8 +1,6 @@
 {
   "id": "11111111-1111-1111-1111-000000000004",
-  "userId": "11111111-1111-1111-1111-000000000004",
   "username": "alexrivers",
-  "displayName": "Alex Rivers",
   "firstName": "Alex",
   "lastName": "Rivers",
   "email": "buyer01@mcs.local",
@@ -13,7 +11,7 @@
   "trustLevel": "GOLD",
   "isSeller": false,
   "roles": [
-    "buyer"
+    "Buyer"
   ],
   "permissions": [
     "CART.VIEW",
@@ -21,7 +19,5 @@
     "ORDER.VIEW",
     "CHECKOUT.START"
   ],
-  "status": "Active",
-  "shopName": "",
   "createdAt": "2026-10-26T00:00:00Z"
 }

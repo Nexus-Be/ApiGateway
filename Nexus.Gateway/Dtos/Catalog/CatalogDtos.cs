@@ -157,8 +157,14 @@ public sealed class ProductListItemDto
 {
     public string? ProductId { get; set; }
     public string? Name { get; set; }
+    public string? Brand { get; set; }
+    public decimal MinPrice { get; set; }
+    public decimal MaxPrice { get; set; }
     public decimal Price { get; set; }
+    public string? PrimaryImageUrl { get; set; }
     public string? ImageUrl { get; set; }
+    public decimal AvgRating { get; set; }
+    public string? Status { get; set; }
 }
 
 public sealed class ProductDetailResponseDto

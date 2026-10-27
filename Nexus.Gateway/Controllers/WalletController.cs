@@ -90,9 +90,9 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Seller tạo yêu cầu rút tiền từ ví về tài khoản ngân hàng (WAL-07)</summary>
+    /// <summary>Yêu cầu rút tiền từ ví về tài khoản ngân hàng (WAL-07)</summary>
     [HttpPost("wallets/withdrawals")]
-    [Authorize(Policy = GatewayPolicies.Seller)]
+    [Authorize(Policy = GatewayPolicies.Authenticated)]
     public Task<IResult> RequestWithdrawal([FromBody] WithdrawalRequest body)
     {
         if (body.Amount < 50000m)
@@ -115,14 +115,15 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin duyệt hoặc từ chối yêu cầu rút tiền của Seller (WAL-08)</summary>
+    /// <summary>Quản trị viên / Nhân viên tài chính duyệt hoặc từ chối yêu cầu rút tiền (WAL-08)</summary>
     [HttpPatch("admin/wallets/withdrawals/{withdrawalId}")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
     public Task<IResult> ProcessWithdrawal(string withdrawalId, [FromBody] ProcessWithdrawalRequest body)
     {
         if (string.IsNullOrWhiteSpace(withdrawalId))
             throw new GatewayInputException("Withdrawal ID is required.", "WithdrawalId");
-        if (body.Action != "APPROVE" && body.Action != "REJECT")
+        if (!string.Equals(body.Action, "APPROVE", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(body.Action, "REJECT", StringComparison.OrdinalIgnoreCase))
             throw new GatewayInputException("Action must be APPROVE or REJECT.", "Action");
 
         return ForwardAsync(
@@ -147,6 +148,8 @@ public sealed class WalletController : GatewayBaseController
     {
         if (page < 1 || limit < 1 || limit > 100)
             throw new GatewayInputException("Page or limit is invalid.", "Pagination");
+
+        WalletValidation.EnsureOptionalTransactionType(type);
 
         var query = new Dictionary<string, string?>();
         if (!string.IsNullOrWhiteSpace(type)) query["type"] = type;

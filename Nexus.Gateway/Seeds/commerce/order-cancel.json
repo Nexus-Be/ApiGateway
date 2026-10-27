@@ -1,6 +1,5 @@
 {
   "orderId": "6a1b2c3d-7777-4e8f-9a0b-1c2d3e4f5a07",
   "status": "CANCELLED",
-  "cancelledAt": "2026-10-26T00:30:00Z",
-  "message": "Order has been successfully cancelled."
+  "cancelledAt": "2026-10-26T00:30:00Z"
 }

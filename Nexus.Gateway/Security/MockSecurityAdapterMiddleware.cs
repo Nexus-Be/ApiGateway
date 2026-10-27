@@ -125,8 +125,8 @@ public sealed class MockSecurityAdapterMiddleware
 
         // 3. Adaptive role matching the required policy
         if (requiredPolicy is "admin") return "admin";
-        if (requiredPolicy is "staff") return "staff";
-        if (requiredPolicy is "seller") return "seller";
+        if (requiredPolicy is "staff" or "staff-admin") return "staff";
+        if (requiredPolicy is "seller" or "seller-staff-admin") return "seller";
 
         // 4. Default mock role
         return opts.DefaultMockRole;

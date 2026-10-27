@@ -35,6 +35,7 @@ public sealed class AdminUsersController : GatewayBaseController
         [FromQuery] string status = "")
     {
         UserValidation.EnsurePaged(page, limit);
+        UserValidation.EnsureOptionalSellerRegistrationStatus(status);
 
         return ForwardPagedAsync(
             Service,
@@ -117,6 +118,8 @@ public sealed class AdminUsersController : GatewayBaseController
         [FromQuery] string violationType = "")
     {
         UserValidation.EnsurePaged(page, limit);
+        UserValidation.EnsureOptionalReportStatus(status);
+        UserValidation.EnsureOptionalReportViolationType(violationType);
 
         return ForwardPagedAsync(
             Service,
@@ -206,6 +209,8 @@ public sealed class AdminUsersController : GatewayBaseController
         [FromQuery] string status = "")
     {
         UserValidation.EnsurePaged(page, limit);
+        UserValidation.EnsureOptionalRole(role);
+        UserValidation.EnsureOptionalUserStatus(status);
 
         return ForwardPagedAsync(
             Service,
@@ -302,7 +307,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPatch("user/{userId}/ban")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserBanResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> BanUser(
         [FromRoute] string userId,
@@ -322,7 +327,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPatch("user/{userId}/unban")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserUnbanResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UnbanUser(
         [FromRoute] string userId,
@@ -398,7 +403,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpGet("roles")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminRoleListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListRoles()
     {
@@ -412,7 +417,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpGet("permissions")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminPermissionListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListPermissions()
     {
@@ -443,7 +448,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpGet("audit-logs")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminAuditLogListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListAuditLogs(
         [FromQuery] int page = 1,
@@ -475,7 +480,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpGet("configs")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminConfigListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListConfigs()
     {

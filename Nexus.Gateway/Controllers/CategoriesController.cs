@@ -75,7 +75,7 @@ public sealed class CategoriesController : GatewayBaseController
 
     /// <summary>Tạo danh mục mới (CAT-15)</summary>
     [HttpPost("categories")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.SellerOrStaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<CategoryCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateCategory([FromBody] CreateCategoryDto body)
     {
@@ -94,7 +94,7 @@ public sealed class CategoriesController : GatewayBaseController
 
     /// <summary>Cập nhật danh mục (CAT-16)</summary>
     [HttpPut("categories/{categoryId}")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<CategoryUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateCategory([FromRoute] string categoryId, [FromBody] UpdateCategoryDto body)
     {
@@ -113,7 +113,7 @@ public sealed class CategoriesController : GatewayBaseController
     /// <summary>Xoá mềm danh mục (CAT-17)</summary>
     [HttpDelete("categories/{categoryId}")]
     [HttpDelete("categories")]
-    [Authorize(GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public Task<IResult> DeleteCategory([FromRoute] string? categoryId = null, [FromQuery] string? id = null)
     {

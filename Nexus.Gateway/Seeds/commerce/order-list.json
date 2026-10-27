@@ -1,0 +1,49 @@
+{
+  "items": [
+    {
+      "orderId": "6a1b2c3d-7777-4e8f-9a0b-1c2d3e4f5a07",
+      "orderNo": "ORD-20261026-0001",
+      "buyerId": "11111111-1111-1111-1111-000000000004",
+      "status": "PendingPayment",
+      "totalAmount": 480000,
+      "paymentMethod": "Wallet",
+      "shippingAddress": "123 Le Loi, Ben Nghe, Quan 1, TP.HCM",
+      "contactPhone": "0901234567",
+      "subOrders": [
+        {
+          "subOrderId": "b1c2d3e4-8888-4f9a-8b0c-2d3e4f5a6b08",
+          "subOrderNo": "SUB-20261026-0001",
+          "sellerId": "5e9d1c2b-7f3a-4d8e-9c1b-2a4f6d8e0b12",
+          "shopName": "Shop Cong Nghe",
+          "status": "PendingPayment",
+          "itemsAmount": 500000,
+          "shippingFee": 30000,
+          "discountAmount": 50000,
+          "totalAmount": 480000,
+          "items": [
+            {
+              "orderItemId": "c2d3e4f5-9999-4a0b-9c1d-3e4f5a6b7c09",
+              "productId": "9f8e7d6c-2222-4b3c-8d4e-5f6a7b8c9d02",
+              "skuId": "7c6b5a49-3333-4c4d-9e5f-6a7b8c9d0e03",
+              "productName": "Chuot gaming khong day",
+              "skuCode": "MOUSE-WL-01",
+              "imageUrl": "https://img.example.com/mouse.png",
+              "quantity": 1,
+              "unitPrice": 500000,
+              "lineTotal": 500000
+            }
+          ]
+        }
+      ],
+      "createdAt": "2026-10-26T00:00:00Z"
+    }
+  ],
+  "pagination": {
+    "pageIndex": 1,
+    "pageSize": 20,
+    "totalCount": 1,
+    "totalPages": 1,
+    "hasPreviousPage": false,
+    "hasNextPage": false
+  }
+}

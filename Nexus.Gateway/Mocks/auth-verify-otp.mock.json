@@ -14,13 +14,6 @@
   },
   "response": {
     "isVerified": true,
-    "id": "11111111-1111-1111-1111-000000000099",
-    "displayName": "John Doe",
-    "email": "john.doe@example.com",
-    "roles": [
-      "buyer"
-    ],
-    "status": "Active",
-    "shopName": ""
+    "email": "john.doe@example.com"
   }
 }

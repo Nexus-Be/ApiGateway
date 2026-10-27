@@ -12,9 +12,7 @@
     "email": "user@mcs.local"
   },
   "response": {
-    "success": true,
-    "resendCooldown": 60,
-    "message": "New OTP verification code has been dispatched to your email address.",
-    "email": "user@mcs.local"
+    "email": "user@mcs.local",
+    "resendCooldown": 60
   }
 }

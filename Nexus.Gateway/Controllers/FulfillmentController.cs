@@ -66,6 +66,7 @@ public sealed class FulfillmentController : GatewayBaseController
     public Task<IResult> ListSellerShipments([FromQuery] PaginationRequest pagination, [FromQuery] string? status)
     {
         pagination.EnsureValid();
+        FulfillmentValidation.EnsureOptionalShipmentStatus(status);
 
         var query = new Dictionary<string, string?>();
         if (!string.IsNullOrWhiteSpace(status)) query["status"] = status;
@@ -92,6 +93,7 @@ public sealed class FulfillmentController : GatewayBaseController
         [FromQuery] string? toDate)
     {
         pagination.EnsureValid();
+        FulfillmentValidation.EnsureOptionalShipmentStatus(status);
 
         var query = new Dictionary<string, string?>();
         if (!string.IsNullOrWhiteSpace(keyword)) query["keyword"] = keyword;
@@ -133,8 +135,7 @@ public sealed class FulfillmentController : GatewayBaseController
     {
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
-        if (string.IsNullOrWhiteSpace(body.Status))
-            throw new GatewayInputException("Shipment status is required.", "Status");
+        FulfillmentValidation.EnsureShipmentStatus(body.Status);
         if (string.IsNullOrWhiteSpace(body.Location))
             throw new GatewayInputException("Location is required.", "Location");
 
@@ -170,8 +171,7 @@ public sealed class FulfillmentController : GatewayBaseController
     {
         if (string.IsNullOrWhiteSpace(body.TrackingNumber))
             throw new GatewayInputException("Tracking number is required.", "TrackingNumber");
-        if (string.IsNullOrWhiteSpace(body.Status))
-            throw new GatewayInputException("Shipment status is required.", "Status");
+        FulfillmentValidation.EnsureShipmentStatus(body.Status);
 
         return ForwardAsync(
             Service,

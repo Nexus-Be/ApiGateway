@@ -120,7 +120,7 @@ Tài liệu này ghi nhận các quyết định kiến trúc cốt lõi định
      - **Grafana Tempo**: Đóng vai trò là OTLP Trace Backend tập trung (lắng nghe cổng gRPC `4317` và HTTP `4318`). Tempo cực nhẹ, không yêu cầu Elasticsearch/Cassandra nặng nề, phù hợp cả local dev lẫn production.
      - **Grafana Dashboard**: Mở giao diện tại cổng `3000`, tích hợp sẵn datasource Tempo để tra cứu Trace theo mã `traceId` hoặc trực quan hóa cây luồng thời gian thực (Flame Graph).
   4. **Phân định rõ ranh giới hạ tầng nền tảng (Infrastructure Separation)**:
-     - **SSL/TLS Termination**: Không cấu hình bên trong C# Gateway. Đây là trách nhiệm của lớp Ingress Proxy biên mạng (Cloudflare, AWS ALB, Nginx). Gateway chỉ chạy HTTP nội bộ tại cổng `8000`.
+     - **SSL/TLS Termination**: Không cấu hình bên trong C# Gateway. Đây là trách nhiệm của lớp Ingress Proxy biên mạng (Cloudflare, AWS ALB, Nginx). Gateway chỉ chạy HTTP nội bộ tại cổng `8080`.
      - **Identity Provider (IdP) & Context Propagation**: Gateway đảm nhiệm xác thực JWT Bearer token ở cổng vào. Khi gọi gRPC xuống các microservices, Gateway tự động giải mã và gắn thông tin định danh vào gRPC Metadata:
        - `x-user-id`: User ID định danh (`sub` claim).
        - `x-user-roles`: Danh sách vai trò (`role` claims), cách nhau bởi dấu phẩy.
