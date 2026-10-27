@@ -73,8 +73,24 @@ public static class CoreServicesExtension
         services.AddSingleton<Dispatching.IModeEvaluator, Dispatching.ModeEvaluator>();
         services.AddSingleton<Dispatching.IMockDataMapper, Dispatching.MockDataMapper>();
         services.AddSingleton<Dispatching.IGrpcServiceCaller, Dispatching.GrpcServiceCaller>();
+        services.AddSingleton<Dispatching.IHttpBackendCaller, Dispatching.HttpBackendCaller>();
         services.AddSingleton<Dispatching.IGatewayDispatcher, Dispatching.GatewayDispatcher>();
         services.AddSingleton<BackendDispatcher>();
+
+        services.AddHttpClient();
+        foreach (var serviceName in GatewayOptions.CanonicalServices)
+        {
+            services.AddHttpClient(serviceName, (sp, client) =>
+            {
+                var opts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptionsMonitor<GatewayOptions>>().CurrentValue;
+                var svc = opts.GetService(serviceName);
+                if (svc != null && !string.IsNullOrEmpty(svc.Address))
+                {
+                    client.BaseAddress = new Uri(svc.Address);
+                    client.Timeout = TimeSpan.FromSeconds(svc.TimeoutSeconds);
+                }
+            });
+        }
 
         services.AddSingleton<IConnectionMultiplexer>(_ =>
         {

@@ -29,7 +29,7 @@ Mọi request khi gửi đến Nexus API Gateway đều được xử lý tuần
 6. Controller Model Binding & Input Validation (Bind DTO, validate)
        │
        ▼
-7. GatewayDispatcher Execution (IGatewayDispatcher: Mock -> Seeds/ | Real -> gRPC)
+7. GatewayDispatcher Execution (IGatewayDispatcher: Mock -> Seeds/ | Real -> REST downstream qua HttpBackendCaller)
        │
        ▼
 8. Health endpoints /health/live, /health/ready + Swagger (Development)
@@ -53,14 +53,13 @@ Mọi request khi gửi đến Nexus API Gateway đều được xử lý tuần
    - ASP.NET Core bind query/route/body vào DTO.
    - Controller validate qua helper (`ValidationHelpers`, `pagination.EnsureValid()`), ném `GatewayInputException`.
 6. **Gateway Dispatcher Execution (`IGatewayDispatcher`)**:
-   - **`Mock`**: đọc `Seeds/{service}/{operation}.json`, parse bằng Protobuf `MessageParser<T>`, bọc trong `ApiResponse<T>`.
-   - **`Real`**: kiểm tra Circuit Breaker từ Health Prober; nếu healthy gọi typed gRPC client của service đó. ⚠️ Hiện chỉ service `users` có client (`Extensions/GrpcClientsExtension.cs`).
+   - **`Mock`**: đọc file seed trong `Seeds/{service}/{operation}.json`, bọc trong envelope `ApiResponse<T>` hoặc `ApiResponse<PagedData<T>>`.
+   - **`Real`**: kiểm tra Circuit Breaker từ Health Prober; nếu healthy gọi REST downstream tới service backend tương ứng qua `HttpBackendCaller` (kế thừa `GatewayBaseController.ForwardAsync`).
 ---
-## ⚠️ 2. Hai Cơ Chế Mock Đang Chạy Song Song (không phải "duy nhất 1 cách")
-Tài liệu cũ khẳng định hệ thống "chỉ dùng DUY NHẤT Controller + Seeds" là **không đúng với code**. Thực tế có **hai** cơ chế, và cơ chế declarative đang chạy:
+## 2. Hai Cơ Chế Mock Đang Chạy Song Song
 | Cơ chế | Khi nào dùng | Dữ liệu thật | Trạng thái | Bằng chứng |
 |:---|:---|:---|:---|:---|
-| **Controller Action + `Seeds/`** (khuyến nghị) | Route đã có action; cần DTO binding, `[Authorize]`, rate limit, envelope chuẩn, phân trang | 9 file seed (`auth` 4, `users` 5) | ✅ CÓ | `Dispatching/MockDataMapper.cs:64-76` |
+| **Controller Action + `Seeds/`** (khuyến nghị số 1) | Kế thừa `GatewayBaseController`, dùng `ForwardAsync` / `ForwardPagedAsync`; đầy đủ DTO binding, `[Authorize]`, rate limit, envelope chuẩn | 46 file seed phủ khắp 8 backend services | ✅ CÓ | `Dispatching/MockDataMapper.cs`, `Controllers/GatewayBaseController.cs` |
 | **Declarative `Mocks/*.mock.json`** | Route **chưa có** `ControllerActionDescriptor` nào khớp và service đang `Mock` | 6 file | ✅ CÓ | `MockEngine/MockEngineMiddleware.cs:30-51` |
 Cơ chế ưu tiên (đọc trực tiếp từ `MockEngineMiddleware.cs:49-52`):
 ```csharp
@@ -71,32 +70,28 @@ if (effectiveMode == "Real" || context.GetEndpoint()?.Metadata.GetMetadata<Contr
 }
 ```
 Nghĩa là: nếu route đã có Controller Action, declarative mock **bị bỏ qua** và Controller xử lý (đọc `Seeds/`). Nếu service chuyển sang `Real` mà route **không có** Controller Action tương ứng, request trả **404** — không tự forward sang backend.
-**Vì sao vẫn nên tạo Controller Action + Seed Fixture:**
+**Vì sao nên tạo Controller Action + Seed Fixture:**
 1. **Đầy đủ các bước bảo vệ**: có DTO binding, validation C#, `[Authorize]`, `[EnableRateLimiting]`.
-2. **Chuyển `Mock` $\rightarrow$ `Real` trong 0 giây (Zero-Code Switch)**: controller là cầu nối gRPC; chỉ cần đổi `"Mode": "Real"` trong `gateway.runtime.json`.
+2. **Chuyển `Mock` $\rightarrow$ `Real` trong 0 giây (Zero-Code Switch)**: controller là cầu nối REST downstream; chỉ cần đổi `"Mode": "Real"` trong `gateway.runtime.json` hoặc cấu hình môi trường.
 3. **Response chuẩn**: envelope `ApiResponse<T>` + `X-Gateway-Mode` header do Controller/Dispatcher thống nhất.
 ---
 ## 🚀 3. Quy Trình 3 Bước Tạo Mock API Chuẩn Tại Gateway
 ```
-[ Bước 1: Viết Action trong Controller ] ──► [ Bước 2: Tạo Seed JSON trong Seeds/ ] ──► [ Bước 3: Đặt Mode: Mock & Test ]
+[ Bước 1: Viết Action trong Controller kế thừa GatewayBaseController ] ──► [ Bước 2: Tạo Seed JSON trong Seeds/ ] ──► [ Bước 3: Đặt Mode: Mock & Test ]
 ```
-> ⚠️ **Ví dụ dưới đây là ĐẶC TẢ MỤC TIÊU.** Code hiện tại chưa có `CatalogApi.CatalogApiClient`, `ListProductsRequest`, `ProductPageResponse`, `CreateProductRequest`, `ProductResponse` trong `Nexus.Gateway/Contracts/shop.proto` (file chỉ có `UsersApi` 5 rpc), và `ProductsController` là stub 0 action. Muốn chạy được, phải thêm rpc + đăng ký client trước (xem [DEV_GUIDE.md](DEV_GUIDE.md) §2).
-### 👉 Bước 1: Khai báo Action trong Controller tương ứng
-Mở Controller tại `Nexus.Gateway/Controllers/` (ví dụ `ProductsController.cs`, hiện đang là stub `[Route("api/v1/catalog/products")]`):
+### 👉 Bước 1: Khai báo Action trong Controller kế thừa `GatewayBaseController`
+Mở Controller tại `Nexus.Gateway/Controllers/` (ví dụ `ProductsController.cs`):
 ```csharp
 [ApiController]
 [Route("api/v1/catalog/products")]
 [BackendTag("catalog")]
 [EnableRateLimiting("api")]
-public sealed class ProductsController : ControllerBase
+public sealed class ProductsController : GatewayBaseController
 {
-    private readonly IGatewayDispatcher _dispatcher;
-    private readonly CatalogApi.CatalogApiClient _client;
-    public ProductsController(IGatewayDispatcher dispatcher, CatalogApi.CatalogApiClient client)
+    public ProductsController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
-        _client = client;
     }
+
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<ProductDto>>), StatusCodes.Status200OK)]
@@ -104,22 +99,18 @@ public sealed class ProductsController : ControllerBase
     {
         // 1. Tự động validate phân trang: Page >= 1, PageSize từ 1-100
         pagination.EnsureValid();
-        // 2. Dispatcher tự động điều phối:
+
+        // 2. ForwardPagedAsync tự động điều phối:
         //    - Mode = Mock: đọc Seeds/catalog/products.json
-        //    - Mode = Real: gọi _client.ListProductsAsync(...)
-        return _dispatcher.DispatchPagedAsync(
-            HttpContext,
-            "catalog",                                                          // Tên service
-            "products",                                                         // Tên operation (tương ứng tên file seed)
-            pagination.Page,
-            pagination.PageSize,
-            o => _client.ListProductsAsync(new ListProductsRequest              // gRPC call khi ở Real mode
-            {
-                Page = pagination.Page,
-                PageSize = pagination.PageSize
-            }, o),
-            ProductPageResponse.Parser                                          // Protobuf Message Parser
-        );
+        //    - Mode = Real: gọi REST GET /api/v1/products?page=... sang Catalog Service
+        return ForwardPagedAsync<ProductDto>(new()
+        {
+            Service = "catalog",
+            DownstreamPath = "/api/v1/products",
+            Page = pagination.Page,
+            PageSize = pagination.PageSize,
+            MockSeed = "products"
+        });
     }
 }
 ```
@@ -127,16 +118,23 @@ public sealed class ProductsController : ControllerBase
 > ```csharp
 > [HttpPost]
 > [Authorize("seller")]
-> [ProducesResponseType(typeof(ApiResponse<ProductDto>), StatusCodes.Status201Created)]
+> [ProducesResponseType(typeof(ApiResponse<ProductDetailDto>), StatusCodes.Status201Created)]
 > public Task<IResult> CreateProduct([FromBody] CreateProductRequestDto body)
 > {
 >     ValidationHelpers.EnsureRequired(body.Name, "Name");
 >
->     return _dispatcher.DispatchAsync(
->         HttpContext,
->         "catalog",
->         "product-create",
->         o => _client.CreateProductAsync(new CreateProductRequest { Name = body.Name }, o),
+>     return ForwardAsync<CreateProductRequestDto, ProductDetailDto>(new()
+>     {
+>         Service = "catalog",
+>         DownstreamPath = "/api/v1/products",
+>         Method = HttpMethod.Post,
+>         Body = body,
+>         MockSeed = "product-create",
+>         SuccessMessage = "Product created successfully.",
+>         SuccessStatusCode = StatusCodes.Status201Created
+>     });
+> }
+> ```
 >         ProductResponse.Parser,
 >         successMessage: "Product created successfully.",
 >         successStatusCode: StatusCodes.Status201Created

@@ -1,7 +1,7 @@
 # 03 — BẢO MẬT & TRẠNG THÁI RUNTIME CỦA GATEWAY (SECURITY & RUNTIME MODES)
-> **Trạng thái triển khai (2026-10-24):** ⚠️ Một phần — hai trục `AuthMode` và `Services:*:Mode` chạy thật; nhưng chỉ 1/8 service có gRPC client, `gateway.runtime.json` đang để `users`+`auction` = Mock, 6 service còn lại = Real.
+> **Trạng thái triển khai (2026-10-27):** ✅ Hoàn tất — hai trục `AuthMode` và `Services:*:Mode` hoạt động độc lập và hoàn chỉnh; 15/15 Controllers hỗ trợ cả chế độ Mock (nạp JSON fixture trong `Seeds/`) và Real (gọi REST downstream qua `HttpBackendCaller`).
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
-> **Cập nhật lần cuối:** 2026-10-24.
+> **Cập nhật lần cuối:** 2026-10-27.
 Tên khóa cấu hình thật là **`Gateway:AuthMode`** (property `GatewayOptions.AuthMode`, `Nexus.Gateway/GatewayOptions.cs:38`). `GatewayOptions.GatewayMode` (`GatewayOptions.cs:42`) chỉ là **alias legacy** được đọc khi `AuthMode` không có mặt (`GatewayOptions.cs:101`: `AuthMode ?? GatewayMode ?? "Enforce"`); tài liệu cũ gọi trục này là "GatewayMode" là cách gọi sai đã lỗi thời.
 ---
 ## 1. HAI TRỤC ĐỘC LẬP: `AuthMode` VÀ `Services:{name}:Mode`
@@ -9,7 +9,7 @@ Tên khóa cấu hình thật là **`Gateway:AuthMode`** (property `GatewayOptio
 |:---|:---|:---|:---|:---|:---|
 | Auth mode | `Gateway:AuthMode` | `Enforce`, `Standard` (đồng nghĩa enforce); `Bypass`, `Mock`, `MockBypass` (**chỉ Development**) | `Enforce` | ✅ CÓ | `Nexus.Gateway/GatewayOptions.cs:38,101,110-115` |
 | Service mode | `Gateway:Services:{name}:Mode` | `Real`, `Mock` | `Real` | ✅ CÓ | `Nexus.Gateway/BackendOptions.cs` (`Mode = "Real"`) |
-`AuthMode` và `Mode` của từng service là **hai trục khác nhau**: `AuthMode` quyết định có kiểm tra JWT/RBAC hay không; `Services:{name}:Mode` quyết định request được phục vụ bằng fixture hay gọi gRPC thật.
+`AuthMode` và `Mode` của từng service là **hai trục khác nhau**: `AuthMode` quyết định có kiểm tra JWT/RBAC hay không; `Services:{name}:Mode` quyết định request được phục vụ bằng fixture JSON hay gọi REST downstream thật.
 Cả hai đều được validate lúc khởi động: `AddOptions<GatewayOptions>().Bind(...).Validate(x => x.IsValid(isDevelopment), "Invalid gateway options; Mock and plaintext upstreams are Development-only.").ValidateOnStart()` (`Nexus.Gateway/Extensions/ConfigurationExtensions.cs`). Nghĩa là `Bypass`/`Mock` auth mode và upstream `http://` **chỉ hợp lệ khi `ASPNETCORE_ENVIRONMENT=Development`**; production vi phạm sẽ fail-fast ngay khi start.
 ```
                        ┌──────────────────────────────┐

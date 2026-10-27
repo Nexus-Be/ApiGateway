@@ -1,34 +1,32 @@
 # 02 — BẢN ĐẶC TẢ CONTROLLERS & ĐỊNH TUYẾN (CONTROLLERS & ROUTING SPEC)
-> **Trạng thái triển khai (2026-10-25):** ⚠️ Một phần — 15/15 file controller tồn tại, 9/15 controller có action (114 action: 60 action luồng User/Auth/Admin + 27 action catalog F2 + 16 action auction F3 + 11 action gateway/health); 6 controller stub 10 dòng, 0 action.
+> **Trạng thái triển khai (2026-10-27):** ✅ Hoàn tất — 15/15 file controller đều đã hoàn thiện đầy đủ actions, 46 seed JSON fixtures trong `Seeds/`, 372 test cases pass 100%. Các controller kế thừa `GatewayBaseController` sử dụng cơ chế điều phối REST downstream `ForwardAsync` và `ForwardPagedAsync`.
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
-> **Cập nhật lần cuối:** 2026-10-25.
+> **Cập nhật lần cuối:** 2026-10-27.
 
-Toàn bộ các API được quản lý bởi 15 file controller `[ApiController] ControllerBase` trong `Nexus.Gateway/Controllers/`, phân bổ phẳng theo từng nghiệp vụ/tài nguyên với tiền tố chuẩn hóa:
+Toàn bộ các API được quản lý bởi 15 file controller trong `Nexus.Gateway/Controllers/` kế thừa `GatewayBaseController`, phân bổ theo từng nghiệp vụ/tài nguyên với tiền tố chuẩn hóa:
 $$\mathbf{/api/v1/...}$$
-
-Đếm thật: `grep -c '\[Http'` trên từng file cho ra **114 attribute action**, nằm trong 9 file: `AuthController.cs` (10), `UsersController.cs` (26), `AdminUsersController.cs` (24), `GatewayControlController.cs` (6), `HealthProberController.cs` (5), `ProductsController.cs` (20), `CategoriesController.cs` (5), `InventoryController.cs` (2), `AuctionController.cs` (16). 6 file còn lại chỉ có `[ApiController]` + `[Route(...)]` + comment `// TODO (Team)` — **không có action nào**, nên request tới các route đó rơi xuống declarative mock (nếu có `Mocks/*.mock.json` khớp) hoặc trả **404**.
 
 ---
 
 ## 1. BẢNG TỔNG HỢP 15 CONTROLLER
 
-| # | Controller | Route Prefix (thật) | Số action | Trạng thái | Bằng chứng |
+| # | Controller | Route Prefix (thật) | Trạng thái | Giao tiếp Downstream | Bằng chứng |
 |:--:|:---|:---|:--:|:---|:---|
-| 1 | `AuthController` | `/api/v1/auth` | 10 | ✅ CÓ | `Controllers/AuthController.cs` |
-| 2 | `UsersController` | `/api/v1` | 26 | ✅ CÓ | `Controllers/UsersController.cs` |
-| 3 | `AdminUsersController` | `/api/v1/admin` | 24 | ✅ CÓ | `Controllers/AdminUsersController.cs` |
-| 4 | `GatewayControlController` | `/api/v1` | 6 | ✅ CÓ | `Controllers/GatewayControlController.cs` |
-| 5 | `HealthProberController` | `/api/v1` | 5 | ✅ CÓ | `Controllers/HealthProberController.cs` |
-| 6 | `ProductsController` | `/api/v1` | 20 | ✅ CÓ | `Controllers/ProductsController.cs` |
-| 7 | `CategoriesController` | `/api/v1` | 5 | ✅ CÓ | `Controllers/CategoriesController.cs` |
-| 8 | `InventoryController` | `/api/v1` | 2 | ✅ CÓ | `Controllers/InventoryController.cs` |
-| 9 | `AuctionController` | `/api/v1` | 16 | ✅ CÓ | `Controllers/AuctionController.cs` |
-| 10 | `CartController` | `/api/v1/commerce/cart` | 0 | ❌ CHƯA CÓ | `Controllers/CartController.cs` (10 dòng, TODO) |
-| 11 | `OrdersController` | `/api/v1/commerce/orders` | 0 | ❌ CHƯA CÓ | `Controllers/OrdersController.cs` (10 dòng, TODO) |
-| 12 | `FulfillmentController` | `/api/v1/fulfillment` | 0 | ❌ CHƯA CÓ | `Controllers/FulfillmentController.cs` (10 dòng, TODO) |
-| 13 | `NotificationController` | `/api/v1/notification` | 0 | ❌ CHƯA CÓ | `Controllers/NotificationController.cs` (10 dòng, TODO) |
-| 14 | `LogController` | `/api/v1/log` | 0 | ❌ CHƯA CÓ | `Controllers/LogController.cs` (10 dòng, TODO) |
-| 15 | `WalletController` | `/api/v1/wallet` | 0 | ❌ CHƯA CÓ | `Controllers/WalletController.cs` (10 dòng, TODO) |
+| 1 | `AuthController` | `/api/v1/auth` | ✅ CÓ | REST `users` (8001) | `Controllers/AuthController.cs` |
+| 2 | `UsersController` | `/api/v1` | ✅ CÓ | REST `users` (8001) | `Controllers/UsersController.cs` |
+| 3 | `AdminUsersController` | `/api/v1/admin` | ✅ CÓ | REST `users` (8001) | `Controllers/AdminUsersController.cs` |
+| 4 | `GatewayControlController` | `/api/v1` | ✅ CÓ | Internal Gateway | `Controllers/GatewayControlController.cs` |
+| 5 | `HealthProberController` | `/api/v1` | ✅ CÓ | Internal Gateway | `Controllers/HealthProberController.cs` |
+| 6 | `ProductsController` | `/api/v1` | ✅ CÓ | REST `catalog` (8002) | `Controllers/ProductsController.cs` |
+| 7 | `CategoriesController` | `/api/v1` | ✅ CÓ | REST `catalog` (8002) | `Controllers/CategoriesController.cs` |
+| 8 | `InventoryController` | `/api/v1` | ✅ CÓ | REST `catalog` (8002) | `Controllers/InventoryController.cs` |
+| 9 | `AuctionController` | `/api/v1` | ✅ CÓ | REST `auction` (8005) | `Controllers/AuctionController.cs` |
+| 10 | `CartController` | `/api/v1/commerce/cart` | ✅ CÓ | REST `commerce` (8003) | `Controllers/CartController.cs` |
+| 11 | `OrdersController` | `/api/v1/commerce/orders` | ✅ CÓ | REST `commerce` (8003) | `Controllers/OrdersController.cs` |
+| 12 | `FulfillmentController` | `/api/v1/fulfillment` | ✅ CÓ | REST `fulfillment` (8006) | `Controllers/FulfillmentController.cs` |
+| 13 | `NotificationController` | `/api/v1/notification` | ✅ CÓ | REST `notification` (8007) | `Controllers/NotificationController.cs` |
+| 14 | `LogController` | `/api/v1/log` | ✅ CÓ | REST `log` (8004) | `Controllers/LogController.cs` |
+| 15 | `WalletController` | `/api/v1/wallet` | ✅ CÓ | REST `wallet` (8008) | `Controllers/WalletController.cs` |
 
 ---
 

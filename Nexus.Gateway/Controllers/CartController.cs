@@ -1,8 +1,8 @@
 namespace Nexus.Gateway.Controllers;
 
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,40 +17,27 @@ using Nexus.Gateway.Security;
 /// <c>/api/v1/cart</c> and <c>/api/v1/cart/items</c> — no <c>/commerce</c> segment.
 /// </summary>
 /// <remarks>
-/// <para>Mock đọc <c>Seeds/commerce/*.json</c> qua <c>IGatewayDispatcher</c>; response bọc trong
-/// <c>ApiResponse&lt;T&gt;</c> và có header <c>X-Gateway-Mode</c>.</para>
-/// <para>Real chưa nối: contract gRPC của Commerce chưa tồn tại và <c>shop.proto</c> không được sửa,
-/// nên <c>realCall</c> chỉ là placeholder không bao giờ được gọi trong Mock mode.</para>
+/// <para>Mock: đọc <c>Seeds/commerce/*.json</c> qua <c>IGatewayDispatcher</c>; response bọc trong <c>ApiResponse&lt;T&gt;</c>.</para>
+/// <para>Real: chuyển tiếp HTTP REST downstream sang Commerce service (port 8003).</para>
 /// </remarks>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("commerce")]
 [EnableRateLimiting("api")]
-public sealed class CartController : ControllerBase
+public sealed class CartController : GatewayBaseController
 {
     private const string Service = "commerce";
 
-    // Mock-only pass-through: in Mock mode GatewayDispatcher never invokes realCall, only the
-    // parser. Struct round-trips the seed JSON object, so no commerce.proto is needed for Q2.
-    private static readonly MessageParser<Struct> SeedParser = Struct.Parser;
-
-    private readonly IGatewayDispatcher _dispatcher;
-
-    public CartController(IGatewayDispatcher dispatcher)
+    public CartController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _dispatcher = dispatcher;
     }
-
-    private static AsyncUnaryCall<Struct> PendingRealCall(CallOptions _) =>
-        throw new NotSupportedException("The commerce gRPC contract is not wired yet.");
 
     /// <summary>Lấy giỏ hàng hiện tại của người dùng (CART-01)</summary>
     [HttpGet("cart")]
     [Authorize(Policy = GatewayPolicies.Customer)]
     public Task<IResult> GetCart()
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "cart-get", PendingRealCall, SeedParser);
+        return ForwardAsync(Service, "/api/v1/cart", HttpMethod.Get, mockSeed: "cart-get");
     }
 
     /// <summary>Thêm một hoặc nhiều sản phẩm vào giỏ hàng (CART-02)</summary>
@@ -63,8 +50,7 @@ public sealed class CartController : ControllerBase
         if (body.Quantity <= 0)
             throw new GatewayInputException("Quantity must be greater than zero.", "Quantity");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "cart-item-add", PendingRealCall, SeedParser);
+        return ForwardAsync(Service, "/api/v1/cart/items", HttpMethod.Post, body: body, mockSeed: "cart-item-add");
     }
 
     /// <summary>Đổi số lượng của một dòng trong giỏ hàng (CART-03)</summary>
@@ -77,8 +63,7 @@ public sealed class CartController : ControllerBase
         if (body.Quantity <= 0)
             throw new GatewayInputException("Quantity must be greater than zero.", "Quantity");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "cart-item-update", PendingRealCall, SeedParser);
+        return ForwardAsync(Service, $"/api/v1/cart/items/{cartItemId}", HttpMethod.Patch, body: body, mockSeed: "cart-item-update");
     }
 
     /// <summary>Xoá một hoặc nhiều dòng khỏi giỏ hàng (CART-04)</summary>
@@ -89,8 +74,7 @@ public sealed class CartController : ControllerBase
         if (!body.All && (body.CartItemIds is null || body.CartItemIds.Count == 0))
             throw new GatewayInputException("Cart item IDs must be provided.", "CartItemIds");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "cart-item-remove", PendingRealCall, SeedParser);
+        return ForwardAsync(Service, "/api/v1/cart/items", HttpMethod.Delete, body: body, mockSeed: "cart-item-remove");
     }
 
     /// <summary>Xoá toàn bộ giỏ hàng (CART-05)</summary>
@@ -98,8 +82,7 @@ public sealed class CartController : ControllerBase
     [Authorize(Policy = GatewayPolicies.Customer)]
     public Task<IResult> ClearCart()
     {
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "cart-clear", PendingRealCall, SeedParser);
+        return ForwardAsync(Service, "/api/v1/cart/items/all", HttpMethod.Delete, mockSeed: "cart-clear");
     }
 
     /// <summary>Kiểm tra tính hợp lệ của các dòng được chọn trước khi checkout (CART-06)</summary>
@@ -110,7 +93,11 @@ public sealed class CartController : ControllerBase
         if (cartItemIds is null || cartItemIds.Count == 0)
             throw new GatewayInputException("Cart item IDs are required.", "CartItemIds");
 
-        return _dispatcher.DispatchAsync(
-            HttpContext, Service, "cart-items-select", PendingRealCall, SeedParser);
+        var queryParams = new Dictionary<string, string?>
+        {
+            ["cartItemIds"] = string.Join(",", cartItemIds)
+        };
+
+        return ForwardAsync(Service, "/api/v1/cart/items/select", HttpMethod.Get, mockSeed: "cart-items-select", queryParams: queryParams);
     }
 }
