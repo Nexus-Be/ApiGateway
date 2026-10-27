@@ -42,6 +42,8 @@ public sealed class AuctionMockTests
         ["POST", $"/api/v1/admin/auctions/{AuctionId}/force-cancel", "admin", """{"reason":"Suspicious activity"}""", 200],
         ["GET", "/api/v1/admin/auction-configs", "admin", null, 200],
         ["PUT", "/api/v1/admin/auction-configs/bid_step_percent", "admin", """{"configValue":10,"description":"Default bid step"}""", 200],
+        ["GET", "/internal/v1/auctions/status?productId=22222222-2222-4222-8222-000000000001", null, null, 200],
+        ["GET", $"/internal/v1/auctions/{AuctionId}/summary", null, null, 200],
     ];
 
     [Theory]

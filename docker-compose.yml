@@ -11,7 +11,7 @@ services:
       dockerfile: Dockerfile
     container_name: nexus-apigateway
     ports:
-      - "${GATEWAY_PORT:-8000}:8000"
+      - "${GATEWAY_PORT:-8080}:8000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:

@@ -1,5 +1,9 @@
 namespace Nexus.Gateway.Controllers;
 
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +13,6 @@ using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.Dtos.User;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
-using ShoppingCart.Contracts.V1;
 
 [ApiController]
 [Route("api/v1")]
@@ -18,49 +21,37 @@ using ShoppingCart.Contracts.V1;
 public sealed class UsersController : GatewayBaseController
 {
     private const string Service = "users";
-    private readonly UsersApi.UsersApiClient _client;
-    private readonly UserApi.UserApiClient _userClient;
 
-    public UsersController(
-        IGatewayDispatcher dispatcher,
-        UsersApi.UsersApiClient client,
-        UserApi.UserApiClient userClient) : base(dispatcher)
+    public UsersController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _client = client;
-        _userClient = userClient;
     }
 
     [HttpGet("users/me")]
     [HttpGet("me")]
     [Authorize(GatewayPolicies.Authenticated)]
     [EnableRateLimiting("user-frequent")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetMe()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "profile",
-            o => _client.GetProfileAsync(HttpContext.ToUserRequest(), o),
-            UserProfile.Parser,
+            "/api/v1/users/me",
+            HttpMethod.Get,
+            mockSeed: "profile",
             successMessage: "User profile retrieved successfully."
         );
     }
 
     [HttpGet("me/sessions")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<SessionListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SessionListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListMySessions()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-sessions",
-            o => _userClient.ListSessionsAsync(new ListSessionsRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            SessionListResponse.Parser,
+            "/api/v1/me/sessions",
+            HttpMethod.Get,
+            mockSeed: "user-sessions",
             successMessage: "Active sessions retrieved successfully."
         );
     }
@@ -72,57 +63,40 @@ public sealed class UsersController : GatewayBaseController
     {
         var id = UserValidation.EnsureRequired(sessionId, "SessionId");
 
-        return Dispatcher.DispatchNoContentAsync(
-            HttpContext,
+        return ForwardNoContentAsync(
             Service,
-            "user-session-revoke",
-            o => _userClient.RevokeSessionAsync(new RevokeSessionRequest
-            {
-                SessionId = id,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            RevokeSessionResponse.Parser
+            $"/api/v1/me/sessions/{id}",
+            HttpMethod.Delete,
+            mockSeed: "user-session-revoke"
         );
     }
 
     [HttpPatch("me")]
     [HttpPatch("users/me")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<MyProfileUpdatedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<MyProfileUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateMe([FromBody] UpdateMyProfileDto body)
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-profile-update",
-            o => _userClient.UpdateMyProfileAsync(new UpdateMyProfileRequest
-            {
-                Username = body.Username,
-                FirstName = body.FirstName ?? string.Empty,
-                LastName = body.LastName ?? string.Empty,
-                PhoneNumber = body.PhoneNumber ?? string.Empty,
-                Address = UserValidation.ToAddress(body.Address),
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            MyProfileUpdatedResponse.Parser,
+            "/api/v1/users/me",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "user-profile-update",
             successMessage: "Profile updated successfully."
         );
     }
 
     [HttpGet("me/avatar")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<AvatarResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AvatarResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetMyAvatar()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-my-avatar",
-            o => _userClient.GetMyAvatarAsync(new GetMyAvatarRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AvatarResponse.Parser,
+            "/api/v1/me/avatar",
+            HttpMethod.Get,
+            mockSeed: "user-my-avatar",
             successMessage: "Avatar retrieved successfully."
         );
     }
@@ -130,174 +104,147 @@ public sealed class UsersController : GatewayBaseController
     [HttpPost("me/avatar")]
     [Authorize(GatewayPolicies.Authenticated)]
     [RequestSizeLimit(10 * 1024 * 1024)]
-    [ProducesResponseType(typeof(ApiResponse<AvatarUploadedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AvatarUploadedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UploadMyAvatar([FromForm] UploadSingleFileForm form)
     {
         var fileName = form.File?.FileName ?? "avatar.png";
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-my-avatar-upload",
-            o => _userClient.UploadMyAvatarAsync(new UploadAvatarRequest
-            {
-                FileName = fileName,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AvatarUploadedResponse.Parser,
+            "/api/v1/me/avatar",
+            HttpMethod.Post,
+            body: new { fileName },
+            mockSeed: "user-my-avatar-upload",
             successMessage: "Avatar uploaded successfully."
         );
     }
 
     [HttpGet("me/reputation")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<MyReputationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<MyReputationResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetMyReputation()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-my-reputation",
-            o => _userClient.GetMyReputationAsync(new GetMyReputationRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            MyReputationResponse.Parser,
+            "/api/v1/me/reputation",
+            HttpMethod.Get,
+            mockSeed: "user-my-reputation",
             successMessage: "Reputation score retrieved successfully."
         );
     }
 
     [HttpGet("me/penalties")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<PenaltyListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PenaltyListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListMyPenalties([FromQuery] int page = 1, [FromQuery] int limit = 20)
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchPagedAsync(
-            HttpContext,
+        return ForwardPagedAsync(
             Service,
-            "user-my-penalties",
+            "/api/v1/me/penalties",
             page,
             limit,
-            o => _userClient.ListMyPenaltiesAsync(new ListMyPenaltiesRequest
+            HttpMethod.Get,
+            mockSeed: "user-my-penalties",
+            queryParams: new Dictionary<string, string?>
             {
-                Page = page,
-                Limit = limit,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            PenaltyListResponse.Parser
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString()
+            }
         );
     }
 
     [HttpGet("user/{userId}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<PublicUserProfileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PublicUserProfileResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetUserPublicProfile([FromRoute] string userId)
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-public-profile",
-            o => _userClient.GetUserPublicProfileAsync(new GetUserPublicProfileRequest
-            {
-                UserId = userId
-            }, o),
-            PublicUserProfileResponse.Parser,
+            $"/api/v1/user/{userId}",
+            HttpMethod.Get,
+            mockSeed: "user-public-profile",
             successMessage: "User profile retrieved successfully."
         );
     }
 
     [HttpGet("user/{userId}/avatar")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<AvatarResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AvatarResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetUserAvatar([FromRoute] string userId)
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-avatar",
-            o => _userClient.GetUserAvatarAsync(new GetUserAvatarRequest
-            {
-                UserId = userId
-            }, o),
-            AvatarResponse.Parser,
+            $"/api/v1/user/{userId}/avatar",
+            HttpMethod.Get,
+            mockSeed: "user-avatar",
             successMessage: "Avatar retrieved successfully."
         );
     }
 
     [HttpGet("seller/{sellerId}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<SellerPublicProfileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SellerPublicProfileResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetSellerPublicProfile([FromRoute] string sellerId)
     {
         UserValidation.EnsureUuid(sellerId, "SellerId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-public-profile",
-            o => _userClient.GetSellerPublicProfileAsync(new GetSellerPublicProfileRequest
-            {
-                SellerId = sellerId
-            }, o),
-            SellerPublicProfileResponse.Parser,
+            $"/api/v1/seller/{sellerId}",
+            HttpMethod.Get,
+            mockSeed: "seller-public-profile",
             successMessage: "Seller profile retrieved successfully."
         );
     }
 
     [HttpGet("user/{userId}/reputation")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<UserReputationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UserReputationResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetUserReputation([FromRoute] string userId)
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-reputation",
-            o => _userClient.GetUserReputationAsync(new GetUserReputationRequest
-            {
-                UserId = userId
-            }, o),
-            UserReputationResponse.Parser,
+            $"/api/v1/user/{userId}/reputation",
+            HttpMethod.Get,
+            mockSeed: "user-reputation",
             successMessage: "User reputation retrieved successfully."
         );
     }
 
     [HttpGet("user/{userId}/reputation/history")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<ReputationHistoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ReputationHistoryResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetUserReputationHistory([FromRoute] string userId, [FromQuery] int page = 1, [FromQuery] int limit = 20)
     {
         UserValidation.EnsureUuid(userId, "UserId");
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchPagedAsync(
-            HttpContext,
+        return ForwardPagedAsync(
             Service,
-            "user-reputation-history",
+            $"/api/v1/user/{userId}/reputation/history",
             page,
             limit,
-            o => _userClient.GetUserReputationHistoryAsync(new GetUserReputationHistoryRequest
+            HttpMethod.Get,
+            mockSeed: "user-reputation-history",
+            queryParams: new Dictionary<string, string?>
             {
-                UserId = userId,
-                Page = page,
-                Limit = limit,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            ReputationHistoryResponse.Parser
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString()
+            }
         );
     }
 
     [HttpGet("user/{userId}/reviews")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<UserReviewListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UserReviewListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetUserReviews(
         [FromRoute] string userId,
         [FromQuery] int page = 1,
@@ -307,45 +254,42 @@ public sealed class UsersController : GatewayBaseController
         UserValidation.EnsureUuid(userId, "UserId");
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-reviews",
-            o => _userClient.GetUserReviewsAsync(new GetUserReviewsRequest
+            $"/api/v1/user/{userId}/reviews",
+            HttpMethod.Get,
+            mockSeed: "user-reviews",
+            successMessage: "User reviews retrieved successfully.",
+            queryParams: new Dictionary<string, string?>
             {
-                UserId = userId,
-                Page = page,
-                Limit = limit,
-                FilterRating = filterRating
-            }, o),
-            UserReviewListResponse.Parser,
-            successMessage: "User reviews retrieved successfully."
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString(),
+                ["filterRating"] = filterRating.ToString()
+            }
         );
     }
 
     [HttpPost("review/files/upload")]
     [Authorize(GatewayPolicies.Authenticated)]
     [RequestSizeLimit(20 * 1024 * 1024)]
-    [ProducesResponseType(typeof(ApiResponse<UploadFilesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UploadFilesResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UploadReviewFiles([FromForm] UploadMultipleFilesForm form)
     {
         var fileNames = form.Files?.Select(f => f.FileName).ToList() ?? ["review_file_1.jpg"];
-        var req = new UploadFilesRequest { Caller = UserValidation.Caller(HttpContext) };
-        req.FileNames.AddRange(fileNames);
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "review-files-upload",
-            o => _userClient.UploadReviewFilesAsync(req, o),
-            UploadFilesResponse.Parser,
+            "/api/v1/review/files/upload",
+            HttpMethod.Post,
+            body: new { fileNames },
+            mockSeed: "review-files-upload",
             successMessage: "Files uploaded successfully."
         );
     }
 
     [HttpPost("reviews")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<ReviewCreatedResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<ReviewCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateReview([FromBody] CreateReviewDto body)
     {
         UserValidation.EnsureRequired(body.TransactionType, "TransactionType");
@@ -354,23 +298,12 @@ public sealed class UsersController : GatewayBaseController
         UserValidation.EnsureRating(body.Rating);
         UserValidation.EnsureRequired(body.Comment, "Comment");
 
-        var req = new CreateReviewRequest
-        {
-            TransactionType = body.TransactionType,
-            TransactionId = body.TransactionId,
-            TargetUserId = body.TargetUserId,
-            Rating = body.Rating ?? 5,
-            Comment = body.Comment,
-            Caller = UserValidation.Caller(HttpContext)
-        };
-        if (body.MediaUrls != null) req.MediaUrls.AddRange(body.MediaUrls);
-
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "review-create",
-            o => _userClient.CreateReviewAsync(req, o),
-            ReviewCreatedResponse.Parser,
+            "/api/v1/reviews",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "review-create",
             successStatusCode: StatusCodes.Status201Created,
             successMessage: "Review submitted successfully."
         );
@@ -379,47 +312,36 @@ public sealed class UsersController : GatewayBaseController
     [HttpPost("report/files/upload")]
     [Authorize(GatewayPolicies.Authenticated)]
     [RequestSizeLimit(20 * 1024 * 1024)]
-    [ProducesResponseType(typeof(ApiResponse<UploadFilesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UploadFilesResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UploadReportFiles([FromForm] UploadMultipleFilesForm form)
     {
         var fileNames = form.Files?.Select(f => f.FileName).ToList() ?? ["report_evidence_1.jpg"];
-        var req = new UploadFilesRequest { Caller = UserValidation.Caller(HttpContext) };
-        req.FileNames.AddRange(fileNames);
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "report-files-upload",
-            o => _userClient.UploadReportFilesAsync(req, o),
-            UploadFilesResponse.Parser,
+            "/api/v1/report/files/upload",
+            HttpMethod.Post,
+            body: new { fileNames },
+            mockSeed: "report-files-upload",
             successMessage: "Report evidence files uploaded successfully."
         );
     }
 
     [HttpPost("users/reports")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<UserReportCreatedResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<UserReportCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateUserReport([FromBody] CreateUserReportDto body)
     {
         UserValidation.EnsureUuid(body.ReportedUserId, "ReportedUserId");
         UserValidation.EnsureRequired(body.ViolationType, "ViolationType");
         UserValidation.EnsureRequired(body.Description, "Description");
 
-        var req = new CreateUserReportRequest
-        {
-            ReportedUserId = body.ReportedUserId,
-            ViolationType = body.ViolationType,
-            Description = body.Description,
-            Caller = UserValidation.Caller(HttpContext)
-        };
-        if (body.EvidenceUrls != null) req.EvidenceUrls.AddRange(body.EvidenceUrls);
-
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "user-report-create",
-            o => _userClient.CreateUserReportAsync(req, o),
-            UserReportCreatedResponse.Parser,
+            "/api/v1/users/reports",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "user-report-create",
             successStatusCode: StatusCodes.Status201Created,
             successMessage: "Report submitted successfully."
         );
@@ -427,7 +349,7 @@ public sealed class UsersController : GatewayBaseController
 
     [HttpGet("me/reports")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<MyReportListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<MyReportListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListMyReports(
         [FromQuery] int page = 1,
         [FromQuery] int limit = 20,
@@ -435,26 +357,25 @@ public sealed class UsersController : GatewayBaseController
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchPagedAsync(
-            HttpContext,
+        return ForwardPagedAsync(
             Service,
-            "user-my-reports",
+            "/api/v1/me/reports",
             page,
             limit,
-            o => _userClient.ListMyReportsAsync(new ListMyReportsRequest
+            HttpMethod.Get,
+            mockSeed: "user-my-reports",
+            queryParams: new Dictionary<string, string?>
             {
-                Page = page,
-                Limit = limit,
-                Status = status ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            MyReportListResponse.Parser
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString(),
+                ["status"] = status
+            }
         );
     }
 
     [HttpPost("seller/registration")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<SellerRegistrationCreatedResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<SellerRegistrationCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateSellerRegistration([FromBody] CreateSellerRegistrationDto body)
     {
         UserValidation.EnsureRequired(body.ShopName, "ShopName", "Shop name");
@@ -462,20 +383,12 @@ public sealed class UsersController : GatewayBaseController
         UserValidation.EnsureRequired(body.Hotline, "Hotline");
         UserValidation.EnsureRequired(body.IdentityCardNumber, "IdentityCardNumber", "Identity card number");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-registration-create",
-            o => _userClient.CreateSellerRegistrationAsync(new CreateSellerRegistrationRequest
-            {
-                ShopName = body.ShopName,
-                BusinessEmail = body.BusinessEmail,
-                Hotline = body.Hotline,
-                WarehouseAddress = UserValidation.ToAddress(body.WarehouseAddress),
-                IdentityCardNumber = body.IdentityCardNumber,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            SellerRegistrationCreatedResponse.Parser,
+            "/api/v1/seller/registration",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "seller-registration-create",
             successStatusCode: StatusCodes.Status201Created,
             successMessage: "Seller registration submitted successfully."
         );
@@ -483,23 +396,18 @@ public sealed class UsersController : GatewayBaseController
 
     [HttpPost("seller/registration/otp/resend")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<SellerRegistrationOtpResendResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SellerRegistrationOtpResendResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ResendSellerRegistrationOtp([FromBody] ResendSellerRegistrationOtpDto body)
     {
         UserValidation.EnsureRequired(body.RegistrationId, "RegistrationId");
         UserValidation.EnsureEmail(body.BusinessEmail, "BusinessEmail");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-registration-otp-resend",
-            o => _userClient.ResendSellerRegistrationOtpAsync(new ResendSellerRegistrationOtpRequest
-            {
-                RegistrationId = body.RegistrationId,
-                BusinessEmail = body.BusinessEmail,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            SellerRegistrationOtpResendResponse.Parser,
+            "/api/v1/seller/registration/otp/resend",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "seller-registration-otp-resend",
             successMessage: "Verification OTP has been resent to business email."
         );
     }
@@ -507,106 +415,79 @@ public sealed class UsersController : GatewayBaseController
     [HttpPost("seller/registration/documents")]
     [Authorize(GatewayPolicies.Authenticated)]
     [RequestSizeLimit(20 * 1024 * 1024)]
-    [ProducesResponseType(typeof(ApiResponse<UploadFilesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UploadFilesResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UploadSellerDocuments([FromForm] UploadSellerDocumentsForm form)
     {
         var registrationId = UserValidation.EnsureRequired(form.RegistrationId, "RegistrationId");
         var fileNames = form.Files?.Select(f => f.FileName).ToList() ?? ["id_front.jpg", "id_back.jpg"];
 
-        var req = new UploadSellerDocumentsRequest
-        {
-            RegistrationId = registrationId,
-            Caller = UserValidation.Caller(HttpContext)
-        };
-        req.FileNames.AddRange(fileNames);
-
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-registration-documents",
-            o => _userClient.UploadSellerRegistrationDocumentsAsync(req, o),
-            UploadFilesResponse.Parser,
+            "/api/v1/seller/registration/documents",
+            HttpMethod.Post,
+            body: new { registrationId, fileNames },
+            mockSeed: "seller-registration-documents",
             successMessage: "Seller registration documents uploaded successfully."
         );
     }
 
     [HttpPost("seller/otp/verify")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<VerifySellerOtpResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<VerifySellerOtpResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> VerifySellerOtp([FromBody] VerifySellerOtpDto body)
     {
         UserValidation.EnsureRequired(body.RegistrationId, "RegistrationId");
         UserValidation.EnsureOtp(body.OtpCode);
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-otp-verify",
-            o => _userClient.VerifySellerOtpAsync(new VerifySellerOtpRequest
-            {
-                RegistrationId = body.RegistrationId,
-                OtpCode = body.OtpCode,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            VerifySellerOtpResponse.Parser,
+            "/api/v1/seller/otp/verify",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "seller-otp-verify",
             successMessage: "Seller registration email verified successfully."
         );
     }
 
     [HttpGet("seller/registration")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<SellerRegistrationStatusResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SellerRegistrationStatusResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetSellerRegistrationStatus()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-registration-status",
-            o => _userClient.GetSellerRegistrationStatusAsync(new GetSellerRegistrationStatusRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            SellerRegistrationStatusResponse.Parser,
+            "/api/v1/seller/registration",
+            HttpMethod.Get,
+            mockSeed: "seller-registration-status",
             successMessage: "Seller registration status retrieved successfully."
         );
     }
 
     [HttpGet("seller/profile")]
     [Authorize(GatewayPolicies.Seller)]
-    [ProducesResponseType(typeof(ApiResponse<SellerOwnProfileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SellerOwnProfileResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetSellerOwnProfile()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-own-profile",
-            o => _userClient.GetSellerOwnProfileAsync(new GetSellerOwnProfileRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            SellerOwnProfileResponse.Parser,
+            "/api/v1/seller/profile",
+            HttpMethod.Get,
+            mockSeed: "seller-own-profile",
             successMessage: "Seller profile retrieved successfully."
         );
     }
 
     [HttpPatch("seller/profile")]
     [Authorize(GatewayPolicies.Seller)]
-    [ProducesResponseType(typeof(ApiResponse<SellerOwnProfileUpdatedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SellerOwnProfileUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateSellerOwnProfile([FromBody] UpdateSellerOwnProfileDto body)
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "seller-own-profile-update",
-            o => _userClient.UpdateSellerOwnProfileAsync(new UpdateSellerOwnProfileRequest
-            {
-                ShopName = body.ShopName,
-                Hotline = body.Hotline,
-                PickupAddress = UserValidation.ToAddress(body.PickupAddress),
-                Description = body.Description ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            SellerOwnProfileUpdatedResponse.Parser,
+            "/api/v1/seller/profile",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "seller-own-profile-update",
             successMessage: "Seller profile updated successfully."
         );
     }

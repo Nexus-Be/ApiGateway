@@ -1,9 +1,10 @@
 {
+  "isVerified": true,
   "id": "11111111-1111-1111-1111-000000000099",
   "displayName": "Verified User",
   "email": "verified@mcs.local",
   "roles": [
-    "buyer"
+    "Buyer"
   ],
   "status": "Active",
   "shopName": ""

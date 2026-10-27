@@ -120,7 +120,13 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
                 }
             }
 
-            // 2. Global request header: X-Mock-Mode or X-Gateway-Mode-Override
+            // 2. Global request header: X-Gateway-Mode, X-Mock-Mode, or X-Gateway-Mode-Override
+            if (context.Request.Headers.TryGetValue("X-Gateway-Mode", out var gatewayModeHeader) &&
+                IsValidMode(gatewayModeHeader.ToString(), out var parsedGatewayMode))
+            {
+                return parsedGatewayMode;
+            }
+
             if (context.Request.Headers.TryGetValue("X-Mock-Mode", out var globalMockHeader) &&
                 IsValidMode(globalMockHeader.ToString(), out var parsedGlobal))
             {

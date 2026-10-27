@@ -2,16 +2,15 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Nexus.Gateway.Responses;
-using ShoppingCart.Contracts.V1;
 using Xunit;
 
 namespace Nexus.Gateway.Tests;
@@ -127,13 +126,23 @@ public sealed class GatewayTests
     }
 
     [Fact]
-    public async Task Real_grpc_and_mock_can_coexist()
+    public async Task Real_rest_and_mock_can_coexist()
     {
         var builder = WebApplication.CreateBuilder();
-        builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, 0, listen => listen.Protocols = HttpProtocols.Http2));
-        builder.Services.AddGrpc();
+        builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, 0));
         await using var backend = builder.Build();
-        backend.MapGrpcService<TestUsers>();
+        backend.MapPost("/api/v1/auth/login", () => Results.Ok(new
+        {
+            success = true,
+            message = "Login successful.",
+            data = new
+            {
+                accessToken = "real-jwt-token-from-backend",
+                refreshToken = "real-refresh-token",
+                tokenType = "Bearer",
+                expiresIn = 3600
+            }
+        }));
         await backend.StartAsync();
         var address = backend.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
 
@@ -148,7 +157,7 @@ public sealed class GatewayTests
         };
         using var client = app.CreateClient();
 
-        // Call login in Real mode -> handled by TestUsers gRPC service
+        // Call login in Real mode -> handled by downstream REST service
         var real = await client.PostAsJsonAsync("/gateway/api/v1/auth/login", new { username = "realuser", password = "Password123!" });
         Assert.Equal(HttpStatusCode.OK, real.StatusCode);
         Assert.Equal("Real", real.Headers.GetValues("X-Gateway-Mode").Single());
@@ -181,31 +190,5 @@ public sealed class GatewayTests
         options.Services["users"].Mode = "Real";
         options.Services["users"].Address = "http://service.example";
         Assert.False(options.IsValid(false));
-    }
-}
-
-public sealed class TestUsers : UsersApi.UsersApiBase
-{
-    public override Task<LoginResponse> Login(LoginRequest request, ServerCallContext context)
-    {
-        return Task.FromResult(new LoginResponse
-        {
-            AccessToken = "real-jwt-token-from-backend",
-            ExpiresAt = DateTime.UtcNow.AddHours(1).ToString("o"),
-            UserId = Guid.NewGuid().ToString(),
-            Roles = { "buyer" }
-        });
-    }
-
-    public override Task<UserProfile> GetProfile(UserRequest request, ServerCallContext context)
-    {
-        return Task.FromResult(new UserProfile
-        {
-            Id = request.UserId,
-            DisplayName = "Real Backend User",
-            Email = "real@example.com",
-            Roles = { "buyer" },
-            Status = "Active"
-        });
     }
 }

@@ -77,24 +77,6 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Thu hồi hoặc vô hiệu hóa device token qua route parameter (NOTI-02 alias)</summary>
-    [HttpDelete("notifications/devices/{token}")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
-    public Task<IResult> RevokeDeviceTokenByRoute([FromRoute] string token)
-    {
-        if (string.IsNullOrWhiteSpace(token))
-        {
-            throw new GatewayInputException("Token is required.", "Token");
-        }
-
-        return ForwardNoContentAsync(
-            Service,
-            $"/api/v1/notifications/devices/{token}",
-            HttpMethod.Delete,
-            mockSeed: "device-revoke"
-        );
-    }
-
     /// <summary>Lấy danh sách cấu hình bật/tắt nhận thông báo của người dùng (NOTI-03)</summary>
     [HttpGet("notifications/preferences")]
     [Authorize(Policy = GatewayPolicies.Authenticated)]
@@ -159,20 +141,6 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Lấy số lượng thông báo chưa đọc (NOTI-06 alias)</summary>
-    [HttpGet("notifications/unread-count")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
-    public Task<IResult> GetUnreadCount()
-    {
-        return ForwardAsync(
-            Service,
-            "/api/v1/notifications/unread-count",
-            HttpMethod.Get,
-            mockSeed: "notifications-read",
-            successMessage: "Unread notification count retrieved successfully."
-        );
-    }
-
     /// <summary>Đánh dấu thông báo đã đọc qua batch body (NOTI-06 / NOTI-08)</summary>
     [HttpPatch("notifications/me/read")]
     [HttpPatch("notifications/read-all")]
@@ -186,20 +154,6 @@ public sealed class NotificationController : GatewayBaseController
             body: body,
             mockSeed: "notifications-read",
             successMessage: "Notifications marked as read successfully."
-        );
-    }
-
-    /// <summary>Đánh dấu một thông báo cụ thể là đã đọc (NOTI-07)</summary>
-    [HttpPatch("notifications/{id:guid}/read")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
-    public Task<IResult> MarkSingleNotificationAsRead([FromRoute] Guid id)
-    {
-        return ForwardAsync(
-            Service,
-            $"/api/v1/notifications/{id}/read",
-            HttpMethod.Patch,
-            mockSeed: "notifications-read",
-            successMessage: "Notification marked as read successfully."
         );
     }
 
@@ -276,37 +230,6 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin cập nhật mẫu nội dung thông báo (NOTI-11)</summary>
-    [HttpPut("admin/notifications/templates/{templateCode}")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
-    public Task<IResult> UpdateNotificationTemplate([FromRoute] string templateCode, [FromBody] SaveTemplateRequest body)
-    {
-        return ForwardAsync(
-            Service,
-            $"/api/v1/admin/notifications/templates/{templateCode}",
-            HttpMethod.Put,
-            body: body,
-            mockSeed: "template-create",
-            successMessage: "Notification template updated successfully."
-        );
-    }
-
-    /// <summary>Admin gửi thông báo hệ thống (NOTI-09)</summary>
-    [HttpPost("admin/notifications/system")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
-    public Task<IResult> SendSystemNotification([FromBody] object body)
-    {
-        return ForwardAsync(
-            Service,
-            "/api/v1/admin/notifications/system",
-            HttpMethod.Post,
-            body: body,
-            mockSeed: "notifications-read",
-            successStatusCode: StatusCodes.Status200OK,
-            successMessage: "System notification queued successfully."
-        );
-    }
-
     /// <summary>Admin/Staff tra cứu lịch sử thông báo toàn hệ thống (NOTI-09 sheet)</summary>
     [HttpGet("admin/notifications")]
     [Authorize(Policy = GatewayPolicies.Admin)]
@@ -335,8 +258,8 @@ public sealed class NotificationController : GatewayBaseController
     }
 
     /// <summary>Admin tra cứu nhật ký sự kiện kỹ thuật message bus (NOTI-13)</summary>
-    [HttpGet("admin/notifications/event-logs")]
     [HttpGet("admin/event-logs")]
+    [HttpGet("admin/notifications/event-logs")]
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> GetEventLogs(
         [FromQuery] string? sourceService = null,
@@ -352,7 +275,7 @@ public sealed class NotificationController : GatewayBaseController
 
         return ForwardAsync(
             Service,
-            "/api/v1/admin/notifications/event-logs",
+            "/api/v1/admin/event-logs",
             HttpMethod.Get,
             mockSeed: "event-logs-list",
             successMessage: "Event logs retrieved successfully.",
@@ -375,8 +298,8 @@ public sealed class NotificationController : GatewayBaseController
     }
 
     /// <summary>Admin theo dõi trạng thái sức khỏe Message Broker (NOTI-16 sheet / NOTI-14)</summary>
-    [HttpGet("admin/notifications/brokers/health")]
     [HttpGet("admin/health/broker")]
+    [HttpGet("admin/notifications/brokers/health")]
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> GetBrokerHealthStatus([FromQuery] int limit = 50)
     {
@@ -387,7 +310,7 @@ public sealed class NotificationController : GatewayBaseController
 
         return ForwardAsync(
             Service,
-            "/api/v1/admin/notifications/brokers/health",
+            "/api/v1/admin/health/broker",
             HttpMethod.Get,
             mockSeed: "broker-health",
             successMessage: "Broker health status retrieved successfully.",

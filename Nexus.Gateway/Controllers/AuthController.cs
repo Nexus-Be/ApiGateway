@@ -13,7 +13,6 @@ using Nexus.Gateway.Dtos.Auth;
 using Nexus.Gateway.Dtos.User;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
-using ShoppingCart.Contracts.V1;
 
 [ApiController]
 [Route("api/v1/auth")]
@@ -22,22 +21,15 @@ using ShoppingCart.Contracts.V1;
 public sealed class AuthController : GatewayBaseController
 {
     private const string Service = "users";
-    private readonly UsersApi.UsersApiClient _client;
-    private readonly UserApi.UserApiClient _userClient;
 
-    public AuthController(
-        IGatewayDispatcher dispatcher,
-        UsersApi.UsersApiClient client,
-        UserApi.UserApiClient userClient) : base(dispatcher)
+    public AuthController(IGatewayDispatcher dispatcher) : base(dispatcher)
     {
-        _client = client;
-        _userClient = userClient;
     }
 
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]
     public Task<IResult> Register([FromBody] RegisterRequestDto body)
     {
         var username = body.Username ?? (body.Email?.Contains('@') == true ? body.Email.Split('@')[0] : null);
@@ -51,17 +43,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/register",
             HttpMethod.Post,
-            grpcCall: o => _client.RegisterAsync(new RegisterRequest
-            {
-                Username = username,
-                Email = body.Email.Trim().ToLowerInvariant(),
-                Password = body.Password,
-                DisplayName = displayName,
-                FirstName = body.FirstName ?? "",
-                LastName = body.LastName ?? "",
-                PhoneNumber = body.PhoneNumber ?? ""
-            }, o),
-            parser: UserProfile.Parser,
             body: body,
             mockSeed: "register",
             successMessage: "User registered successfully."
@@ -72,7 +53,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("otp/verify")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfile>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]
     public Task<IResult> VerifyOtp([FromBody] VerifyOtpRequestDto body)
     {
         if (string.IsNullOrWhiteSpace(body.Email) || string.IsNullOrWhiteSpace(body.ResolvedOtp))
@@ -82,12 +63,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/otp/verify",
             HttpMethod.Post,
-            grpcCall: o => _client.VerifyOtpAsync(new VerifyOtpRequest
-            {
-                Email = body.Email.Trim().ToLowerInvariant(),
-                Otp = body.ResolvedOtp!.Trim()
-            }, o),
-            parser: UserProfile.Parser,
             body: body,
             mockSeed: "verify-otp",
             successMessage: "Account verified successfully."
@@ -98,7 +73,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("otp/resend")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<OtpResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<OtpResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ResendOtp([FromBody] ResendOtpRequestDto body)
     {
         if (string.IsNullOrWhiteSpace(body.Email))
@@ -108,11 +83,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/otp/resend",
             HttpMethod.Post,
-            grpcCall: o => _client.ResendOtpAsync(new ResendOtpRequest
-            {
-                Email = body.Email.Trim().ToLowerInvariant()
-            }, o),
-            parser: OtpResponse.Parser,
             body: body,
             mockSeed: "resend-otp",
             successMessage: "Verification code has been resent to your email."
@@ -122,7 +92,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-login")]
-    [ProducesResponseType(typeof(ApiResponse<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> Login([FromBody] LoginRequestDto body)
     {
         Response.Headers.CacheControl = "no-store";
@@ -133,12 +103,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/login",
             HttpMethod.Post,
-            grpcCall: o => _client.LoginAsync(new LoginRequest
-            {
-                Username = body.Username.Trim(),
-                Password = body.Password
-            }, o),
-            parser: LoginResponse.Parser,
             body: body,
             mockSeed: "login",
             successMessage: "Login successful."
@@ -148,7 +112,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("refresh")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-login")]
-    [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> Refresh([FromBody] RefreshTokenDto body)
     {
         Response.Headers.CacheControl = "no-store";
@@ -158,12 +122,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/refresh",
             HttpMethod.Post,
-            grpcCall: o => _userClient.RefreshTokenAsync(new RefreshTokenRequest
-            {
-                RefreshToken = refreshToken,
-                DeviceInfo = body.DeviceInfo ?? string.Empty
-            }, o),
-            parser: RefreshTokenResponse.Parser,
             body: body,
             mockSeed: "refresh",
             successMessage: "Token refreshed successfully."
@@ -173,7 +131,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("password/forgot")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<ForgotPasswordResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ForgotPasswordResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ForgotPassword([FromBody] ForgotPasswordDto body)
     {
         var email = UserValidation.EnsureEmail(body.Email);
@@ -182,11 +140,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/password/forgot",
             HttpMethod.Post,
-            grpcCall: o => _userClient.ForgotPasswordAsync(new ForgotPasswordRequest
-            {
-                Email = email
-            }, o),
-            parser: ForgotPasswordResponse.Parser,
             body: body,
             mockSeed: "password-forgot",
             successMessage: "Password reset instructions have been sent to your email."
@@ -197,7 +150,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPut("password/reset")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<ResetPasswordResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ResetPasswordResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ResetPassword([FromBody] ResetPasswordDto body)
     {
         var email = UserValidation.EnsureEmail(body.Email);
@@ -214,14 +167,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/password/reset",
             HttpMethod.Put,
-            grpcCall: o => _userClient.ResetPasswordAsync(new ResetPasswordRequest
-            {
-                Email = email,
-                OtpCode = otp,
-                NewPassword = newPassword,
-                ConfirmPassword = confirmPassword
-            }, o),
-            parser: ResetPasswordResponse.Parser,
             body: body,
             mockSeed: "password-reset",
             successMessage: "Password has been reset successfully."
@@ -231,7 +176,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPatch("password")]
     [HttpPost("password/change")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<ChangePasswordResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ChangePasswordResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ChangePassword([FromBody] ChangePasswordDto body)
     {
         var oldPassword = UserValidation.EnsureRequired(body.OldPassword, "OldPassword", "Old password");
@@ -247,14 +192,6 @@ public sealed class AuthController : GatewayBaseController
             Service,
             "/api/v1/auth/password",
             HttpMethod.Patch,
-            grpcCall: o => _userClient.ChangePasswordAsync(new ChangePasswordRequest
-            {
-                OldPassword = oldPassword,
-                NewPassword = newPassword,
-                ConfirmPassword = confirmPassword,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            parser: ChangePasswordResponse.Parser,
             body: body,
             mockSeed: "password-change",
             successMessage: "Password changed successfully."
@@ -263,19 +200,13 @@ public sealed class AuthController : GatewayBaseController
 
     [HttpPost("logout")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<LogoutResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LogoutResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> Logout([FromBody] LogoutDto? body)
     {
         return ForwardAsync(
             Service,
             "/api/v1/auth/logout",
             HttpMethod.Post,
-            grpcCall: o => _userClient.LogoutAsync(new LogoutRequest
-            {
-                RefreshToken = body?.RefreshToken ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            parser: LogoutResponse.Parser,
             body: body,
             mockSeed: "logout",
             successMessage: "Logged out successfully."
@@ -284,18 +215,13 @@ public sealed class AuthController : GatewayBaseController
 
     [HttpPost("logout-all")]
     [Authorize(GatewayPolicies.Authenticated)]
-    [ProducesResponseType(typeof(ApiResponse<LogoutAllResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<LogoutAllResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> LogoutAll()
     {
         return ForwardAsync(
             Service,
             "/api/v1/auth/logout-all",
             HttpMethod.Post,
-            grpcCall: o => _userClient.LogoutAllAsync(new LogoutAllRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            parser: LogoutAllResponse.Parser,
             mockSeed: "logout-all",
             successMessage: "All sessions have been revoked."
         );

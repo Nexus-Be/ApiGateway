@@ -250,4 +250,127 @@ public sealed class CommerceMockTests
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    [Fact]
+    public async Task PaymentWebhook_ReturnsSuccess()
+    {
+        using var app = new Factory();
+        using var client = app.CreateClient();
+
+        var response = await client.PostAsJsonAsync("/api/v1/payments/webhook", new
+        {
+            orderId = "6a1b2c3d-7777-4e8f-9a0b-1c2d3e4f5a07",
+            transactionId = "TXN-9999",
+            amount = 480000,
+            status = "SUCCESS",
+            paymentMethod = "VNPAY"
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
+        Assert.True(root.GetProperty("data").GetProperty("success").GetBoolean());
+    }
+
+    [Fact]
+    public async Task CreateProductReview_ReturnsCreated()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.PostAsJsonAsync($"/api/v1/order/{OrderId}/products/{ProductId}/reviews", new
+        {
+            rating = 5,
+            comment = "San pham rat tot, dong goi ky."
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(201, root.GetProperty("statusCode").GetInt32());
+        Assert.True(root.GetProperty("data").TryGetProperty("reviewId", out _));
+    }
+
+    [Fact]
+    public async Task CreateUserFeedback_ReturnsCreated()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.PostAsJsonAsync($"/api/v1/order/{OrderId}/user/{UserId}", new
+        {
+            rating = 5,
+            feedback = "Seller giao hang nhanh chong."
+        });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(201, root.GetProperty("statusCode").GetInt32());
+        Assert.True(root.GetProperty("data").TryGetProperty("feedbackId", out _));
+    }
+
+    [Fact]
+    public async Task UpdateProductReview_ReturnsSuccess()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.PatchAsJsonAsync($"/api/v1/order/{OrderId}/products/{ProductId}/reviews", new
+        {
+            rating = 4,
+            comment = "Cap nhat: San pham dung tot sau 1 tuan."
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
+        Assert.Equal(4, root.GetProperty("data").GetProperty("rating").GetInt32());
+    }
+
+    [Fact]
+    public async Task UpdateUserFeedback_ReturnsSuccess()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.PatchAsJsonAsync($"/api/v1/order/{OrderId}/user/{UserId}", new
+        {
+            rating = 4,
+            feedback = "Cap nhat feedback."
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
+        Assert.Equal(4, root.GetProperty("data").GetProperty("rating").GetInt32());
+    }
+
+    [Fact]
+    public async Task RefundSubOrder_ReturnsSuccess()
+    {
+        using var app = new Factory();
+        using var client = CreateClient(app, role: "buyer");
+
+        var response = await client.PostAsJsonAsync($"/api/v1/subOrder/{SubOrderId}/refund", new
+        {
+            reason = "Damaged item received",
+            note = "Box was torn"
+        });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+        Assert.True(root.GetProperty("success").GetBoolean());
+        Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
+        Assert.Equal("REFUNDED", root.GetProperty("data").GetProperty("status").GetString());
+    }
 }

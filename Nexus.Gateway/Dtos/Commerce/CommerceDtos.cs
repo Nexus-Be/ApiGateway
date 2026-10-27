@@ -84,3 +84,45 @@ public sealed class SubOrderDecisionRequest
     public string? ReasonCode { get; set; }
     public string? ReasonText { get; set; }
 }
+
+public sealed class PaymentWebhookRequest
+{
+    public string? OrderId { get; set; }
+    public string? TransactionId { get; set; }
+    public decimal? Amount { get; set; }
+    public string? Status { get; set; }
+    public string? PaymentMethod { get; set; }
+    public DateTime? PaidAt { get; set; }
+}
+
+public sealed class CreateProductReviewRequest
+{
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public List<string>? Images { get; set; }
+}
+
+public sealed class CreateUserFeedbackRequest
+{
+    public int Rating { get; set; }
+    public string? Feedback { get; set; }
+}
+
+public sealed class UpdateProductReviewRequest
+{
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public List<string>? Images { get; set; }
+}
+
+public sealed class UpdateUserFeedbackRequest
+{
+    public int Rating { get; set; }
+    public string? Feedback { get; set; }
+}
+
+public sealed class RefundSubOrderRequest
+{
+    public string? Reason { get; set; }
+    public string? Note { get; set; }
+}

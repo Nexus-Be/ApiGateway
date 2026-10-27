@@ -10,7 +10,7 @@
     "firstName": "Bao",
     "lastName": "Nguyen",
     "roles": [
-      "buyer"
+      "Buyer"
     ],
     "permissions": [
       "CART.VIEW",

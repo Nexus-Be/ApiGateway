@@ -1,5 +1,8 @@
 namespace Nexus.Gateway.Controllers;
 
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +12,6 @@ using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.Dtos.User;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
-using ShoppingCart.Contracts.V1;
 
 [ApiController]
 [Route("api/v1/admin")]
@@ -18,17 +20,15 @@ using ShoppingCart.Contracts.V1;
 public sealed class AdminUsersController : GatewayBaseController
 {
     private const string Service = "users";
-    private readonly UserApi.UserApiClient _client;
 
-    public AdminUsersController(IGatewayDispatcher dispatcher, UserApi.UserApiClient client)
+    public AdminUsersController(IGatewayDispatcher dispatcher)
         : base(dispatcher)
     {
-        _client = client;
     }
 
     [HttpGet("seller-registrations")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<AdminSellerRegistrationListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminSellerRegistrationListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListSellerRegistrations(
         [FromQuery] int page = 1,
         [FromQuery] int limit = 20,
@@ -36,96 +36,80 @@ public sealed class AdminUsersController : GatewayBaseController
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchPagedAsync(
-            HttpContext,
+        return ForwardPagedAsync(
             Service,
-            "admin-seller-registrations",
+            "/api/v1/admin/seller-registrations",
             page,
             limit,
-            o => _client.ListAdminSellerRegistrationsAsync(new ListAdminSellerRegistrationsRequest
+            HttpMethod.Get,
+            mockSeed: "admin-seller-registrations",
+            queryParams: new Dictionary<string, string?>
             {
-                Page = page,
-                Limit = limit,
-                Status = status ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminSellerRegistrationListResponse.Parser
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString(),
+                ["status"] = status
+            }
         );
     }
 
     [HttpGet("seller-registrations/{registrationId}")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<AdminSellerRegistrationDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminSellerRegistrationDetailResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetSellerRegistrationDetail([FromRoute] string registrationId)
     {
         UserValidation.EnsureRequired(registrationId, "RegistrationId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-seller-registration-detail",
-            o => _client.GetAdminSellerRegistrationDetailAsync(new GetAdminSellerRegistrationDetailRequest
-            {
-                RegistrationId = registrationId,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminSellerRegistrationDetailResponse.Parser,
+            $"/api/v1/admin/seller-registrations/{registrationId}",
+            HttpMethod.Get,
+            mockSeed: "admin-seller-registration-detail",
             successMessage: "Registration detail retrieved successfully."
         );
     }
 
     [HttpPut("seller-registrations/{registrationId}/approve")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<ApproveSellerRegistrationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ApproveSellerRegistrationResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ApproveSellerRegistration(
         [FromRoute] string registrationId,
         [FromBody] ApproveSellerRegistrationDto body)
     {
         UserValidation.EnsureRequired(registrationId, "RegistrationId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-seller-registration-approve",
-            o => _client.ApproveSellerRegistrationAsync(new ApproveSellerRegistrationRequest
-            {
-                RegistrationId = registrationId,
-                Note = body.Note ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            ApproveSellerRegistrationResponse.Parser,
+            $"/api/v1/admin/seller-registrations/{registrationId}/approve",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-seller-registration-approve",
             successMessage: "Seller registration approved successfully."
         );
     }
 
     [HttpPut("seller-registrations/{registrationId}/reject")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<RejectSellerRegistrationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<RejectSellerRegistrationResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> RejectSellerRegistration(
         [FromRoute] string registrationId,
         [FromBody] RejectSellerRegistrationDto body)
     {
         UserValidation.EnsureRequired(registrationId, "RegistrationId");
-        var reason = UserValidation.EnsureRequired(body.RejectionReason, "RejectionReason", "Rejection reason");
+        UserValidation.EnsureRequired(body.RejectionReason, "RejectionReason", "Rejection reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-seller-registration-reject",
-            o => _client.RejectSellerRegistrationAsync(new RejectSellerRegistrationRequest
-            {
-                RegistrationId = registrationId,
-                RejectionReason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            RejectSellerRegistrationResponse.Parser,
+            $"/api/v1/admin/seller-registrations/{registrationId}/reject",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-seller-registration-reject",
             successMessage: "Seller registration rejected successfully."
         );
     }
 
     [HttpGet("reports")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<AdminReportListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminReportListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListReports(
         [FromQuery] int page = 1,
         [FromQuery] int limit = 20,
@@ -134,97 +118,79 @@ public sealed class AdminUsersController : GatewayBaseController
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchPagedAsync(
-            HttpContext,
+        return ForwardPagedAsync(
             Service,
-            "admin-reports",
+            "/api/v1/admin/reports",
             page,
             limit,
-            o => _client.ListAdminReportsAsync(new ListAdminReportsRequest
+            HttpMethod.Get,
+            mockSeed: "admin-reports",
+            queryParams: new Dictionary<string, string?>
             {
-                Page = page,
-                Limit = limit,
-                Status = status ?? string.Empty,
-                ViolationType = violationType ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminReportListResponse.Parser
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString(),
+                ["status"] = status,
+                ["violationType"] = violationType
+            }
         );
     }
 
     [HttpPut("reports/{reportId}/resolve")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<ResolveAdminReportResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ResolveAdminReportResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ResolveReport(
         [FromRoute] string reportId,
         [FromBody] ResolveAdminReportDto body)
     {
         UserValidation.EnsureRequired(reportId, "ReportId");
-        var action = UserValidation.EnsureRequired(body.Action, "Action");
+        UserValidation.EnsureRequired(body.Action, "Action");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-report-resolve",
-            o => _client.ResolveAdminReportAsync(new ResolveAdminReportRequest
-            {
-                ReportId = reportId,
-                Action = action,
-                PointsDeducted = body.PointsDeducted ?? 0,
-                ResolutionNote = body.ResolutionNote ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            ResolveAdminReportResponse.Parser,
+            $"/api/v1/admin/reports/{reportId}/resolve",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-report-resolve",
             successMessage: "Report resolved successfully."
         );
     }
 
     [HttpPut("reports/{reportId}/dismiss")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<DismissAdminReportResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<DismissAdminReportResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> DismissReport(
         [FromRoute] string reportId,
         [FromBody] DismissAdminReportDto body)
     {
         UserValidation.EnsureRequired(reportId, "ReportId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-report-dismiss",
-            o => _client.DismissAdminReportAsync(new DismissAdminReportRequest
-            {
-                ReportId = reportId,
-                Reason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            DismissAdminReportResponse.Parser,
+            $"/api/v1/admin/reports/{reportId}/dismiss",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-report-dismiss",
             successMessage: "Report dismissed successfully."
         );
     }
 
     [HttpPut("reviews/{reviewId}/hide")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<HideAdminReviewResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<HideAdminReviewResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> HideReview(
         [FromRoute] string reviewId,
         [FromBody] HideAdminReviewDto body)
     {
         UserValidation.EnsureRequired(reviewId, "ReviewId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-review-hide",
-            o => _client.HideAdminReviewAsync(new HideAdminReviewRequest
-            {
-                ReviewId = reviewId,
-                Reason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            HideAdminReviewResponse.Parser,
+            $"/api/v1/admin/reviews/{reviewId}/hide",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-review-hide",
             successMessage: "Review visibility updated successfully."
         );
     }
@@ -232,7 +198,7 @@ public sealed class AdminUsersController : GatewayBaseController
     [HttpGet("user")]
     [HttpGet("users")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListUsers(
         [FromQuery] int page = 1,
         [FromQuery] int limit = 20,
@@ -242,53 +208,41 @@ public sealed class AdminUsersController : GatewayBaseController
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchPagedAsync(
-            HttpContext,
+        return ForwardPagedAsync(
             Service,
-            "admin-users",
+            "/api/v1/admin/users",
             page,
             limit,
-            o => _client.ListAdminUsersAsync(new ListAdminUsersRequest
+            HttpMethod.Get,
+            mockSeed: "admin-users",
+            queryParams: new Dictionary<string, string?>
             {
-                Page = page,
-                Limit = limit,
-                Keyword = keyword ?? string.Empty,
-                Role = role ?? string.Empty,
-                Status = status ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminUserListResponse.Parser
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString(),
+                ["keyword"] = keyword,
+                ["role"] = role,
+                ["status"] = status
+            }
         );
     }
 
     [HttpPost("user")]
     [HttpPost("users")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserCreatedResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateUser([FromBody] CreateAdminUserDto body)
     {
-        var email = UserValidation.EnsureEmail(body.Email);
-        var password = UserValidation.EnsurePassword(body.Password);
-        var firstName = UserValidation.EnsureRequired(body.FirstName, "FirstName", "First name");
-        var lastName = UserValidation.EnsureRequired(body.LastName, "LastName", "Last name");
+        UserValidation.EnsureEmail(body.Email);
+        UserValidation.EnsurePassword(body.Password);
+        UserValidation.EnsureRequired(body.FirstName, "FirstName", "First name");
+        UserValidation.EnsureRequired(body.LastName, "LastName", "Last name");
 
-        var req = new CreateAdminUserRequest
-        {
-            Email = email,
-            Password = password,
-            FirstName = firstName,
-            LastName = lastName,
-            PhoneNumber = body.PhoneNumber ?? string.Empty,
-            Caller = UserValidation.Caller(HttpContext)
-        };
-        if (body.RoleCodes != null) req.RoleCodes.AddRange(body.RoleCodes);
-
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-user-create",
-            o => _client.CreateAdminUserAsync(req, o),
-            AdminUserCreatedResponse.Parser,
+            "/api/v1/admin/users",
+            HttpMethod.Post,
+            body: body,
+            mockSeed: "admin-user-create",
             successStatusCode: StatusCodes.Status201Created,
             successMessage: "User created successfully."
         );
@@ -297,21 +251,16 @@ public sealed class AdminUsersController : GatewayBaseController
     [HttpGet("user/{userId}")]
     [HttpGet("users/{userId}")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserDetailResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetUserDetail([FromRoute] string userId)
     {
         UserValidation.EnsureUuid(userId, "UserId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-user-detail",
-            o => _client.GetAdminUserDetailAsync(new GetAdminUserDetailRequest
-            {
-                UserId = userId,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminUserDetailResponse.Parser,
+            $"/api/v1/admin/users/{userId}",
+            HttpMethod.Get,
+            mockSeed: "admin-user-detail",
             successMessage: "User detail retrieved successfully."
         );
     }
@@ -319,29 +268,20 @@ public sealed class AdminUsersController : GatewayBaseController
     [HttpPut("user/{userId}")]
     [HttpPut("users/{userId}")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserUpdatedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateUser(
         [FromRoute] string userId,
         [FromBody] UpdateAdminUserDto body)
     {
         UserValidation.EnsureUuid(userId, "UserId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-user-update",
-            o => _client.UpdateAdminUserAsync(new UpdateAdminUserRequest
-            {
-                UserId = userId,
-                FirstName = body.FirstName ?? string.Empty,
-                LastName = body.LastName ?? string.Empty,
-                PhoneNumber = body.PhoneNumber ?? string.Empty,
-                Status = body.Status ?? string.Empty,
-                Reason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminUserUpdatedResponse.Parser,
+            $"/api/v1/admin/users/{userId}",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-user-update",
             successMessage: "User updated successfully."
         );
     }
@@ -355,45 +295,34 @@ public sealed class AdminUsersController : GatewayBaseController
         [FromBody] DeleteAdminUserDto body)
     {
         UserValidation.EnsureUuid(userId, "UserId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchNoContentAsync(
-            HttpContext,
+        return ForwardNoContentAsync(
             Service,
-            "admin-user-delete",
-            o => _client.DeleteAdminUserAsync(new DeleteAdminUserRequest
-            {
-                UserId = userId,
-                Reason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminUserDeletedResponse.Parser
+            $"/api/v1/admin/users/{userId}",
+            HttpMethod.Delete,
+            body: body,
+            mockSeed: "admin-user-delete"
         );
     }
 
     [HttpPatch("user/{userId}/ban")]
     [HttpPatch("users/{userId}/ban")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserBanResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserBanResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> BanUser(
         [FromRoute] string userId,
         [FromBody] BanAdminUserDto body)
     {
         UserValidation.EnsureUuid(userId, "UserId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-user-ban",
-            o => _client.BanAdminUserAsync(new BanAdminUserRequest
-            {
-                UserId = userId,
-                Reason = reason,
-                BanDurationDays = body.BanDurationDays ?? 30,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminUserBanResponse.Parser,
+            $"/api/v1/admin/users/{userId}/ban",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "admin-user-ban",
             successMessage: "User banned successfully."
         );
     }
@@ -401,46 +330,36 @@ public sealed class AdminUsersController : GatewayBaseController
     [HttpPatch("user/{userId}/unban")]
     [HttpPatch("users/{userId}/unban")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserUnbanResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserUnbanResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UnbanUser(
         [FromRoute] string userId,
         [FromBody] UnbanAdminUserDto body)
     {
         UserValidation.EnsureUuid(userId, "UserId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-user-unban",
-            o => _client.UnbanAdminUserAsync(new UnbanAdminUserRequest
-            {
-                UserId = userId,
-                Reason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminUserUnbanResponse.Parser,
+            $"/api/v1/admin/users/{userId}/unban",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "admin-user-unban",
             successMessage: "User unbanned successfully."
         );
     }
 
     [HttpGet("sellers/{sellerId}")]
     [Authorize(GatewayPolicies.Staff)]
-    [ProducesResponseType(typeof(ApiResponse<AdminSellerDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminSellerDetailResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetSellerDetail([FromRoute] string sellerId)
     {
         UserValidation.EnsureUuid(sellerId, "SellerId");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-seller-detail",
-            o => _client.GetAdminSellerDetailAsync(new GetAdminSellerDetailRequest
-            {
-                SellerId = sellerId,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminSellerDetailResponse.Parser,
+            $"/api/v1/admin/sellers/{sellerId}",
+            HttpMethod.Get,
+            mockSeed: "admin-seller-detail",
             successMessage: "Seller detail retrieved successfully."
         );
     }
@@ -448,29 +367,20 @@ public sealed class AdminUsersController : GatewayBaseController
     [HttpPut("user/{userId}/roles")]
     [HttpPut("users/{userId}/roles")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserRolesResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserRolesResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> AssignRoles(
         [FromRoute] string userId,
         [FromBody] AssignAdminUserRolesDto body)
     {
         UserValidation.EnsureUuid(userId, "UserId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        var req = new AssignAdminUserRolesRequest
-        {
-            UserId = userId,
-            Reason = reason,
-            Caller = UserValidation.Caller(HttpContext)
-        };
-        if (body.RoleCodes != null) req.RoleCodes.AddRange(body.RoleCodes);
-        if (body.RoleIds != null) req.RoleIds.AddRange(body.RoleIds);
-
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-user-roles-assign",
-            o => _client.AssignAdminUserRolesAsync(req, o),
-            AdminUserRolesResponse.Parser,
+            $"/api/v1/admin/users/{userId}/roles",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-user-roles-assign",
             successMessage: "User roles updated successfully."
         );
     }
@@ -478,94 +388,72 @@ public sealed class AdminUsersController : GatewayBaseController
     [HttpPatch("user/{userId}/reputation")]
     [HttpPatch("users/{userId}/reputation")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminUserReputationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminUserReputationResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> AdjustReputation(
         [FromRoute] string userId,
         [FromBody] AdjustAdminUserReputationDto body)
     {
         UserValidation.EnsureUuid(userId, "UserId");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-user-reputation-adjust",
-            o => _client.AdjustAdminUserReputationAsync(new AdjustAdminUserReputationRequest
-            {
-                UserId = userId,
-                Delta = body.Delta ?? 0,
-                Reason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminUserReputationResponse.Parser,
+            $"/api/v1/admin/users/{userId}/reputation",
+            HttpMethod.Patch,
+            body: body,
+            mockSeed: "admin-user-reputation-adjust",
             successMessage: "User reputation adjusted successfully."
         );
     }
 
     [HttpGet("roles")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminRoleListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminRoleListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListRoles()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-roles",
-            o => _client.ListAdminRolesAsync(new ListAdminRolesRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminRoleListResponse.Parser,
+            "/api/v1/admin/roles",
+            HttpMethod.Get,
+            mockSeed: "admin-roles",
             successMessage: "Roles retrieved successfully."
         );
     }
 
     [HttpGet("permissions")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminPermissionListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminPermissionListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListPermissions()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-permissions",
-            o => _client.ListAdminPermissionsAsync(new ListAdminPermissionsRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminPermissionListResponse.Parser,
+            "/api/v1/admin/permissions",
+            HttpMethod.Get,
+            mockSeed: "admin-permissions",
             successMessage: "Permissions retrieved successfully."
         );
     }
 
     [HttpPut("roles/{roleId:int}/permissions")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminRolePermissionsUpdatedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminRolePermissionsUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateRolePermissions(
         [FromRoute] int roleId,
         [FromBody] UpdateAdminRolePermissionsDto body)
     {
-        var req = new UpdateAdminRolePermissionsRequest
-        {
-            RoleId = roleId,
-            Description = body.Description ?? string.Empty,
-            Caller = UserValidation.Caller(HttpContext)
-        };
-        if (body.PermissionIds != null) req.PermissionIds.AddRange(body.PermissionIds);
-
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-role-permissions-update",
-            o => _client.UpdateAdminRolePermissionsAsync(req, o),
-            AdminRolePermissionsUpdatedResponse.Parser,
+            $"/api/v1/admin/roles/{roleId}/permissions",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-role-permissions-update",
             successMessage: "Role permissions updated successfully."
         );
     }
 
     [HttpGet("audit-logs")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminAuditLogListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminAuditLogListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListAuditLogs(
         [FromQuery] int page = 1,
         [FromQuery] int limit = 20,
@@ -576,67 +464,57 @@ public sealed class AdminUsersController : GatewayBaseController
     {
         UserValidation.EnsurePaged(page, limit);
 
-        return Dispatcher.DispatchPagedAsync(
-            HttpContext,
+        return ForwardPagedAsync(
             Service,
-            "admin-audit-logs",
+            "/api/v1/admin/audit-logs",
             page,
             limit,
-            o => _client.ListAdminAuditLogsAsync(new ListAdminAuditLogsRequest
+            HttpMethod.Get,
+            mockSeed: "admin-audit-logs",
+            queryParams: new Dictionary<string, string?>
             {
-                Page = page,
-                Limit = limit,
-                ActorId = actorId ?? string.Empty,
-                Action = action ?? string.Empty,
-                FromDate = fromDate ?? string.Empty,
-                ToDate = toDate ?? string.Empty,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminAuditLogListResponse.Parser
+                ["page"] = page.ToString(),
+                ["limit"] = limit.ToString(),
+                ["actorId"] = actorId,
+                ["action"] = action,
+                ["fromDate"] = fromDate,
+                ["toDate"] = toDate
+            }
         );
     }
 
     [HttpGet("configs")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminConfigListResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminConfigListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListConfigs()
     {
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-configs",
-            o => _client.ListAdminConfigsAsync(new ListAdminConfigsRequest
-            {
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminConfigListResponse.Parser,
+            "/api/v1/admin/configs",
+            HttpMethod.Get,
+            mockSeed: "admin-configs",
             successMessage: "Configs retrieved successfully."
         );
     }
 
+    [HttpPut("configs")]
     [HttpPut("configs/{key}")]
     [Authorize(GatewayPolicies.Admin)]
-    [ProducesResponseType(typeof(ApiResponse<AdminConfigUpdatedResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<AdminConfigUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateConfig(
-        [FromRoute] string key,
-        [FromBody] UpdateAdminConfigDto body)
+        [FromBody] UpdateAdminConfigDto body,
+        [FromRoute] string? key = null)
     {
-        var cfgKey = UserValidation.EnsureRequired(key, "Key");
-        var cfgVal = UserValidation.EnsureRequired(body.Value, "Value");
-        var reason = UserValidation.EnsureRequired(body.Reason, "Reason");
+        var cfgKey = UserValidation.EnsureRequired(key ?? body.Key, "Key");
+        UserValidation.EnsureRequired(body.Value, "Value");
+        UserValidation.EnsureRequired(body.Reason, "Reason");
 
-        return Dispatcher.DispatchAsync(
-            HttpContext,
+        return ForwardAsync(
             Service,
-            "admin-config-update",
-            o => _client.UpdateAdminConfigAsync(new UpdateAdminConfigRequest
-            {
-                Key = cfgKey,
-                Value = cfgVal,
-                Reason = reason,
-                Caller = UserValidation.Caller(HttpContext)
-            }, o),
-            AdminConfigUpdatedResponse.Parser,
+            $"/api/v1/admin/configs/{cfgKey}",
+            HttpMethod.Put,
+            body: body,
+            mockSeed: "admin-config-update",
             successMessage: "Config updated successfully."
         );
     }

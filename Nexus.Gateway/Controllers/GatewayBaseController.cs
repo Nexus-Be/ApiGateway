@@ -4,8 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Google.Protobuf;
-using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Nexus.Gateway.Dispatching;
@@ -14,6 +12,7 @@ using Nexus.Gateway.Dispatching;
 /// Base class for all API Gateway Controllers.
 /// Provides standardized, one-line helper methods for forwarding HTTP requests to downstream microservices
 /// in Real mode, or serving mocked responses from seed files in Mock mode.
+/// 100% RESTful HTTP/JSON.
 /// </summary>
 [ApiController]
 public abstract class GatewayBaseController : ControllerBase
@@ -85,51 +84,6 @@ public abstract class GatewayBaseController : ControllerBase
     }
 
     /// <summary>
-    /// Forwards a request with optional gRPC fallback for services undergoing transition.
-    /// In Mock mode, serves from seed fixture.
-    /// In Real mode, calls gRPC if grpcCall is provided, otherwise calls HTTP REST downstream.
-    /// </summary>
-    protected Task<IResult> ForwardAsync<TResponse>(
-        string service,
-        string downstreamPath,
-        HttpMethod method,
-        Func<CallOptions, AsyncUnaryCall<TResponse>>? grpcCall = null,
-        MessageParser<TResponse>? parser = null,
-        object? body = null,
-        string? mockSeed = null,
-        string? successMessage = null,
-        int successStatusCode = StatusCodes.Status200OK,
-        IDictionary<string, string?>? queryParams = null)
-        where TResponse : class, IMessage<TResponse>
-    {
-        if (grpcCall != null && parser != null)
-        {
-            var seed = mockSeed ?? downstreamPath.Trim('/').Replace('/', '-');
-            return Dispatcher.DispatchAsync(
-                HttpContext,
-                service,
-                seed,
-                grpcCall,
-                parser,
-                successMessage,
-                successStatusCode
-            );
-        }
-
-        return Dispatcher.DispatchRestAsync(HttpContext, new RestForwardRequest
-        {
-            Service = service,
-            DownstreamPath = downstreamPath,
-            Method = method,
-            Body = body,
-            MockSeed = mockSeed,
-            SuccessMessage = successMessage,
-            SuccessStatusCode = successStatusCode,
-            QueryParams = queryParams
-        });
-    }
-
-    /// <summary>
     /// Convenient one-liner helper to forward paginated requests.
     /// </summary>
     protected Task<IResult> ForwardPagedAsync(
@@ -158,51 +112,6 @@ public abstract class GatewayBaseController : ControllerBase
     }
 
     /// <summary>
-    /// Forwards a paginated request with optional gRPC fallback.
-    /// </summary>
-    protected Task<IResult> ForwardPagedAsync<TResponse>(
-        string service,
-        string downstreamPath,
-        int page,
-        int pageSize,
-        Func<CallOptions, AsyncUnaryCall<TResponse>>? grpcCall = null,
-        MessageParser<TResponse>? parser = null,
-        HttpMethod? method = null,
-        object? body = null,
-        string? mockSeed = null,
-        int successStatusCode = StatusCodes.Status200OK,
-        IDictionary<string, string?>? queryParams = null)
-        where TResponse : class, IMessage<TResponse>
-    {
-        if (grpcCall != null && parser != null)
-        {
-            var seed = mockSeed ?? downstreamPath.Trim('/').Replace('/', '-');
-            return Dispatcher.DispatchPagedAsync(
-                HttpContext,
-                service,
-                seed,
-                page,
-                pageSize,
-                grpcCall,
-                parser
-            );
-        }
-
-        return Dispatcher.DispatchRestPagedAsync(HttpContext, new RestPagedForwardRequest
-        {
-            Service = service,
-            DownstreamPath = downstreamPath,
-            Method = method ?? HttpMethod.Get,
-            Body = body,
-            MockSeed = mockSeed,
-            Page = page,
-            PageSize = pageSize,
-            SuccessStatusCode = successStatusCode,
-            QueryParams = queryParams
-        });
-    }
-
-    /// <summary>
     /// Convenient one-liner helper to forward requests expecting 204 No Content.
     /// </summary>
     protected Task<IResult> ForwardNoContentAsync(
@@ -213,43 +122,6 @@ public abstract class GatewayBaseController : ControllerBase
         string? mockSeed = null,
         IDictionary<string, string?>? queryParams = null)
     {
-        return Dispatcher.DispatchRestNoContentAsync(HttpContext, new RestForwardRequest
-        {
-            Service = service,
-            DownstreamPath = downstreamPath,
-            Method = method,
-            Body = body,
-            MockSeed = mockSeed,
-            QueryParams = queryParams
-        });
-    }
-
-    /// <summary>
-    /// Forwards a request expecting 204 No Content with optional gRPC fallback.
-    /// </summary>
-    protected Task<IResult> ForwardNoContentAsync<TResponse>(
-        string service,
-        string downstreamPath,
-        HttpMethod method,
-        Func<CallOptions, AsyncUnaryCall<TResponse>>? grpcCall = null,
-        MessageParser<TResponse>? parser = null,
-        object? body = null,
-        string? mockSeed = null,
-        IDictionary<string, string?>? queryParams = null)
-        where TResponse : class, IMessage<TResponse>
-    {
-        if (grpcCall != null && parser != null)
-        {
-            var seed = mockSeed ?? downstreamPath.Trim('/').Replace('/', '-');
-            return Dispatcher.DispatchNoContentAsync(
-                HttpContext,
-                service,
-                seed,
-                grpcCall,
-                parser
-            );
-        }
-
         return Dispatcher.DispatchRestNoContentAsync(HttpContext, new RestForwardRequest
         {
             Service = service,

@@ -2,14 +2,13 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Grpc.Core;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
-using ShoppingCart.Contracts.V1;
 using Xunit;
 
 namespace Nexus.Gateway.Tests;
@@ -98,14 +97,29 @@ public sealed class GatewaySurfaceTests
     }
 
     [Fact]
-    public async Task Real_mode_forwards_user_headers_to_grpc()
+    public async Task Real_mode_forwards_user_headers_to_downstream_rest()
     {
-        var stub = new StubUsers();
+        string? lastAuthorization = null;
         var builder = WebApplication.CreateBuilder();
-        builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, 0, l => l.Protocols = HttpProtocols.Http2));
-        builder.Services.AddGrpc();
+        builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, 0));
         await using var backend = builder.Build();
-        backend.MapGrpcService<StubUsers>();
+        backend.MapGet("/api/v1/users/me", (HttpContext ctx) =>
+        {
+            lastAuthorization = ctx.Request.Headers["authorization"].ToString();
+            return Results.Ok(new
+            {
+                success = true,
+                message = "User profile retrieved successfully.",
+                data = new
+                {
+                    id = "seller-user",
+                    displayName = "Stub User",
+                    email = "stub@example.com",
+                    roles = new[] { "seller" },
+                    status = "Active"
+                }
+            });
+        });
         await backend.StartAsync();
         var address = backend.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
 
@@ -123,24 +137,6 @@ public sealed class GatewaySurfaceTests
         using var response = await client.GetAsync("/gateway/api/v1/users/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Real", response.Headers.GetValues("X-Gateway-Mode").Single());
-        Assert.NotNull(StubUsers.LastAuthorization);
-    }
-
-    private sealed class StubUsers : UsersApi.UsersApiBase
-    {
-        public static string? LastAuthorization { get; set; }
-
-        public override Task<UserProfile> GetProfile(UserRequest request, ServerCallContext context)
-        {
-            LastAuthorization = context.RequestHeaders.GetValue("authorization");
-            return Task.FromResult(new UserProfile
-            {
-                Id = request.UserId,
-                DisplayName = "Stub User",
-                Email = "stub@example.com",
-                Roles = { "seller" },
-                Status = "Active"
-            });
-        }
+        Assert.NotNull(lastAuthorization);
     }
 }

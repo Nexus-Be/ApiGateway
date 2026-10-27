@@ -1,20 +1,22 @@
 namespace Nexus.Gateway.Dispatching;
 
+using System.IO;
+using System.Linq;
 using System.Text.Json;
-using Google.Protobuf;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Nexus.Gateway.Responses;
 
 public interface IMockDataMapper
 {
-    Task<(JsonElement? Data, IResult? Failure)> MapMockAsync<T>(
+    Task<(JsonElement? Data, IResult? Failure)> MapMockAsync(
         HttpContext context,
         string service,
         string operation,
         BackendOptions config,
-        MessageParser<T>? parser,
-        CancellationToken cancellationToken) where T : class, IMessage<T>;
+        CancellationToken cancellationToken);
 
     Task<(string? JsonString, IResult? Failure)> MapMockPagedJsonAsync(
         HttpContext context,
@@ -35,13 +37,12 @@ public sealed class MockDataMapper : IMockDataMapper
         _responseFactory = responseFactory;
     }
 
-    public async Task<(JsonElement? Data, IResult? Failure)> MapMockAsync<T>(
+    public async Task<(JsonElement? Data, IResult? Failure)> MapMockAsync(
         HttpContext context,
         string service,
         string operation,
         BackendOptions config,
-        MessageParser<T>? parser,
-        CancellationToken cancellationToken) where T : class, IMessage<T>
+        CancellationToken cancellationToken)
     {
         if (config.MockDelayMs > 0)
         {
@@ -74,28 +75,8 @@ public sealed class MockDataMapper : IMockDataMapper
         }
 
         var json = await File.ReadAllTextAsync(fixturePath, cancellationToken);
-
-        if (parser != null)
-        {
-            try
-            {
-                var protoMessage = parser.ParseJson(json);
-                var formattedJson = JsonFormatter.Default.Format(protoMessage);
-                using var doc = JsonDocument.Parse(formattedJson);
-                return (doc.RootElement.Clone(), null);
-            }
-            catch
-            {
-                // Fallback to direct JSON parsing if protobuf parse fails
-                using var doc = JsonDocument.Parse(json);
-                return (doc.RootElement.Clone(), null);
-            }
-        }
-        else
-        {
-            using var doc = JsonDocument.Parse(json);
-            return (doc.RootElement.Clone(), null);
-        }
+        using var doc = JsonDocument.Parse(json);
+        return (doc.RootElement.Clone(), null);
     }
 
     public async Task<(string? JsonString, IResult? Failure)> MapMockPagedJsonAsync(

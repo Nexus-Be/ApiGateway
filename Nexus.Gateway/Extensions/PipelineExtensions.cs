@@ -39,7 +39,7 @@ public static class PipelineExtensions
             };
         });
 
-        // Custom Gateway Headers: X-Trace-Id, X-Gateway-Mode, X-Content-Type-Options
+        // Custom Gateway Headers: X-Trace-Id, X-Gateway-Mode, X-Gateway-Auth, X-Content-Type-Options
         app.Use(async (context, next) =>
         {
             var traceId = ApiResponseFactory.ResolveTraceId(context);
@@ -47,14 +47,39 @@ public static class PipelineExtensions
             {
                 context.Response.Headers["X-Trace-Id"] = traceId;
                 context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-                if (context.Items["GatewayMode"] is string mode)
+
+                // 1. Phản hồi X-Gateway-Mode hiện tại
+                var mode = context.Items["GatewayMode"] as string;
+                if (string.IsNullOrEmpty(mode))
+                {
+                    if (GatewayRequestResolution.Get(context) is { } res)
+                    {
+                        var opts = context.RequestServices.GetService<IOptionsMonitor<GatewayOptions>>()?.CurrentValue ?? new();
+                        var rtm = context.RequestServices.GetService<IGatewayRuntimeManager>();
+                        if (rtm != null)
+                        {
+                            mode = res.EffectiveMode(context, res.Service, opts, rtm);
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(mode))
                 {
                     context.Response.Headers["X-Gateway-Mode"] = mode;
-                    if (mode == "Mock")
+                    if (string.Equals(mode, "Mock", StringComparison.OrdinalIgnoreCase))
                     {
                         context.Response.Headers.CacheControl = "no-store";
                     }
                 }
+
+                // 2. Phản hồi X-Gateway-Auth hiện tại (Bypass / Enforce)
+                var rtmgr = context.RequestServices.GetService<IGatewayRuntimeManager>();
+                if (rtmgr != null)
+                {
+                    var isBypassed = rtmgr.IsAuthBypassed(context);
+                    context.Response.Headers["X-Gateway-Auth"] = isBypassed ? "Bypass" : "Enforce";
+                }
+
                 return Task.CompletedTask;
             });
 
@@ -94,7 +119,12 @@ public static class PipelineExtensions
         if (isDevelopment)
         {
             app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Nexus API Gateway v1");
+                c.EnablePersistAuthorization();
+                c.DisplayRequestDuration();
+            });
             app.MapGet("/", () => Results.Redirect("/swagger"));
         }
 

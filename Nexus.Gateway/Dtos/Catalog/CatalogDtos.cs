@@ -113,3 +113,124 @@ public sealed class AddProductImagesForm
     public string? AltText { get; set; }
     public bool IsActive { get; set; }
 }
+
+// ============================================================================
+// Response DTOs for Gateway Swagger / Documentation Contracts
+// ============================================================================
+
+public sealed class CategoryListResponseDto
+{
+    public List<object>? Categories { get; set; }
+}
+
+public sealed class CategoryDetailResponseDto
+{
+    public string? CategoryId { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+}
+
+public sealed class CategoryCreatedResponseDto
+{
+    public string? CategoryId { get; set; }
+    public string? Name { get; set; }
+}
+
+public sealed class CategoryUpdatedResponseDto
+{
+    public string? CategoryId { get; set; }
+    public string? Name { get; set; }
+}
+
+public sealed class StockInResponseDto
+{
+    public string? Message { get; set; }
+}
+
+public sealed class StockInVariantResponseDto
+{
+    public string? Message { get; set; }
+}
+
+public sealed class ProductListItemDto
+{
+    public string? ProductId { get; set; }
+    public string? Name { get; set; }
+    public decimal Price { get; set; }
+    public string? ImageUrl { get; set; }
+}
+
+public sealed class ProductDetailResponseDto
+{
+    public string? ProductId { get; set; }
+    public string? Name { get; set; }
+    public string? Description { get; set; }
+    public decimal Price { get; set; }
+}
+
+public sealed class ProductCreatedResponseDto
+{
+    public string? ProductId { get; set; }
+    public string? Name { get; set; }
+}
+
+public sealed class ProductUpdatedResponseDto
+{
+    public string? ProductId { get; set; }
+    public string? Message { get; set; }
+}
+
+public sealed class ProductImageAddResponseDto
+{
+    public List<string>? ImageUrls { get; set; }
+}
+
+public sealed class ProductImageListResponseDto
+{
+    public List<object>? Images { get; set; }
+}
+
+public sealed class ProductRatingSummaryResponseDto
+{
+    public double AverageRating { get; set; }
+    public int TotalRatings { get; set; }
+}
+
+public sealed class ProductRatingResponseDto
+{
+    public double Rating { get; set; }
+}
+
+public sealed class ProductStatusResponseDto
+{
+    public string? Status { get; set; }
+}
+
+public sealed class VariantCreatedResponseDto
+{
+    public string? VariantId { get; set; }
+    public string? SkuCode { get; set; }
+}
+
+public sealed class VariantUpdatedResponseDto
+{
+    public string? VariantId { get; set; }
+}
+
+public sealed class VariantDetailResponseDto
+{
+    public string? VariantId { get; set; }
+    public string? SkuCode { get; set; }
+}
+
+public sealed class AuctionProductCreatedResponseDto
+{
+    public string? ProductId { get; set; }
+    public string? Name { get; set; }
+}
+
+public sealed class AuctionProductDetailResponseDto
+{
+    public string? ProductId { get; set; }
+    public string? Name { get; set; }
+}
