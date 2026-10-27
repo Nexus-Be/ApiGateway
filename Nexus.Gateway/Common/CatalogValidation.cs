@@ -129,19 +129,34 @@ public static class CatalogValidation
 
     public static void EnsureUpdateProduct(UpdateProductDto body)
     {
-        if (string.IsNullOrWhiteSpace(body.Name))
-            throw new GatewayInputException("The product name is required.", "name", ErrorCode);
-        if (body.CategoryId is null || body.CategoryId == Guid.Empty)
+        if (body is null ||
+            (string.IsNullOrWhiteSpace(body.Name) &&
+             string.IsNullOrWhiteSpace(body.Description) &&
+             string.IsNullOrWhiteSpace(body.Brand) &&
+             (!body.CategoryId.HasValue || body.CategoryId == Guid.Empty) &&
+             (!body.Specifications.HasValue || body.Specifications.Value.ValueKind == JsonValueKind.Undefined)))
+        {
+            throw new GatewayInputException("At least one product property must be provided to update.", "body", ErrorCode);
+        }
+
+        if (body.CategoryId.HasValue && body.CategoryId.Value == Guid.Empty)
+        {
             throw new GatewayInputException("A valid categoryId is required.", "categoryId", ErrorCode);
+        }
     }
 
     public static void EnsureProductStatus(UpdateProductStatusDto body)
     {
         EnsureOptionalStatus(body.Status);
-        if (!string.IsNullOrWhiteSpace(body.StatusReason) &&
-            !StatusReasons.Contains(body.StatusReason, StringComparer.OrdinalIgnoreCase))
+        var reason = body.StatusReason ?? body.Reason;
+        if (string.Equals(body.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(reason))
         {
-            throw new GatewayInputException($"Reason must be one of: {string.Join(", ", StatusReasons)}.", "statusReason", ErrorCode);
+            throw new GatewayInputException("Reason is required when status is INACTIVE.", "reason", ErrorCode);
+        }
+        if (!string.IsNullOrWhiteSpace(reason) &&
+            !StatusReasons.Contains(reason, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new GatewayInputException($"Reason must be one of: {string.Join(", ", StatusReasons)}.", "reason", ErrorCode);
         }
     }
 
