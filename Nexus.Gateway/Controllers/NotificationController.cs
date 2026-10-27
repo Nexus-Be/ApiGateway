@@ -143,7 +143,6 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Đánh dấu thông báo đã đọc qua batch body (NOTI-06 / NOTI-08)</summary>
     [HttpPatch("notifications/me/read")]
-    [HttpPatch("notifications/read-all")]
     [Authorize(Policy = GatewayPolicies.Authenticated)]
     public Task<IResult> MarkNotificationsAsRead([FromBody] MarkReadRequest body)
     {
@@ -259,7 +258,6 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin tra cứu nhật ký sự kiện kỹ thuật message bus (NOTI-13)</summary>
     [HttpGet("admin/event-logs")]
-    [HttpGet("admin/notifications/event-logs")]
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> GetEventLogs(
         [FromQuery] string? sourceService = null,
@@ -299,7 +297,6 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin theo dõi trạng thái sức khỏe Message Broker (NOTI-16 sheet / NOTI-14)</summary>
     [HttpGet("admin/health/broker")]
-    [HttpGet("admin/notifications/brokers/health")]
     [Authorize(Policy = GatewayPolicies.Admin)]
     public Task<IResult> GetBrokerHealthStatus([FromQuery] int limit = 50)
     {

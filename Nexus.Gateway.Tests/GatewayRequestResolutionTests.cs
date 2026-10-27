@@ -52,10 +52,10 @@ public sealed class GatewayRequestResolutionTests
     {
         using var app = new Factory { Configure = o => o.AuthMode = "Bypass" };
         using var client = app.CreateClient();
-        using var mock = await client.GetAsync("/api/v1/users/me");
+        using var mock = await client.GetAsync("/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, mock.StatusCode);
 
-        using var realRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users/me");
+        using var realRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/me");
         realRequest.Headers.Add("X-Service-Mode-users", "Real");
         using var real = await client.SendAsync(realRequest);
         Assert.Equal(HttpStatusCode.Unauthorized, real.StatusCode);
@@ -70,14 +70,14 @@ public sealed class GatewayRequestResolutionTests
         using var app = new Factory();
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token());
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users/me");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/me");
         request.Headers.Add("X-Mock-Mode", "Real");
         request.Headers.Add("X-Service-Mode-users", "Mock");
         using var first = await client.SendAsync(request);
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
         Assert.Equal("Mock", first.Headers.GetValues("X-Gateway-Mode").Single());
 
-        using var second = await client.GetAsync("/api/v1/users/me");
+        using var second = await client.GetAsync("/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
         Assert.Equal("Mock", second.Headers.GetValues("X-Gateway-Mode").Single());
     }

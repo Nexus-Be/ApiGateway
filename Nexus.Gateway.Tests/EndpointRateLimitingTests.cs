@@ -88,9 +88,9 @@ public sealed class EndpointRateLimitingTests
         var blockedRegister = await client.PostAsJsonAsync("/api/v1/auth/register", regBody);
         Assert.Equal(HttpStatusCode.TooManyRequests, blockedRegister.StatusCode);
 
-        // But calling GET /api/v1/users/me (user-frequent policy) is NOT blocked
+        // But calling GET /api/v1/me (user-frequent policy) is NOT blocked
         var token = Factory.TokenFor("isolated-user-id", "buyer");
-        var userRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users/me");
+        var userRequest = new HttpRequestMessage(HttpMethod.Get, "/api/v1/me");
         userRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         var userResp = await client.SendAsync(userRequest);
@@ -114,11 +114,11 @@ public sealed class EndpointRateLimitingTests
 
         for (var i = 0; i < 3; i++)
         {
-            var okResp = await client.PostAsJsonAsync("/api/v1/auth/resend-otp", resendBody);
+            var okResp = await client.PostAsJsonAsync("/api/v1/auth/otp/resend", resendBody);
             Assert.Equal(HttpStatusCode.OK, okResp.StatusCode);
         }
 
-        var limited = await client.PostAsJsonAsync("/api/v1/auth/resend-otp", resendBody);
+        var limited = await client.PostAsJsonAsync("/api/v1/auth/otp/resend", resendBody);
         Assert.Equal(HttpStatusCode.TooManyRequests, limited.StatusCode);
     }
 

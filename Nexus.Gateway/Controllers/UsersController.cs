@@ -26,7 +26,6 @@ public sealed class UsersController : GatewayBaseController
     {
     }
 
-    [HttpGet("users/me")]
     [HttpGet("me")]
     [Authorize(GatewayPolicies.Authenticated)]
     [EnableRateLimiting("user-frequent")]
@@ -35,7 +34,7 @@ public sealed class UsersController : GatewayBaseController
     {
         return ForwardAsync(
             Service,
-            "/api/v1/users/me",
+            "/api/v1/me",
             HttpMethod.Get,
             mockSeed: "profile",
             successMessage: "User profile retrieved successfully."
@@ -72,14 +71,13 @@ public sealed class UsersController : GatewayBaseController
     }
 
     [HttpPatch("me")]
-    [HttpPatch("users/me")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<MyProfileUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateMe([FromBody] UpdateMyProfileDto body)
     {
         return ForwardAsync(
             Service,
-            "/api/v1/users/me",
+            "/api/v1/me",
             HttpMethod.Patch,
             body: body,
             mockSeed: "user-profile-update",

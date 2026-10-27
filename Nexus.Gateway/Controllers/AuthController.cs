@@ -49,7 +49,6 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
-    [HttpPost("verify-otp")]
     [HttpPost("otp/verify")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -69,7 +68,6 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
-    [HttpPost("resend-otp")]
     [HttpPost("otp/resend")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -146,7 +144,6 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
-    [HttpPost("password/reset")]
     [HttpPut("password/reset")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -174,7 +171,6 @@ public sealed class AuthController : GatewayBaseController
     }
 
     [HttpPatch("password")]
-    [HttpPost("password/change")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<ChangePasswordResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ChangePassword([FromBody] ChangePasswordDto body)

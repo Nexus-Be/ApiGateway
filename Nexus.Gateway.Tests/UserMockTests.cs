@@ -79,7 +79,7 @@ public sealed class UserMockTests
         using var app = new Factory();
         using var client = app.CreateClient();
 
-        var response = await client.PostAsJsonAsync("/api/v1/auth/password/reset", new
+        var response = await client.PutAsJsonAsync("/api/v1/auth/password/reset", new
         {
             email = "user@example.com",
             otpCode = "123456",
@@ -97,7 +97,7 @@ public sealed class UserMockTests
         using var app = new Factory();
         using var client = CreateClient(app, "buyer");
 
-        var response = await client.PostAsJsonAsync("/api/v1/auth/password/change", new
+        var response = await client.PatchAsJsonAsync("/api/v1/auth/password", new
         {
             oldPassword = "OldPassword123!",
             newPassword = "NewPassword123!",
@@ -153,19 +153,7 @@ public sealed class UserMockTests
         });
         Assert.Equal(HttpStatusCode.OK, resendRes.StatusCode);
 
-        // Check legacy route aliases still work
-        var legacyVerify = await client.PostAsJsonAsync("/api/v1/auth/verify-otp", new
-        {
-            email = "test@example.com",
-            otp = "123456"
-        });
-        Assert.Equal(HttpStatusCode.OK, legacyVerify.StatusCode);
 
-        var legacyResend = await client.PostAsJsonAsync("/api/v1/auth/resend-otp", new
-        {
-            email = "test@example.com"
-        });
-        Assert.Equal(HttpStatusCode.OK, legacyResend.StatusCode);
     }
 
     // ------------------------------------------------------------------ Me & User Profile
@@ -203,8 +191,7 @@ public sealed class UserMockTests
         var res1 = await client.GetAsync("/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, res1.StatusCode);
 
-        var res2 = await client.GetAsync("/api/v1/users/me");
-        Assert.Equal(HttpStatusCode.OK, res2.StatusCode);
+
     }
 
     [Fact]
@@ -527,14 +514,12 @@ public sealed class UserMockTests
         using var app = new Factory();
         using var adminClient = CreateClient(app, "admin");
 
-        // 1. List users (alias /user and /users)
+        // 1. List users (/user)
         var list1 = await adminClient.GetAsync("/api/v1/admin/user?page=1&limit=20");
         Assert.Equal(HttpStatusCode.OK, list1.StatusCode);
-        var list2 = await adminClient.GetAsync("/api/v1/admin/users?page=1&limit=20");
-        Assert.Equal(HttpStatusCode.OK, list2.StatusCode);
 
         // 2. Create user (201)
-        var createRes = await adminClient.PostAsJsonAsync("/api/v1/admin/users", new
+        var createRes = await adminClient.PostAsJsonAsync("/api/v1/admin/user", new
         {
             email = "new.staff@example.com",
             password = "Password123!",
@@ -544,11 +529,11 @@ public sealed class UserMockTests
         Assert.Equal(HttpStatusCode.Created, createRes.StatusCode);
 
         // 3. Detail
-        var detailRes = await adminClient.GetAsync($"/api/v1/admin/users/{UserId}");
+        var detailRes = await adminClient.GetAsync($"/api/v1/admin/user/{UserId}");
         Assert.Equal(HttpStatusCode.OK, detailRes.StatusCode);
 
         // 4. Update
-        var updateRes = await adminClient.PutAsJsonAsync($"/api/v1/admin/users/{UserId}", new
+        var updateRes = await adminClient.PutAsJsonAsync($"/api/v1/admin/user/{UserId}", new
         {
             firstName = "Johnny",
             reason = "Customer support request"
@@ -556,7 +541,7 @@ public sealed class UserMockTests
         Assert.Equal(HttpStatusCode.OK, updateRes.StatusCode);
 
         // 5. Delete (204)
-        var req = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/users/{UserId}")
+        var req = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/admin/user/{UserId}")
         {
             Content = JsonContent.Create(new { reason = "GDPR delete request" })
         };
@@ -564,28 +549,28 @@ public sealed class UserMockTests
         Assert.Equal(HttpStatusCode.NoContent, deleteRes.StatusCode);
 
         // 6. Ban & Unban
-        var banRes = await adminClient.PatchAsJsonAsync($"/api/v1/admin/users/{UserId}/ban", new
+        var banRes = await adminClient.PatchAsJsonAsync($"/api/v1/admin/user/{UserId}/ban", new
         {
             reason = "Fraudulent behavior",
             banDurationDays = 30
         });
         Assert.Equal(HttpStatusCode.OK, banRes.StatusCode);
 
-        var unbanRes = await adminClient.PatchAsJsonAsync($"/api/v1/admin/users/{UserId}/unban", new
+        var unbanRes = await adminClient.PatchAsJsonAsync($"/api/v1/admin/user/{UserId}/unban", new
         {
             reason = "Appeal approved"
         });
         Assert.Equal(HttpStatusCode.OK, unbanRes.StatusCode);
 
         // 7. Roles & Reputation
-        var rolesRes = await adminClient.PutAsJsonAsync($"/api/v1/admin/users/{UserId}/roles", new
+        var rolesRes = await adminClient.PutAsJsonAsync($"/api/v1/admin/user/{UserId}/roles", new
         {
             roleCodes = new[] { "buyer", "seller" },
             reason = "Manual upgrade"
         });
         Assert.Equal(HttpStatusCode.OK, rolesRes.StatusCode);
 
-        var repRes = await adminClient.PatchAsJsonAsync($"/api/v1/admin/users/{UserId}/reputation", new
+        var repRes = await adminClient.PatchAsJsonAsync($"/api/v1/admin/user/{UserId}/reputation", new
         {
             delta = 10,
             reason = "Good dispute conduct"
@@ -618,8 +603,9 @@ public sealed class UserMockTests
         var configRes = await adminClient.GetAsync("/api/v1/admin/configs");
         Assert.Equal(HttpStatusCode.OK, configRes.StatusCode);
 
-        var updateCfgRes = await adminClient.PutAsJsonAsync("/api/v1/admin/configs/user.reputation.min_score_to_bid", new
+        var updateCfgRes = await adminClient.PutAsJsonAsync("/api/v1/admin/configs", new
         {
+            key = "user.reputation.min_score_to_bid",
             value = "60",
             reason = "Higher threshold required"
         });

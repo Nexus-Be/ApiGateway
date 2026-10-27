@@ -234,7 +234,7 @@ public sealed class NotificationAndLogMockTests
         using var app = new Factory();
         using var client = CreateClient(app, "admin");
 
-        var response = await client.GetAsync("/api/v1/admin/notifications/event-logs");
+        var response = await client.GetAsync("/api/v1/admin/event-logs");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -249,7 +249,7 @@ public sealed class NotificationAndLogMockTests
         using var app = new Factory();
         using var client = CreateClient(app, "admin");
 
-        var response = await client.GetAsync("/api/v1/admin/notifications/brokers/health");
+        var response = await client.GetAsync("/api/v1/admin/health/broker");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -259,125 +259,4 @@ public sealed class NotificationAndLogMockTests
         Assert.True(data.TryGetProperty("history", out _));
     }
 
-    // =========================================================================
-    // 2. Log Controller Tests
-    // =========================================================================
-
-    [Fact]
-    public async Task QueryLogs_Staff_ReturnsOkWithPagedItems()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, "staff");
-
-        var response = await client.GetAsync("/api/v1/log/logs?page=1&pageSize=10");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = doc.RootElement;
-        Assert.True(root.GetProperty("success").GetBoolean());
-
-        var data = root.GetProperty("data");
-        Assert.True(data.TryGetProperty("items", out var items));
-        Assert.Equal(JsonValueKind.Array, items.ValueKind);
-        Assert.True(items.GetArrayLength() > 0);
-
-        var first = items[0];
-        Assert.True(first.TryGetProperty("id", out _));
-        Assert.True(first.TryGetProperty("serviceName", out _));
-        Assert.True(first.TryGetProperty("logLevel", out var levelProp));
-        Assert.Equal("INFO", levelProp.GetString());
-    }
-
-    [Fact]
-    public async Task QueryLogs_Buyer_ReturnsForbidden()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, "buyer");
-
-        var response = await client.GetAsync("/api/v1/log/logs?page=1&pageSize=10");
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task AdminLogsAlias_Admin_ReturnsOk()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, "admin");
-
-        var response = await client.GetAsync("/api/v1/admin/logs?page=1&pageSize=10");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        Assert.True(doc.RootElement.GetProperty("success").GetBoolean());
-    }
-
-    [Fact]
-    public async Task GetLogById_Staff_ReturnsDetail()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, "staff");
-
-        var response = await client.GetAsync("/api/v1/log/logs/a1b2c3d4-1111-4444-8888-123456789001");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.TryGetProperty("id", out _));
-        Assert.True(data.TryGetProperty("serviceName", out _));
-        Assert.True(data.TryGetProperty("logLevel", out _));
-    }
-
-    [Fact]
-    public async Task GetEventTypes_Staff_ReturnsList()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, "staff");
-
-        var response = await client.GetAsync("/api/v1/log/event-types");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.TryGetProperty("items", out var items));
-        Assert.Equal(JsonValueKind.Array, items.ValueKind);
-    }
-
-    [Fact]
-    public async Task SetEventTypeEnabled_Admin_ReturnsOk()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, "admin");
-
-        var response = await client.PutAsJsonAsync("/api/v1/log/event-types/AUTH_LOGIN_SUCCESS", new
-        {
-            isEnabled = true
-        });
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.TryGetProperty("isEnabled", out var enabledProp));
-        Assert.True(enabledProp.GetBoolean());
-    }
-
-    [Fact]
-    public async Task IngestBatch_Staff_ReturnsAccepted()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, "staff");
-
-        var response = await client.PostAsJsonAsync("/api/v1/log/batch", new
-        {
-            events = new[]
-            {
-                new { eventType = "SYSTEM_PING", message = "Health probe ok" }
-            }
-        });
-
-        Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.TryGetProperty("processed", out var procProp));
-        Assert.True(procProp.GetInt32() >= 1);
-    }
 }

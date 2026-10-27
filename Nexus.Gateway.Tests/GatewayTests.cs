@@ -67,7 +67,7 @@ public sealed class GatewayTests
             client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token(audience, expired));
         }
 
-        var response = await client.GetAsync("/gateway/api/v1/users/me");
+        var response = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
         var json = await response.Content.ReadAsStringAsync();
@@ -83,8 +83,8 @@ public sealed class GatewayTests
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.Token());
 
-        // GET /users/me succeeds
-        var profileResponse = await client.GetAsync("/gateway/api/v1/users/me");
+        // GET /me succeeds
+        var profileResponse = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, profileResponse.StatusCode);
         var profileJson = await profileResponse.Content.ReadAsStringAsync();
         using var profileDoc = JsonDocument.Parse(profileJson);
@@ -113,13 +113,13 @@ public sealed class GatewayTests
         Assert.True(regDoc.RootElement.GetProperty("success").GetBoolean());
 
         // 2. Resend OTP
-        var resendResp = await client.PostAsJsonAsync("/gateway/api/v1/auth/resend-otp", new { email = "newuser@example.com" });
+        var resendResp = await client.PostAsJsonAsync("/gateway/api/v1/auth/otp/resend", new { email = "newuser@example.com" });
         Assert.Equal(HttpStatusCode.OK, resendResp.StatusCode);
         var resendDoc = JsonDocument.Parse(await resendResp.Content.ReadAsStringAsync());
         Assert.True(resendDoc.RootElement.GetProperty("success").GetBoolean());
 
         // 3. Verify OTP
-        var verifyResp = await client.PostAsJsonAsync("/gateway/api/v1/auth/verify-otp", new { email = "newuser@example.com", otp = "123456" });
+        var verifyResp = await client.PostAsJsonAsync("/gateway/api/v1/auth/otp/verify", new { email = "newuser@example.com", otp = "123456" });
         Assert.Equal(HttpStatusCode.OK, verifyResp.StatusCode);
         var verifyDoc = JsonDocument.Parse(await verifyResp.Content.ReadAsStringAsync());
         Assert.True(verifyDoc.RootElement.GetProperty("success").GetBoolean());

@@ -21,11 +21,11 @@ public sealed class GatewaySurfaceTests
     [
         // Auth public endpoints
         new("POST", "/gateway/api/v1/auth/register", """{"username":"newbie","email":"newbie@mcs.local","password":"Password123!","firstName":"New","lastName":"User"}""", null, "users", "register"),
-        new("POST", "/gateway/api/v1/auth/verify-otp", """{"email":"verified@mcs.local","otp":"123456"}""", null, "users", "verify-otp"),
-        new("POST", "/gateway/api/v1/auth/resend-otp", """{"email":"user@mcs.local"}""", null, "users", "resend-otp"),
+        new("POST", "/gateway/api/v1/auth/otp/verify", """{"email":"verified@mcs.local","otp":"123456"}""", null, "users", "verify-otp"),
+        new("POST", "/gateway/api/v1/auth/otp/resend", """{"email":"user@mcs.local"}""", null, "users", "resend-otp"),
         new("POST", "/gateway/api/v1/auth/login", """{"username":"buyer01","password":"Password123!"}""", null, "users", "login"),
         // Users authenticated endpoint
-        new("GET", "/gateway/api/v1/users/me", null, "buyer", "users", "profile"),
+        new("GET", "/gateway/api/v1/me", null, "buyer", "users", "profile"),
         // Gateway control plane
         new("GET", "/gateway/api/v1/gateway/modes", null, "admin", "gateway", "modes")
     ];
@@ -76,13 +76,13 @@ public sealed class GatewaySurfaceTests
         using var app = new Factory();
         using var client = app.CreateClient();
 
-        // 1. Calling GET /users/me without token returns 401
-        using var unauth = await client.GetAsync("/gateway/api/v1/users/me");
+        // 1. Calling GET /me without token returns 401
+        using var unauth = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.Unauthorized, unauth.StatusCode);
 
-        // 2. Calling GET /users/me with buyer token returns 200
+        // 2. Calling GET /me with buyer token returns 200
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("user-1", "buyer"));
-        using var authResp = await client.GetAsync("/gateway/api/v1/users/me");
+        using var authResp = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, authResp.StatusCode);
 
         // 3. Calling gateway modes without admin token returns 401/403
@@ -103,7 +103,7 @@ public sealed class GatewaySurfaceTests
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, 0));
         await using var backend = builder.Build();
-        backend.MapGet("/api/v1/users/me", (HttpContext ctx) =>
+        backend.MapGet("/api/v1/me", (HttpContext ctx) =>
         {
             lastAuthorization = ctx.Request.Headers["authorization"].ToString();
             return Results.Ok(new
@@ -134,7 +134,7 @@ public sealed class GatewaySurfaceTests
         using var client = app.CreateClient();
         client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("seller-user", "seller"));
 
-        using var response = await client.GetAsync("/gateway/api/v1/users/me");
+        using var response = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Real", response.Headers.GetValues("X-Gateway-Mode").Single());
         Assert.NotNull(lastAuthorization);

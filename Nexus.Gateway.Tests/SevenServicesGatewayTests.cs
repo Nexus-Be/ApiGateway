@@ -110,8 +110,8 @@ public sealed class SevenServicesGatewayTests
         };
         using var client = app.CreateClient();
 
-        // In Bypass mode without any Authorization header, GET /users/me succeeds
-        var resp = await client.GetAsync("/gateway/api/v1/users/me");
+        // In Bypass mode without any Authorization header, GET /me succeeds
+        var resp = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         var json = await resp.Content.ReadAsStringAsync();

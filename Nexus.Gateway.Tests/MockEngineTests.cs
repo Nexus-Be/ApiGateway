@@ -100,7 +100,7 @@ public sealed class MockEngineTests
             email = "john.doe@example.com"
         };
 
-        var resp = await client.PostAsJsonAsync("/gateway/api/v1/auth/resend-otp", body);
+        var resp = await client.PostAsJsonAsync("/gateway/api/v1/auth/otp/resend", body);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
         var content = await resp.Content.ReadAsStringAsync();
@@ -119,12 +119,12 @@ public sealed class MockEngineTests
         using var client = app.CreateClient();
 
         // 1. Anonymous => 401 Unauthorized on authenticated endpoint (/api/v1/users/me)
-        var unauth = await client.GetAsync("/gateway/api/v1/users/me");
+        var unauth = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.Unauthorized, unauth.StatusCode);
 
         // 2. Authenticated user => 200 OK
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("alex", "buyer"));
-        var okResp = await client.GetAsync("/gateway/api/v1/users/me");
+        var okResp = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, okResp.StatusCode);
 
         var content = await okResp.Content.ReadAsStringAsync();
@@ -144,7 +144,7 @@ public sealed class MockEngineTests
         using var client = app.CreateClient();
 
         // Under Bypass mode, anonymous can access authenticated mock endpoint
-        var response = await client.GetAsync("/gateway/api/v1/users/me");
+        var response = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var content = await response.Content.ReadAsStringAsync();
@@ -173,8 +173,8 @@ public sealed class MockEngineTests
         Assert.True(paths.TryGetProperty("/api/v1/auth/login", out var loginPath), "Missing /api/v1/auth/login in Swagger");
         Assert.True(loginPath.TryGetProperty("post", out _), "Missing POST for /api/v1/auth/login in Swagger");
 
-        Assert.True(paths.TryGetProperty("/api/v1/users/me", out var mePath), "Missing /api/v1/users/me in Swagger");
-        Assert.True(mePath.TryGetProperty("get", out _), "Missing GET for /api/v1/users/me in Swagger");
+        Assert.True(paths.TryGetProperty("/api/v1/me", out var mePath), "Missing /api/v1/me in Swagger");
+        Assert.True(mePath.TryGetProperty("get", out _), "Missing GET for /api/v1/me in Swagger");
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class MockEngineTests
 
         // 1. With mock token "buyer" on Real service -> MUST return 401 Unauthorized (not 503!)
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "buyer");
-        var resp = await client.GetAsync("/gateway/api/v1/users/me");
+        var resp = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.Unauthorized, resp.StatusCode);
 
         var content = await resp.Content.ReadAsStringAsync();
@@ -203,7 +203,7 @@ public sealed class MockEngineTests
         // 2. With real signed JWT token on Real service -> Authenticated!
         // Reaches backend gRPC (which gives 503 because 127.0.0.1:59999 is not running)
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("root", "buyer"));
-        var respRealToken = await client.GetAsync("/gateway/api/v1/users/me");
+        var respRealToken = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.ServiceUnavailable, respRealToken.StatusCode);
     }
 
@@ -222,7 +222,7 @@ public sealed class MockEngineTests
 
         // On Mock service, mock token "buyer" is accepted and returns mock data!
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "buyer");
-        var resp = await client.GetAsync("/gateway/api/v1/users/me");
+        var resp = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
         Assert.Equal("Mock", resp.Headers.GetValues("X-Gateway-Mode").Single());
     }

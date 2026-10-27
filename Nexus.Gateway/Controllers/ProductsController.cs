@@ -32,7 +32,7 @@ public sealed class ProductsController : GatewayBaseController
 
     // ---------------------------------------------------------------- list / search
 
-    /// <summary>Xem danh sách sản phẩm của shop (CAT-06)</summary>
+    /// <summary>Xem danh sách sản phẩm của shop (CAT-06) / Tìm kiếm sản phẩm (Row 41)</summary>
     [HttpGet("products")]
     [HttpGet("products/search")]
     [AllowAnonymous]
