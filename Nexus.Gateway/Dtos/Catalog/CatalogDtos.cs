@@ -45,6 +45,7 @@ public sealed class UpdateProductStatusDto
 {
     public string? Status { get; set; }
     public string? StatusReason { get; set; }
+    public string? Reason { get => StatusReason; set => StatusReason = value; }
 }
 
 public sealed class UpdateVariantDto

@@ -1,4 +1,8 @@
-using Grpc.Core;
+using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -53,23 +57,11 @@ public sealed class GatewayExceptionHandler : IExceptionHandler
             GatewayInputException input =>
                 (400, "One or more validation errors occurred.", input.ErrorCode, input.Message),
 
-            RpcException { StatusCode: StatusCode.Cancelled } when !context.RequestAborted.IsCancellationRequested =>
-                (504, "Gateway timeout", "GATEWAY_TIMEOUT", "Upstream operation timed out or was cancelled."),
-
-            RpcException rpc => rpc.StatusCode switch
-            {
-                StatusCode.InvalidArgument => (400, "One or more validation errors occurred.", "VAL_INVALID_INPUT", "The input arguments were invalid."),
-                StatusCode.Unauthenticated => (401, "Authentication required", "AUTH_UNAUTHENTICATED", "A valid authentication token is required."),
-                StatusCode.PermissionDenied => (403, "Access denied", "AUTH_FORBIDDEN", "You do not have permission to perform this action."),
-                StatusCode.NotFound => (404, "Resource not found", "NOT_FOUND", "The requested resource was not found."),
-                StatusCode.AlreadyExists or StatusCode.Aborted => (409, "Resource conflict", "CONFLICT", "The resource already exists or conflict occurred."),
-                StatusCode.FailedPrecondition => (422, "Precondition failed", "FAILED_PRECONDITION", "The operation could not be processed due to precondition failure."),
-                StatusCode.ResourceExhausted => (429, "Rate limit exceeded", "RATE_LIMIT_EXCEEDED", "Resource limit or rate limit exceeded."),
-                StatusCode.Unimplemented => (501, "Operation not implemented", "NOT_IMPLEMENTED", "The requested operation is not implemented by the upstream service."),
-                StatusCode.Unavailable => (503, "Backend service unavailable", "SERVICE_UNAVAILABLE", "Upstream service is currently unavailable."),
-                StatusCode.DeadlineExceeded => (504, "Gateway timeout", "GATEWAY_TIMEOUT", "Upstream service call timed out."),
-                _ => (502, "Bad gateway", "BAD_GATEWAY", "Upstream service returned an unexpected status.")
-            },
+            HttpRequestException httpEx => (
+                httpEx.StatusCode.HasValue ? (int)httpEx.StatusCode.Value : 502,
+                "Downstream service communication failure",
+                "BAD_GATEWAY",
+                httpEx.Message),
 
             OperationCanceledException when !context.RequestAborted.IsCancellationRequested =>
                 (504, "Gateway timeout", "GATEWAY_TIMEOUT", "The request timed out before the upstream service could respond."),

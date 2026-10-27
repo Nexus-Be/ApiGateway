@@ -24,6 +24,7 @@ public sealed class RestPagedForwardRequest
     public object? Body { get; init; }
     public string? MockSeed { get; init; }
     public int Page { get; init; } = 1;
+    public int PageIndex { get => Page; init => Page = value; }
     public int PageSize { get; init; } = 20;
     public int SuccessStatusCode { get; init; } = StatusCodes.Status200OK;
     public IDictionary<string, string?>? QueryParams { get; init; }

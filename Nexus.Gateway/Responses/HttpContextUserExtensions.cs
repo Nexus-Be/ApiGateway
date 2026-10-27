@@ -1,14 +1,11 @@
 namespace Nexus.Gateway.Responses;
 
+using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
-using ShoppingCart.Contracts.V1;
 
 public static class HttpContextUserExtensions
 {
-    public static UserRequest ToUserRequest(this HttpContext context) =>
-        new() { UserId = context.User.FindFirst("sub")?.Value ?? "" };
-
     public static string[] GetRoles(this HttpContext context) =>
         context.User.FindAll("role").Select(x => x.Value).ToArray();
 

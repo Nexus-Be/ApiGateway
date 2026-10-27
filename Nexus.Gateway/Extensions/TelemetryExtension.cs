@@ -18,8 +18,7 @@ public static class TelemetryExtension
             {
                 t.AddAspNetCoreInstrumentation()
                  .AddHttpClientInstrumentation()
-                 .AddSource(BackendDispatcher.ActivityName)
-                 .AddSource("Grpc.Net.Client");
+                 .AddSource(BackendDispatcher.ActivityName);
 
                 if (!string.IsNullOrEmpty(otlpEndpoint))
                 {

@@ -1,12 +1,12 @@
 namespace Nexus.Gateway.Common;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
-using Google.Protobuf.Collections;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Http;
 using Nexus.Gateway.Dtos.Catalog;
 using Nexus.Gateway.Responses;
-using ShoppingCart.Contracts.V1;
 
 /// <summary>
 /// Gateway-owned validation for the F2 catalog contract. Throws <see cref="GatewayInputException"/>
@@ -80,10 +80,6 @@ public static class CatalogValidation
             throw new GatewayInputException($"Status must be one of: {string.Join(", ", ProductStatuses)}.", field, ErrorCode);
     }
 
-    /// <summary>
-    /// Auction status filter for the catalog-side auction product routes. The vocabulary comes from
-    /// auction.proto (AuctionStatus) and is deliberately different from the product status set.
-    /// </summary>
     public static void EnsureOptionalAuctionStatus(string? status, string field = "status")
     {
         if (string.IsNullOrWhiteSpace(status)) return;
@@ -100,10 +96,12 @@ public static class CatalogValidation
 
     public static void EnsurePriceRange(decimal? minPrice, decimal? maxPrice)
     {
-        if (minPrice is < 0 || maxPrice is < 0)
-            throw new GatewayInputException("MinPrice and maxPrice cannot be negative.", "price", ErrorCode);
-        if (minPrice.HasValue && maxPrice.HasValue && minPrice > maxPrice)
-            throw new GatewayInputException("MinPrice cannot be greater than maxPrice.", "price", ErrorCode);
+        if (minPrice is not null && minPrice < 0)
+            throw new GatewayInputException("MinPrice cannot be negative.", "minPrice", ErrorCode);
+        if (maxPrice is not null && maxPrice < 0)
+            throw new GatewayInputException("MaxPrice cannot be negative.", "maxPrice", ErrorCode);
+        if (minPrice is not null && maxPrice is not null && minPrice > maxPrice)
+            throw new GatewayInputException("MinPrice cannot be greater than MaxPrice.", "priceRange", ErrorCode);
     }
 
     // ---------------------------------------------------------------- products
@@ -115,66 +113,81 @@ public static class CatalogValidation
         if (body.CategoryId is null || body.CategoryId == Guid.Empty)
             throw new GatewayInputException("A valid categoryId is required.", "categoryId", ErrorCode);
         if (body.Variants is null || body.Variants.Count == 0)
-            throw new GatewayInputException("At least one variant is required.", "variants", ErrorCode);
+            throw new GatewayInputException("At least one product variant is required.", "variants", ErrorCode);
 
-        var defaults = 0;
-        for (var i = 0; i < body.Variants.Count; i++)
+        foreach (var variant in body.Variants)
         {
-            var variant = body.Variants[i];
             if (string.IsNullOrWhiteSpace(variant.SkuCode))
-                throw new GatewayInputException($"Variants[{i}].skuCode is required.", "skuCode", ErrorCode);
+                throw new GatewayInputException("Variant.skuCode is required.", "skuCode", ErrorCode);
             if (string.IsNullOrWhiteSpace(variant.Name))
-                throw new GatewayInputException($"Variants[{i}].name is required.", "name", ErrorCode);
-            if (variant.Price is null or <= 0)
-                throw new GatewayInputException($"Variants[{i}].price must be greater than 0.", "price", ErrorCode);
-            if (variant.IsActive) defaults++;
-            EnsureAttributes(variant.Attributes, $"variants[{i}].attributes");
+                throw new GatewayInputException("Variant.name is required.", "name", ErrorCode);
+            if (variant.Price <= 0)
+                throw new GatewayInputException("Variant.price must be greater than 0.", "price", ErrorCode);
+            EnsureAttributes(variant.Attributes, "variant.attributes");
         }
-
-        if (defaults != 1)
-            throw new GatewayInputException("Exactly one variant must be flagged as the default (isActive = true).", "variants", ErrorCode);
     }
 
     public static void EnsureUpdateProduct(UpdateProductDto body)
     {
-        if (body.CategoryId is null && body.Name is null && body.Description is null && body.Brand is null && body.Specifications is null)
-            throw new GatewayInputException("At least one field must be provided.", "body", ErrorCode);
-        if (body.Name is not null && string.IsNullOrWhiteSpace(body.Name))
-            throw new GatewayInputException("The product name cannot be empty.", "name", ErrorCode);
-        if (body.CategoryId == Guid.Empty)
+        if (string.IsNullOrWhiteSpace(body.Name))
+            throw new GatewayInputException("The product name is required.", "name", ErrorCode);
+        if (body.CategoryId is null || body.CategoryId == Guid.Empty)
             throw new GatewayInputException("A valid categoryId is required.", "categoryId", ErrorCode);
     }
 
     public static void EnsureProductStatus(UpdateProductStatusDto body)
     {
-        if (string.IsNullOrWhiteSpace(body.Status) || !ProductStatuses.Contains(body.Status, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"Status must be one of: {string.Join(", ", ProductStatuses)}.", "status", ErrorCode);
-
-        var inactive = string.Equals(body.Status, "INACTIVE", StringComparison.OrdinalIgnoreCase);
-        if (inactive && string.IsNullOrWhiteSpace(body.StatusReason))
-            throw new GatewayInputException("StatusReason is required when the status becomes INACTIVE.", "statusReason", ErrorCode);
-        if (!inactive && !string.IsNullOrWhiteSpace(body.StatusReason))
-            throw new GatewayInputException("StatusReason is only accepted when the status becomes INACTIVE.", "statusReason", ErrorCode);
-        if (inactive && !StatusReasons.Contains(body.StatusReason!, StringComparer.OrdinalIgnoreCase))
-            throw new GatewayInputException($"StatusReason must be one of: {string.Join(", ", StatusReasons)}.", "statusReason", ErrorCode);
+        EnsureOptionalStatus(body.Status);
+        if (!string.IsNullOrWhiteSpace(body.StatusReason) &&
+            !StatusReasons.Contains(body.StatusReason, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new GatewayInputException($"Reason must be one of: {string.Join(", ", StatusReasons)}.", "statusReason", ErrorCode);
+        }
     }
 
-    public static void EnsureAttributes(List<AttributeDto>? attributes, string field)
+    // ---------------------------------------------------------------- variants
+
+    public static void EnsureCreateVariant(string productId, string? skuCode, string? name, decimal? price, List<AttributeDto>? attributes)
+    {
+        EnsureProductId(productId);
+        if (string.IsNullOrWhiteSpace(skuCode))
+            throw new GatewayInputException("The skuCode is required.", "skuCode", ErrorCode);
+        if (string.IsNullOrWhiteSpace(name))
+            throw new GatewayInputException("The variant name is required.", "name", ErrorCode);
+        if (price is null || price <= 0)
+            throw new GatewayInputException("The price must be greater than 0.", "price", ErrorCode);
+        EnsureAttributes(attributes, "attributes");
+    }
+
+    public static void EnsureCreateVariant(string productId, string? skuCode, string? name, decimal price, List<AttributeDto>? attributes)
+        => EnsureCreateVariant(productId, skuCode, name, (decimal?)price, attributes);
+
+    public static void EnsureUpdateVariant(string variantId, string? name, decimal? price, List<AttributeDto>? attributes)
+    {
+        EnsureVariantId(variantId);
+        if (price.HasValue && price <= 0)
+            throw new GatewayInputException("The price must be greater than 0.", "price", ErrorCode);
+        EnsureAttributes(attributes, "attributes");
+    }
+
+    public static void EnsureUpdateVariant(string variantId, string? name, decimal price, List<AttributeDto>? attributes)
+        => EnsureUpdateVariant(variantId, name, (decimal?)price, attributes);
+
+    private static void EnsureAttributes(List<AttributeDto>? attributes, string field)
     {
         if (attributes is null) return;
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var attribute in attributes)
         {
-            if (string.IsNullOrWhiteSpace(attribute.AttrName) || string.IsNullOrWhiteSpace(attribute.AttrValue))
-                throw new GatewayInputException($"{field} requires both attrName and attrValue.", field, ErrorCode);
-            if (!seen.Add(attribute.AttrName))
-                throw new GatewayInputException($"AttrName '{attribute.AttrName}' is duplicated.", field, ErrorCode);
+            if (string.IsNullOrWhiteSpace(attribute.AttrName))
+                throw new GatewayInputException("Attribute name is required.", field, ErrorCode);
+            if (string.IsNullOrWhiteSpace(attribute.AttrValue))
+                throw new GatewayInputException("Attribute value is required.", field, ErrorCode);
         }
     }
 
     // ---------------------------------------------------------------- images
 
-    public static void EnsureImageFiles(List<IFormFile>? files)
+    public static void EnsureImageFiles(IReadOnlyList<IFormFile>? files)
     {
         if (files is null || files.Count == 0)
             throw new GatewayInputException("At least one image file is required.", "files", ErrorCode);
@@ -182,45 +195,19 @@ public static class CatalogValidation
             throw new GatewayInputException($"At most {MaxImages} images can be uploaded at once.", "files", ErrorCode);
     }
 
+    public static void EnsureImageFiles(IFormFileCollection? files)
+        => EnsureImageFiles((IReadOnlyList<IFormFile>?)files);
+
+    public static void EnsureImageIds(List<Guid>? ids)
+    {
+        if (ids is null || ids.Count == 0)
+            throw new GatewayInputException("At least one image ID is required.", "imageIds", ErrorCode);
+    }
+
     public static void EnsureImageIds(string? ids)
     {
         if (string.IsNullOrWhiteSpace(ids))
-            throw new GatewayInputException("The ids query parameter is required.", "ids", ErrorCode);
-
-        foreach (var id in ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            if (!Guid.TryParse(id, out _))
-                throw new GatewayInputException($"'{id}' is not a valid image ID.", "ids", ErrorCode);
-        }
-    }
-
-    public static string[] ParseImageIds(string ids) =>
-        ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    // ---------------------------------------------------------------- variants
-
-    public static void EnsureCreateVariant(string? productId, string? skuCode, string? name, decimal? price, List<AttributeDto>? attributes)
-    {
-        EnsureProductId(productId);
-        if (string.IsNullOrWhiteSpace(skuCode))
-            throw new GatewayInputException("SkuCode is required.", "skuCode", ErrorCode);
-        if (string.IsNullOrWhiteSpace(name))
-            throw new GatewayInputException("Name is required.", "name", ErrorCode);
-        if (price is null or <= 0)
-            throw new GatewayInputException("Price must be greater than 0.", "price", ErrorCode);
-        EnsureAttributes(attributes, "attributes");
-    }
-
-    public static void EnsureUpdateVariant(string? variantId, string? name, decimal? price, List<AttributeDto>? attributes)
-    {
-        EnsureVariantId(variantId);
-        if (name is null && price is null)
-            throw new GatewayInputException("At least one field must be provided.", "body", ErrorCode);
-        if (name is not null && string.IsNullOrWhiteSpace(name))
-            throw new GatewayInputException("Name cannot be empty.", "name", ErrorCode);
-        if (price is <= 0)
-            throw new GatewayInputException("Price must be greater than 0.", "price", ErrorCode);
-        EnsureAttributes(attributes, "attributes");
+            throw new GatewayInputException("At least one image ID is required.", "ids", ErrorCode);
     }
 
     // ---------------------------------------------------------------- inventory
@@ -230,21 +217,18 @@ public static class CatalogValidation
         if (body.Items is null || body.Items.Count == 0)
             throw new GatewayInputException("At least one stock-in line is required.", "items", ErrorCode);
         if (body.Items.Count > MaxStockInLines)
-            throw new GatewayInputException($"At most {MaxStockInLines} stock-in lines are allowed.", "items", ErrorCode);
+            throw new GatewayInputException($"A single stock-in request can contain at most {MaxStockInLines} lines.", "items", ErrorCode);
 
-        var seen = new HashSet<Guid>();
         foreach (var item in body.Items)
         {
             if (item.SkuId is null || item.SkuId == Guid.Empty)
-                throw new GatewayInputException("Every stock-in line requires a valid skuId.", "skuId", ErrorCode);
+                throw new GatewayInputException("The skuId is required.", "skuId", ErrorCode);
             if (item.Quantity <= 0)
                 throw new GatewayInputException("Quantity must be greater than 0.", "quantity", ErrorCode);
-            if (!seen.Add(item.SkuId.Value))
-                throw new GatewayInputException($"SkuId '{item.SkuId}' appears more than once.", "skuId", ErrorCode);
         }
     }
 
-    public static void EnsureStockInVariant(string? variantId, int quantity)
+    public static void EnsureStockInVariant(string variantId, int quantity)
     {
         EnsureVariantId(variantId);
         if (quantity <= 0)
@@ -284,34 +268,5 @@ public static class CatalogValidation
         if (string.IsNullOrWhiteSpace(body.Variant.Name))
             throw new GatewayInputException("Variant.name is required.", "name", ErrorCode);
         EnsureAttributes(body.Variant.Attributes, "variant.attributes");
-    }
-
-    // ---------------------------------------------------------------- helpers
-
-    public static Struct ParseSpecifications(JsonElement? specifications)
-    {
-        if (specifications is null || specifications.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-            return new Struct();
-
-        return Struct.Parser.ParseJson(specifications.Value.GetRawText());
-    }
-
-    public static RepeatedField<AttributeItem> ToAttributes(List<AttributeDto>? attributes)
-    {
-        var items = new RepeatedField<AttributeItem>();
-        if (attributes is null) return items;
-
-        foreach (var attribute in attributes)
-            items.Add(new AttributeItem { AttrName = attribute.AttrName ?? string.Empty, AttrValue = attribute.AttrValue ?? string.Empty });
-
-        return items;
-    }
-
-    /// <summary>Identity of the authenticated caller, taken from the verified JWT only.</summary>
-    public static CallerContext Caller(HttpContext context)
-    {
-        var caller = new CallerContext { UserId = context.User.FindFirst("sub")?.Value ?? string.Empty };
-        foreach (var role in context.GetRoles()) caller.Roles.Add(role);
-        return caller;
     }
 }

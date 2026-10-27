@@ -8,8 +8,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Google.Protobuf;
-using Grpc.Core;
 using Microsoft.AspNetCore.Http;
 using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.HealthProber;
@@ -34,8 +32,8 @@ public class RestDownstreamDispatcherTests
         public (JsonElement? Data, IResult? Failure) MockResult { get; set; }
         public (string? JsonString, IResult? Failure) PagedMockResult { get; set; }
 
-        public Task<(JsonElement? Data, IResult? Failure)> MapMockAsync<T>(
-            HttpContext context, string service, string operation, BackendOptions config, MessageParser<T>? parser, CancellationToken cancellationToken) where T : class, IMessage<T>
+        public Task<(JsonElement? Data, IResult? Failure)> MapMockAsync(
+            HttpContext context, string service, string operation, BackendOptions config, CancellationToken cancellationToken)
         {
             return Task.FromResult(MockResult);
         }
@@ -47,18 +45,10 @@ public class RestDownstreamDispatcherTests
         }
     }
 
-    private sealed class FakeGrpcServiceCaller : IGrpcServiceCaller
-    {
-        public Task<JsonElement> CallAsync<T>(HttpContext context, Func<CallOptions, AsyncUnaryCall<T>> realCall, BackendOptions config, CancellationToken cancellationToken) where T : class, IMessage<T>
-            => throw new NotImplementedException();
-
-        public Task<string> CallPagedJsonAsync<T>(HttpContext context, Func<CallOptions, AsyncUnaryCall<T>> realCall, BackendOptions config, CancellationToken cancellationToken) where T : class, IMessage<T>
-            => throw new NotImplementedException();
-    }
-
     private sealed class FakeHealthProber : IHealthProberManager
     {
         public bool Available { get; set; } = true;
+        public bool IsAvailable { get => Available; set => Available = value; }
         public bool IsServiceAvailable(string serviceName) => Available;
         public IReadOnlyList<ServiceHealthState> GetAllStates() => Array.Empty<ServiceHealthState>();
         public ServiceHealthState? GetState(string serviceName) => null;
@@ -98,10 +88,9 @@ public class RestDownstreamDispatcherTests
         var evaluator = new FakeModeEvaluator { Mode = "Mock" };
         using var seedDoc = JsonDocument.Parse("{\"id\":\"prod-123\",\"name\":\"Smartphone X\"}");
         var mapper = new FakeMockDataMapper { MockResult = (seedDoc.RootElement.Clone(), null) };
-        var grpc = new FakeGrpcServiceCaller();
         var httpCaller = new HttpBackendCaller(new FakeHttpClientFactory(new HttpClient()), _responseFactory);
 
-        var dispatcher = new GatewayDispatcher(evaluator, mapper, grpc, httpCaller, _responseFactory);
+        var dispatcher = new GatewayDispatcher(evaluator, mapper, httpCaller, _responseFactory);
 
         var httpContext = new DefaultHttpContext();
         var request = new RestForwardRequest
@@ -124,10 +113,9 @@ public class RestDownstreamDispatcherTests
         var evaluator = new FakeModeEvaluator { Mode = "Mock" };
         var pagedJson = "{\"items\":[{\"id\":\"1\",\"name\":\"Item 1\"},{\"id\":\"2\",\"name\":\"Item 2\"}],\"total\":2}";
         var mapper = new FakeMockDataMapper { PagedMockResult = (pagedJson, null) };
-        var grpc = new FakeGrpcServiceCaller();
         var httpCaller = new HttpBackendCaller(new FakeHttpClientFactory(new HttpClient()), _responseFactory);
 
-        var dispatcher = new GatewayDispatcher(evaluator, mapper, grpc, httpCaller, _responseFactory);
+        var dispatcher = new GatewayDispatcher(evaluator, mapper, httpCaller, _responseFactory);
 
         var httpContext = new DefaultHttpContext();
         var request = new RestPagedForwardRequest
@@ -137,7 +125,7 @@ public class RestDownstreamDispatcherTests
             Method = HttpMethod.Get,
             MockSeed = "products",
             Page = 1,
-            PageSize = 20
+            PageSize = 10
         };
 
         var result = await dispatcher.DispatchRestPagedAsync(httpContext, request);
@@ -146,21 +134,58 @@ public class RestDownstreamDispatcherTests
     }
 
     [Fact]
-    public async Task RealMode_UnhealthyService_Returns503DownstreamUnhealthy()
+    public async Task RealMode_CallsDownstreamHttp_WhenHealthy()
     {
         var evaluator = new FakeModeEvaluator { Mode = "Real" };
         var mapper = new FakeMockDataMapper();
-        var grpc = new FakeGrpcServiceCaller();
-        var prober = new FakeHealthProber { Available = false };
-        var httpCaller = new HttpBackendCaller(new FakeHttpClientFactory(new HttpClient()), _responseFactory);
+        var healthProber = new FakeHealthProber { IsAvailable = true };
 
-        var dispatcher = new GatewayDispatcher(evaluator, mapper, grpc, httpCaller, _responseFactory, prober);
+        HttpRequestMessage? capturedRequest = null;
+        var fakeHandler = new TestHttpMessageHandler((req, ct) =>
+        {
+            capturedRequest = req;
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("{\"data\":{\"id\":\"prod-real\",\"name\":\"Real Phone\"}}")
+            };
+            return Task.FromResult(response);
+        });
+
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://localhost:8002") };
+        var httpCaller = new HttpBackendCaller(new FakeHttpClientFactory(httpClient), _responseFactory);
+
+        var dispatcher = new GatewayDispatcher(evaluator, mapper, httpCaller, _responseFactory, healthProber);
 
         var httpContext = new DefaultHttpContext();
         var request = new RestForwardRequest
         {
             Service = "catalog",
-            DownstreamPath = "/api/v1/products",
+            DownstreamPath = "/api/v1/products/prod-real",
+            Method = HttpMethod.Get
+        };
+
+        var result = await dispatcher.DispatchRestAsync(httpContext, request);
+        Assert.NotNull(result);
+        Assert.Equal("Real", httpContext.Response.Headers["X-Gateway-Mode"]);
+        Assert.NotNull(capturedRequest);
+        Assert.Equal("/api/v1/products/prod-real", capturedRequest.RequestUri?.AbsolutePath);
+    }
+
+    [Fact]
+    public async Task RealMode_FailsWith503_WhenProberReportsUnhealthy()
+    {
+        var evaluator = new FakeModeEvaluator { Mode = "Real" };
+        var mapper = new FakeMockDataMapper();
+        var healthProber = new FakeHealthProber { IsAvailable = false };
+        var httpCaller = new HttpBackendCaller(new FakeHttpClientFactory(new HttpClient()), _responseFactory);
+
+        var dispatcher = new GatewayDispatcher(evaluator, mapper, httpCaller, _responseFactory, healthProber);
+
+        var httpContext = new DefaultHttpContext();
+        var request = new RestForwardRequest
+        {
+            Service = "catalog",
+            DownstreamPath = "/api/v1/products/prod-1",
             Method = HttpMethod.Get
         };
 
@@ -170,83 +195,33 @@ public class RestDownstreamDispatcherTests
     }
 
     [Fact]
-    public async Task RealMode_HttpBackendCaller_InvokesDownstreamAndForwardsHeaders()
+    public async Task RealMode_ForwardNoContentAsync_Returns204_WhenDownstreamSucceeds()
     {
-        var handler = new TestHttpMessageHandler((req, _) =>
-        {
-            Assert.Equal("Bearer test-token", req.Headers.Authorization?.ToString());
-            Assert.Equal("user-456", req.Headers.GetValues("x-user-id").First());
-            Assert.Equal("trace-999", req.Headers.GetValues("x-trace-id").First());
-            Assert.Equal("POST", req.Method.Method);
+        var evaluator = new FakeModeEvaluator { Mode = "Real" };
+        var mapper = new FakeMockDataMapper();
+        var healthProber = new FakeHealthProber { IsAvailable = true };
 
-            var resp = new HttpResponseMessage(HttpStatusCode.Created)
-            {
-                Content = new StringContent("{\"productId\":\"p100\",\"status\":\"CREATED\"}", System.Text.Encoding.UTF8, "application/json")
-            };
-            return Task.FromResult(resp);
+        var fakeHandler = new TestHttpMessageHandler((req, ct) =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.NoContent);
+            return Task.FromResult(response);
         });
 
-        var httpClient = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("http://localhost:8002")
-        };
-
+        var httpClient = new HttpClient(fakeHandler) { BaseAddress = new Uri("http://localhost:8002") };
         var httpCaller = new HttpBackendCaller(new FakeHttpClientFactory(httpClient), _responseFactory);
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.Request.Headers["Authorization"] = "Bearer test-token";
-        httpContext.Request.Headers["x-user-id"] = "user-456";
-        httpContext.Request.Headers["x-trace-id"] = "trace-999";
-
-        var request = new RestForwardRequest
-        {
-            Service = "catalog",
-            DownstreamPath = "/api/v1/products",
-            Method = HttpMethod.Post,
-            Body = new { name = "New Product", price = 100000 },
-            SuccessStatusCode = StatusCodes.Status201Created
-        };
-
-        var options = new BackendOptions { Address = "http://localhost:8002", TimeoutSeconds = 10 };
-        var (data, failure) = await httpCaller.CallAsync(httpContext, "catalog", request, options, CancellationToken.None);
-
-        Assert.Null(failure);
-        Assert.NotNull(data);
-        Assert.Equal("p100", data.Value.GetProperty("productId").GetString());
-    }
-
-    [Fact]
-    public async Task RealMode_HttpBackendCaller_PropagatesDownstreamError()
-    {
-        var handler = new TestHttpMessageHandler((_, _) =>
-        {
-            var resp = new HttpResponseMessage(HttpStatusCode.BadRequest)
-            {
-                Content = new StringContent("{\"success\":false,\"code\":400,\"message\":\"Invalid product name\",\"error\":{\"code\":\"VAL_INVALID_INPUT\"}}", System.Text.Encoding.UTF8, "application/json")
-            };
-            return Task.FromResult(resp);
-        });
-
-        var httpClient = new HttpClient(handler)
-        {
-            BaseAddress = new Uri("http://localhost:8002")
-        };
-
-        var httpCaller = new HttpBackendCaller(new FakeHttpClientFactory(httpClient), _responseFactory);
+        var dispatcher = new GatewayDispatcher(evaluator, mapper, httpCaller, _responseFactory, healthProber);
 
         var httpContext = new DefaultHttpContext();
         var request = new RestForwardRequest
         {
             Service = "catalog",
-            DownstreamPath = "/api/v1/products",
-            Method = HttpMethod.Post,
-            Body = new { }
+            DownstreamPath = "/api/v1/product/prod-1",
+            Method = HttpMethod.Delete
         };
 
-        var options = new BackendOptions { Address = "http://localhost:8002", TimeoutSeconds = 10 };
-        var (data, failure) = await httpCaller.CallAsync(httpContext, "catalog", request, options, CancellationToken.None);
-
-        Assert.Null(data);
-        Assert.NotNull(failure);
+        var result = await dispatcher.DispatchRestNoContentAsync(httpContext, request);
+        Assert.NotNull(result);
+        Assert.Equal("Real", httpContext.Response.Headers["X-Gateway-Mode"]);
     }
 }

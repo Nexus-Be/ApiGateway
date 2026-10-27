@@ -1,7 +1,6 @@
 namespace Nexus.Gateway;
 
-using Google.Protobuf;
-using Grpc.Core;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Nexus.Gateway.Dispatching;
 
@@ -15,24 +14,12 @@ public sealed class BackendDispatcher
         _dispatcher = dispatcher;
     }
 
-    public Task<IResult> Execute<T>(
-        HttpContext context,
-        string service,
-        string operation,
-        Func<CallOptions, AsyncUnaryCall<T>> call,
-        MessageParser<T> parser,
-        string? successMessage = null,
-        int successStatusCode = StatusCodes.Status200OK) where T : class, IMessage<T> =>
-        _dispatcher.DispatchAsync(context, service, operation, call, parser, successMessage, successStatusCode);
+    public Task<IResult> ForwardAsync(HttpContext context, RestForwardRequest request) =>
+        _dispatcher.DispatchRestAsync(context, request);
 
-    public Task<IResult> ExecutePaged<T>(
-        HttpContext context,
-        string service,
-        string operation,
-        int pageIndex,
-        int pageSize,
-        Func<CallOptions, AsyncUnaryCall<T>> call,
-        MessageParser<T> parser,
-        int successStatusCode = StatusCodes.Status200OK) where T : class, IMessage<T> =>
-        _dispatcher.DispatchPagedAsync(context, service, operation, pageIndex, pageSize, call, parser, successStatusCode);
+    public Task<IResult> ForwardPagedAsync(HttpContext context, RestPagedForwardRequest request) =>
+        _dispatcher.DispatchRestPagedAsync(context, request);
+
+    public Task<IResult> ForwardNoContentAsync(HttpContext context, RestForwardRequest request) =>
+        _dispatcher.DispatchRestNoContentAsync(context, request);
 }

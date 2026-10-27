@@ -13,7 +13,6 @@ var gatewayOptions = builder.AddGatewayConfiguration();
 
 // 3. Dependency Injection Services
 builder.Services.AddGatewayCoreServices(builder.Configuration, builder.Environment, gatewayOptions);
-builder.Services.AddGatewayGrpcClients();
 builder.Services.AddGatewayTelemetry(builder.Configuration);
 builder.Services.AddGatewaySwagger();
 

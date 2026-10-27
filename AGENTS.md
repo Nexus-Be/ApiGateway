@@ -71,7 +71,10 @@ Khi bắt đầu làm việc tại ApiGateway, AI Agent **BẮT BUỘC PHẢI Đ
 1. **CONTROLLER KHÔNG CHỨA LOGIC PHÂN NHÁNH MOCK/REAL**: Mọi điều phối đều qua `_dispatcher.DispatchAsync` / `DispatchPagedAsync`.
 2. **GATEWAY KHÔNG CHỨA DATABASE HOẶC STATEFUL LOGIC**: Gateway là Edge Proxy không trạng thái.
 3. **CẤU HÌNH PORT 8000 LÀ BẤT BIẾN**.
-4. **HỢP ĐỒNG PROTOBUF GỐC `Contracts/shop.proto`**: Không thay đổi tag number đã có.
+4. **CẤM SỬ DỤNG gRPC CHO CÁC DỊCH VỤ ĐỒNG BỘ - BẮT BUỘC DÙNG 100% RESTFUL API**:
+   - Toàn bộ giao tiếp đồng bộ giữa API Gateway và các Microservices bắt buộc phải sử dụng chuẩn **RESTful Web API** (JSON qua HTTP/1.1 hoặc HTTP/2).
+   - Tuyệt đối **CẤM** triển khai hoặc sử dụng gRPC Server/Client cho các tính năng mới trong toàn bộ hệ thống.
+   - Các downstream calls từ Gateway chuyển hoàn toàn sang `BackendDispatcher` (REST downstream qua `HttpClient`).
 5. **CẤM TỰ Ý SỬA ĐỔI BIẾN MÔI TRƯỜNG, SECRET VÀ KEY BÍ MẬT (MANDATORY HUMAN-IN-THE-LOOP FOR SECRETS)**:
    - **Tuyệt đối CẤM mọi AI Coding Agent tự ý sửa đổi, thay thế, xóa hoặc ghi đè các biến môi trường (`.env`, `.env.*`), Connection Strings, API Keys, JWT Secrets, chứng chỉ hoặc bất kỳ thông tin bí mật (credentials/secrets) nào trong toàn bộ hệ thống.**
    - **Bắt buộc phải xin ý kiến và nhận được sự đồng ý rõ ràng (explicit approval) từ người dùng trước khi thực hiện bất kỳ thay đổi nào liên quan đến biến môi trường hoặc tài khoản bí mật.**

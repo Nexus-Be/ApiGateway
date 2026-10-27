@@ -1,10 +1,9 @@
 namespace Nexus.Gateway.Common;
 
+using System;
+using System.Linq;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Http;
 using Nexus.Gateway.Dtos.User;
-using Nexus.Gateway.Responses;
-using ShoppingCart.Contracts.V1;
 
 public static class UserValidation
 {
@@ -86,37 +85,5 @@ public static class UserValidation
         {
             throw new GatewayInputException("Rating must be an integer between 1 and 5.", field, ErrorCode);
         }
-    }
-
-    public static UserCallerContext Caller(HttpContext context)
-    {
-        var userId = context.User.FindFirst("sub")?.Value
-            ?? context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-            ?? string.Empty;
-
-        var roles = context.GetRoles();
-
-        var caller = new UserCallerContext
-        {
-            UserId = userId
-        };
-        caller.Roles.AddRange(roles);
-        return caller;
-    }
-
-    public static UserAddressDto ToAddress(AddressInputDto? dto)
-    {
-        if (dto is null)
-        {
-            return new UserAddressDto();
-        }
-
-        return new UserAddressDto
-        {
-            ProvinceId = dto.ProvinceId ?? 0,
-            DistrictId = dto.DistrictId ?? 0,
-            WardCode = dto.WardCode ?? string.Empty,
-            StreetAddress = dto.StreetAddress ?? string.Empty
-        };
     }
 }

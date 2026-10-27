@@ -13,9 +13,6 @@
     <PackageReference Include="Serilog.Sinks.PeriodicBatching" Version="5.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
-    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.66.0" />
-    <PackageReference Include="Google.Protobuf" Version="3.28.2" />
-    <PackageReference Include="Grpc.Tools" Version="2.66.0" PrivateAssets="All" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.18.0" />
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
@@ -24,10 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="Contracts/shop.proto" GrpcServices="Both" />
-    <Protobuf Include="Contracts/auction.proto" GrpcServices="Client" />
-    <Protobuf Include="Contracts/catalog.proto" GrpcServices="Client" />
-    <Protobuf Include="Contracts/user.proto" GrpcServices="Client" />
     <Content Update="Mocks/**/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Update="Seeds/**/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

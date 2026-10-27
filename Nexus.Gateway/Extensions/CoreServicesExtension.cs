@@ -72,7 +72,6 @@ public static class CoreServicesExtension
         services.AddSingleton<IMockEngine, MockEngine>();
         services.AddSingleton<Dispatching.IModeEvaluator, Dispatching.ModeEvaluator>();
         services.AddSingleton<Dispatching.IMockDataMapper, Dispatching.MockDataMapper>();
-        services.AddSingleton<Dispatching.IGrpcServiceCaller, Dispatching.GrpcServiceCaller>();
         services.AddSingleton<Dispatching.IHttpBackendCaller, Dispatching.HttpBackendCaller>();
         services.AddSingleton<Dispatching.IGatewayDispatcher, Dispatching.GatewayDispatcher>();
         services.AddSingleton<BackendDispatcher>();
