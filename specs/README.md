@@ -23,7 +23,7 @@ Chào mừng bạn (Developer hoặc AI Coding Agent) đến với repository **
 | Hạng mục | Giá trị thật | Trạng thái | Bằng chứng |
 |:---|:---|:---|:---|
 | Ngôn ngữ & framework | .NET 8 Web API (C# 12), `TargetFramework net8.0` | ✅ CÓ | `Nexus.Gateway/Nexus.Gateway.csproj` |
-| Cổng lắng nghe | `8000` (`http://localhost:8000`) | ✅ CÓ | `Properties/launchSettings.json`, `Dockerfile` (`EXPOSE 8000`), `docker-compose.yml` |
+| Cổng lắng nghe | `8080` (`http://localhost:8080`) | ✅ CÓ | `Properties/launchSettings.json`, `Dockerfile` (`EXPOSE 8080`), `docker-compose.yml` |
 | Phụ thuộc hạ tầng | Redis `localhost:6379` (distributed rate limiting) | ✅ CÓ | `appsettings.json`; `Middleware/RedisRateLimitMiddleware.cs` |
 | Database nghiệp vụ | **0** (không `DbContext`, không `DbSet`) | ✅ CÓ | grep `DbSet` trong `Nexus.Gateway/` |
 | Tiền tố route | `/api/v1/{service}/...` | ✅ CÓ | `Controllers/*.cs` |

@@ -6,6 +6,7 @@
   "price": 1250000,
   "currency": "VND",
   "status": "ACTIVE",
+  "statusReason": null,
   "isDefault": true,
   "hasOrder": true,
   "attributes": [

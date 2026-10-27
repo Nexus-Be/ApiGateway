@@ -24,7 +24,7 @@ Từ thư mục `src/Services/ApiGateway`:
 dotnet test ApiGateway.sln -c Release
 ./run-dev.sh # Unix; PowerShell dùng ./run-dev.ps1
 ```
-`run-dev.sh` chạy `dotnet run --project Nexus.Gateway --no-launch-profile --urls http://127.0.0.1:8000`, tức Gateway nghe ở cổng `8000`. `docker-compose.yml` trong repo này **chỉ định nghĩa duy nhất service `gateway`** (build từ `Dockerfile`, mount `/var/run/docker.sock`, port `${GATEWAY_PORT:-8000}`); Redis/Tempo/Grafana không nằm trong file compose này mà do cụm hạ tầng bên ngoài cung cấp qua `nexus-network` (biến `REDIS_CONNECTION_STRING`, `OTEL_EXPORTER_OTLP_ENDPOINT`). Swagger (`/swagger`) chỉ bật ở Development. Không giả định backend Real sẵn sàng: phải triển khai RPC tương ứng và cấu hình địa chỉ trước khi gọi.
+`run-dev.sh` chạy `dotnet run --project Nexus.Gateway --no-launch-profile --urls http://127.0.0.1:8080`, tức Gateway nghe ở cổng `8080`. `docker-compose.yml` trong repo này **chỉ định nghĩa duy nhất service `gateway`** (build từ `Dockerfile`, mount `/var/run/docker.sock`, port `${GATEWAY_PORT:-8080}`); Redis/Tempo/Grafana không nằm trong file compose này mà do cụm hạ tầng bên ngoài cung cấp qua `nexus-network` (biến `REDIS_CONNECTION_STRING`, `OTEL_EXPORTER_OTLP_ENDPOINT`). Swagger (`/swagger`) chỉ bật ở Development. Không giả định backend Real sẵn sàng: phải triển khai RPC tương ứng và cấu hình địa chỉ trước khi gọi.
 ## Giám sát sức khỏe & Tự phục hồi (Health Prober Daemon)
 Gateway tích hợp sẵn **Health Prober Daemon Engine** giám sát định kỳ 8 backend services:
 - **Chu kỳ & Ngưỡng**: `Interval: 60s` (1 phút), `Timeout: 30s`, `Retries: 5 lần`, `StartPeriod: 60s` ân hạn khởi động (khớp `Gateway:HealthProber` trong `Nexus.Gateway/appsettings.json`).

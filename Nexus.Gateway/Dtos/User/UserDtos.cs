@@ -48,6 +48,10 @@ public sealed class UpdateMyProfileDto
     public string? LastName { get; set; }
     public string? PhoneNumber { get; set; }
     public AddressInputDto? Address { get; set; }
+    public int? ProvinceId { get; set; }
+    public int? DistrictId { get; set; }
+    public string? WardCode { get; set; }
+    public string? StreetAddress { get; set; }
 }
 
 public sealed class CreateReviewDto
@@ -74,6 +78,10 @@ public sealed class CreateSellerRegistrationDto
     public string? BusinessEmail { get; set; }
     public string? Hotline { get; set; }
     public AddressInputDto? WarehouseAddress { get; set; }
+    public int? ProvinceId { get; set; }
+    public int? DistrictId { get; set; }
+    public string? WardCode { get; set; }
+    public string? StreetAddress { get; set; }
     public string? IdentityCardNumber { get; set; }
 }
 
@@ -94,6 +102,10 @@ public sealed class UpdateSellerOwnProfileDto
     public string? ShopName { get; set; }
     public string? Hotline { get; set; }
     public AddressInputDto? PickupAddress { get; set; }
+    public int? ProvinceId { get; set; }
+    public int? DistrictId { get; set; }
+    public string? WardCode { get; set; }
+    public string? StreetAddress { get; set; }
     public string? Description { get; set; }
 }
 

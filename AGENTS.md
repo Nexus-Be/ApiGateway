@@ -57,7 +57,7 @@ ApiGateway là một Git Repository độc lập (`ApiGateway.git`):
 ---
 ## 📚 NGUYÊN TẮC 3: DANH MỤC FILE NỘI BỘ BẮT BUỘC PHẢI ĐỌC TẠI APIGATEWAY
 Khi bắt đầu làm việc tại ApiGateway, AI Agent **BẮT BUỘC PHẢI ĐỌC** các file nội bộ sau theo thứ tự:
-1. `specs/00_AGENT_MISSION_GUARDRAILS.md`: Bounded context gateway, port `8000`, 0 DB, rào chắn chống ảo giác.
+1. `specs/00_AGENT_MISSION_GUARDRAILS.md`: Bounded context gateway, port `8080`, 0 DB, rào chắn chống ảo giác.
 2. `specs/01_ARCHITECTURAL_BLUEPRINT.md`: Kiến trúc 3 khối (Input → Dispatching Core → Output), Circuit Breaker, Health Prober, Redis Rate Limiting.
 3. `specs/02_GATEWAY_CONTROLLERS_ROUTING.md`: **15 file controller — 9 file có action (tổng 114 action), 6 file là stub 0 action**; chuẩn viết Action siêu mỏng.
 4. `specs/03_GATEWAY_STATE_SECURITY.md`: Hai trục cấu hình `Gateway:AuthMode` (`Enforce`/`Standard` vs `Bypass` — chỉ Development) và `Gateway:Services:{name}:Mode` (`Real`/`Mock`).
@@ -70,7 +70,7 @@ Khi bắt đầu làm việc tại ApiGateway, AI Agent **BẮT BUỘC PHẢI Đ
 ## 🔒 NGUYÊN TẮC 4: RÀO CHẮN BẤT BIẾN TẠI APIGATEWAY
 1. **CONTROLLER KHÔNG CHỨA LOGIC PHÂN NHÁNH MOCK/REAL**: Mọi điều phối đều qua `_dispatcher.DispatchAsync` / `DispatchPagedAsync`.
 2. **GATEWAY KHÔNG CHỨA DATABASE HOẶC STATEFUL LOGIC**: Gateway là Edge Proxy không trạng thái.
-3. **CẤU HÌNH PORT 8000 LÀ BẤT BIẾN**.
+3. **CẤU HÌNH PORT 8080 LÀ BẤT BIẾN** (tránh xung đột với Portainer port 8000 trên máy dev).
 4. **CẤM SỬ DỤNG gRPC CHO CÁC DỊCH VỤ ĐỒNG BỘ - BẮT BUỘC DÙNG 100% RESTFUL API**:
    - Toàn bộ giao tiếp đồng bộ giữa API Gateway và các Microservices bắt buộc phải sử dụng chuẩn **RESTful Web API** (JSON qua HTTP/1.1 hoặc HTTP/2).
    - Tuyệt đối **CẤM** triển khai hoặc sử dụng gRPC Server/Client cho các tính năng mới trong toàn bộ hệ thống.

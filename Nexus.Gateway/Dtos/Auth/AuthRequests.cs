@@ -12,8 +12,15 @@ public sealed record RegisterRequestDto(
     string? PhoneNumber = null);
 
 public sealed record LoginRequestDto(
-    string Username,
-    string Password);
+    string? Username,
+    string Password,
+    string? Identifier = null,
+    string? DeviceInfo = null,
+    string? IpAddress = null)
+{
+    [JsonIgnore]
+    public string EffectiveUsername => !string.IsNullOrWhiteSpace(Username) ? Username : (Identifier ?? string.Empty);
+}
 
 /// <summary>
 /// Body for the OTP verification endpoint. The Gateway contract historically used <c>otp</c>,
@@ -30,7 +37,8 @@ public sealed record VerifyOtpRequestDto(
 }
 
 public sealed record ResendOtpRequestDto(
-    string Email);
+    string Email,
+    string? Type = null);
 
 // Compatibility aliases
 public sealed record RegisterBody(

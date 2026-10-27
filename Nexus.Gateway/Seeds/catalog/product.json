@@ -8,6 +8,7 @@
     "brand": "NexusAudio",
     "saleType": "REGULAR",
     "status": "ACTIVE",
+    "statusReason": null,
     "specifications": {
       "batteryLifeHours": "30",
       "connectivity": "Bluetooth 5.3",

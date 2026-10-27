@@ -10,6 +10,7 @@
       "primaryImageUrl": "https://cdn.nexus.local/catalog/headphones-1.jpg",
       "avgRating": 4.6,
       "status": "ACTIVE",
+      "auctionStatus": null,
       "isOpen": true,
       "isSold": false
     },

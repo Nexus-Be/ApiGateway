@@ -13,8 +13,8 @@ Tài liệu này giải thích chi tiết ý nghĩa của **từng file cấu h�
 | `appsettings.Development.example.json` | `Nexus.Gateway/` | File mẫu cấu hình Development. | ✅ Có |
 | `gateway.runtime.json` | `Nexus.Gateway/` | File runtime cấu hình động, nạp **sau** appsettings và **có** `reloadOnChange: true` (sửa file là áp dụng ngay, không cần restart). | ✅ Có |
 | `gateway.runtime.example.json`| `Nexus.Gateway/` | File mẫu runtime cấu hình động. | ✅ Có |
-| `launchSettings.json` | `Nexus.Gateway/Properties/` | Cấu hình cổng chạy khi khởi động local qua Visual Studio, Rider hoặc `dotnet run` (`http://localhost:8000`, env `Development`). | ✅ Có |
-| `.env.example` | `ApiGateway/` | File mẫu danh sách biến môi trường cho server/Docker (`GATEWAY_PORT=8000`, `REDIS_CONNECTION_STRING=redis:6379`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317`, 8 biến `*_SERVICE_URL`). | ✅ Có |
+| `launchSettings.json` | `Nexus.Gateway/Properties/` | Cấu hình cổng chạy khi khởi động local qua Visual Studio, Rider hoặc `dotnet run` (`http://localhost:8080`, env `Development`). | ✅ Có |
+| `.env.example` | `ApiGateway/` | File mẫu danh sách biến môi trường cho server/Docker (`GATEWAY_PORT=8080`, `REDIS_CONNECTION_STRING=redis:6379`, `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo:4317`, 8 biến `*_SERVICE_URL`). | ✅ Có |
 | `.env` | `ApiGateway/` | File biến môi trường thực tế khi chạy Docker/CI. | ❌ Không (chặn trong `.gitignore`) |
 > ⚠️ **Đính chính so với bản cũ**: bảng trước đây ghi `appsettings.json` và `appsettings.Development.json` là "✅ Có" (được commit) — **sai**. `.gitignore:81` khai báo `appsettings*.json` và chỉ whitelist `!appsettings*.example.json` / `!appsettings.example.json` / `!appsettings.*.example.json`, nên hai file thật **chưa bao giờ** vào git (`git ls-files` không liệt kê chúng). Hệ quả: **không có bí mật nào bị commit** qua đường này, nhưng cũng **không ai clone được cấu hình chạy được** nếu chỉ clone repo — phải copy từ `*.example.json`.
 ---
@@ -106,7 +106,7 @@ Mỗi service dùng `BackendOptions` (`GatewayOptions.cs:118-125`) với đúng 
 | `MaxRequestBodySize` | `Program.cs` | `65536` (64KB) | Giới hạn kích thước body, chống tràn RAM. | ✅ CÓ | `Program.cs:9` `o.Limits.MaxRequestBodySize = 64 * 1024` |
 | `RequestTimeout` | `CoreServicesExtension.cs` | `65` (giây) | Ngắt request treo quá 65s ⇒ 504. | ✅ CÓ | `Extensions/CoreServicesExtension.cs:93-97` |
 | `ASPNETCORE_ENVIRONMENT` | `.env` / `launchSettings.json` | `Development` / `Production` | Môi trường chạy. | ✅ CÓ | `launchSettings.json`, `run-dev.sh` |
-| `ASPNETCORE_URLS` | `.env` / `Dockerfile` | `http://+:8000` | Cổng HTTP Gateway lắng nghe (port **8000** — bất biến). | ✅ CÓ | `Dockerfile` (`EXPOSE 8000`, `ENV ASPNETCORE_URLS=http://+:8000`) |
+| `ASPNETCORE_URLS` | `.env` / `Dockerfile` | `http://+:8080` | Cổng HTTP Gateway lắng nghe (port **8080** — bất biến). | ✅ CÓ | `Dockerfile` (`EXPOSE 8080`, `ENV ASPNETCORE_URLS=http://+:8080`) |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`| `.env` / Environment | `http://tempo:4317` (`.env.example`), `http://localhost:4317` (local) | Địa chỉ nhận OTel Traces & Metrics. Alias: `Otel:Endpoint`. **Exporter chỉ bật khi biến này có giá trị** (`Extensions/TelemetryExtension.cs:13,25`). | ⚠️ MỘT PHẦN | Tempo/Grafana **không** có trong `docker-compose.yml` của repo này (compose chỉ có service `gateway`) ⇒ phải chạy stack ngoài |
 ---
 ### E. Cấu Hình Giám Sát Sức Khỏe & Tự Hồi Phục (`Gateway:HealthProber`)
@@ -141,7 +141,7 @@ Trong môi trường Development, Gateway hỗ trợ ghi đè cấu hình cho t�
 ## 4. HƯỚNG DẪN THỰC HÀNH CẤU HÌNH DÀNH CHO DEVELOPER
 1. **Khi chạy local để code giao diện hoặc test độc lập với Mock**:
    - Copy `Nexus.Gateway/appsettings.example.json` → `Nexus.Gateway/appsettings.json` và `appsettings.Development.example.json` → `appsettings.Development.json` (hai file thật **không** có trong git), rồi điền `Jwt:Signature` tối thiểu 32 ký tự.
-   - Ở `appsettings.Development.json`, toàn bộ 8 services đã bật `"Mode": "Mock"`. Chạy `./run-dev.sh` (hoặc `dotnet run --project Nexus.Gateway`) ⇒ `http://localhost:8000`.
+   - Ở `appsettings.Development.json`, toàn bộ 8 services đã bật `"Mode": "Mock"`. Chạy `./run-dev.sh` (hoặc `dotnet run --project Nexus.Gateway`) ⇒ `http://localhost:8080`.
    - Nếu muốn test không cần đăng nhập: mở `gateway.runtime.json`, đổi `"AuthMode": "Bypass"` (giá trị đang commit là `"Enforce"`).
    - ⚠️ Chỉ **route có action hoặc có mock definition** mới trả dữ liệu; 11 controller stub (vd `catalog/products`, `commerce/orders`) trả **404** kể cả khi `Mode: "Mock"`.
 2. **Khi code xong 1 microservice (ví dụ Catalog Service)**:
@@ -157,7 +157,7 @@ Trong môi trường Development, Gateway hỗ trợ ghi đè cấu hình cho t�
    - **Lưu file là có hiệu lực ngay** — `gateway.runtime.json` nạp với `reloadOnChange: true` (`Extensions/ConfigurationExtensions.cs:15`), **không cần restart**.
    - 7 service còn lại vẫn chạy Mock bình thường; nhưng các service đó cũng **chưa có client** nên chỉ Mock mới hoạt động.
 3. **Khi triển khai Docker / Production**:
-   - Tạo `.env` từ `.env.example` (`GATEWAY_PORT=8000`, `REDIS_CONNECTION_STRING`, `OTEL_EXPORTER_OTLP_ENDPOINT`, 8 `*_SERVICE_URL`).
+   - Tạo `.env` từ `.env.example` (`GATEWAY_PORT=8080`, `REDIS_CONNECTION_STRING`, `OTEL_EXPORTER_OTLP_ENDPOINT`, 8 `*_SERVICE_URL`).
    - Cấp `Jwt__Signature` thật dài ≥ 32 ký tự qua biến môi trường / secret store — **không** dựa vào `appsettings.json`.
    - Đặt `ASPNETCORE_ENVIRONMENT=Production`.
    - Toàn bộ 8 services trong `appsettings.json` mặc định `Mode: "Real"`, `AuthMode: "Enforce"`; mọi cờ bypass đều `false` và options validation sẽ **fail-fast** nếu ai đó bật Mock/Bypass ở Production.

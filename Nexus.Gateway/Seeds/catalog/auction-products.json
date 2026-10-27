@@ -8,6 +8,7 @@
       "minPrice": 15000000,
       "maxPrice": 15000000,
       "primaryImageUrl": "https://cdn.nexus.local/catalog/turntable-1.jpg",
+      "avgRating": 5.0,
       "status": "ACTIVE",
       "auctionStatus": "RUNNING",
       "isOpen": true,

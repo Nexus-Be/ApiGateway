@@ -18,9 +18,11 @@
     "phoneNumber": "+84901234567"
   },
   "response": {
+    "userId": "11111111-1111-1111-1111-000000000099",
     "id": "11111111-1111-1111-1111-000000000099",
     "displayName": "John Doe",
     "email": "john.doe@example.com",
+    "otpExpiresIn": 300,
     "roles": [
       "buyer"
     ],

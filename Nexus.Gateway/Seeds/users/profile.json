@@ -1,10 +1,27 @@
 {
   "id": "11111111-1111-1111-1111-000000000004",
+  "userId": "11111111-1111-1111-1111-000000000004",
+  "username": "alexrivers",
   "displayName": "Alex Rivers",
+  "firstName": "Alex",
+  "lastName": "Rivers",
   "email": "buyer01@mcs.local",
+  "phoneNumber": "+84901234567",
+  "avatarUrl": "https://storage.example.com/avatars/user-04.jpg",
+  "address": "123 Le Loi, Ben Nghe, Quan 1, TP.HCM",
+  "reputationScore": 100,
+  "trustLevel": "GOLD",
+  "isSeller": false,
   "roles": [
     "buyer"
   ],
+  "permissions": [
+    "CART.VIEW",
+    "CART.UPDATE",
+    "ORDER.VIEW",
+    "CHECKOUT.START"
+  ],
   "status": "Active",
-  "shopName": ""
+  "shopName": "",
+  "createdAt": "2026-10-26T00:00:00Z"
 }

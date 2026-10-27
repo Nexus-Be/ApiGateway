@@ -10,7 +10,7 @@ Repository này chứa mã nguồn của **Nexus API Gateway (.NET 8)**:
 - Chuyển đổi và định tuyến các HTTP request sang các cuộc gọi **RESTful HTTP/JSON downstream** tới 8 backend microservices qua `HttpBackendCaller` và `IHttpClientFactory` (loại bỏ hoàn toàn gRPC, 100% RESTful HTTP/JSON).
 - Đảm bảo an ninh vòng ngoài: Kiểm tra token JWT, kiểm soát quyền truy cập RBAC, áp đặt giới hạn tần suất gọi (Distributed Rate Limiting qua Redis), giới hạn kích thước gói tin (Kestrel MaxRequestBodySize = 64KB).
 - Hỗ trợ độc lập phát triển cho Frontend qua **Mock Engine** (declarative `Mocks/*.mock.json` + seed `Seeds/`) và **AuthMode hai trạng thái** (`Enforce`/`Standard` vs `Bypass`, Bypass chỉ ở Development).
-Bounded context: cổng `8000`, **0 database nghiệp vụ**, 1 Redis cho rate limit (`localhost:6379`).
+Bounded context: cổng `8080`, **0 database nghiệp vụ**, 1 Redis cho rate limit (`localhost:6379`).
 ---
 ## 2. NHỮNG ĐIỀU CẤM KỴ ĐỐI VỚI AI AGENTS (ANTI-HALLUCINATION GUARDRAILS)
 1. **TUYỆT ĐỐI KHÔNG VIẾT IF/ELSE MOCK HAY REAL TRONG CONTROLLER**:
@@ -19,8 +19,8 @@ Bounded context: cổng `8000`, **0 database nghiệp vụ**, 1 Redis cho rate l
 2. **TUYỆT ĐỐI KHÔNG ĐƯA DATABASE IN-MEMORY HAY LOGIC TÍNH TOÁN VÀO GATEWAY**:
    - Gateway không sở hữu database nghiệp vụ.
    - Khi ở chế độ Mock, Gateway chỉ đọc các file fixture tĩnh từ thư mục `Seeds/{service}/{entity}.json`. Không được viết code in-memory DB lưu trữ state giả lập nghiệp vụ backend.
-3. **TUYỆT ĐỐI KHÔNG THAY ĐỔI CỔNG 8000**:
-   - `Properties/launchSettings.json`, `Dockerfile` (`EXPOSE 8000`, `ASPNETCORE_URLS=http://+:8000`) và `docker-compose.yml` đều dùng cổng `8000`.
+3. **TUYỆT ĐỐI KHÔNG THAY ĐỔI CỔNG 8080**:
+   - `Properties/launchSettings.json`, `Dockerfile` (`EXPOSE 8080`, `ASPNETCORE_URLS=http://+:8080`) và `docker-compose.yml` đều dùng cổng `8080` (tránh xung đột với Portainer port 8000).
 4. **TUYỆT ĐỐI KHÔNG LÀM HỎNG BỘ KIỂM THỬ TỰ ĐỘNG**:
    - Mọi thay đổi mã nguồn trong Gateway bắt buộc phải vượt qua toàn bộ test trong `Nexus.Gateway.Tests/` (372 test cases).
 ---

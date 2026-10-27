@@ -16,6 +16,7 @@ bld/
 [Oo]bj/
 /[Ll]og/
 /[Ll]ogs/
+**/logs/
 *.log
 !Nexus.Gateway/Dtos/Log/
 !Nexus.Gateway/Seeds/log/

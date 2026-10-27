@@ -1,5 +1,6 @@
 {
   "productId": "22222222-2222-4222-8222-000000000001",
   "status": "ACTIVE",
+  "statusReason": null,
   "publishedAt": "2026-10-25T09:00:00Z"
 }

@@ -5,11 +5,11 @@
 Tài liệu này cung cấp toàn bộ quy trình thiết lập, chuẩn giao tiếp và các bước cần thực hiện để sẵn sàng kết nối các backend microservices với **Nexus API Gateway**.
 ---
 ## 1. Bản Đồ Phân Bổ Cổng Mạng (Port Map) & Quy Hoạch 8 Services
-Gateway làm đầu mối duy nhất cho Frontend gọi vào ở cổng `8000` (bất biến — `Dockerfile EXPOSE 8000`, `launchSettings.json`, `ASPNETCORE_URLS=http://+:8000`). Toàn bộ 8 Microservices chạy độc lập từ cổng `8001` đến `8008`.
+Gateway làm đầu mối duy nhất cho Frontend gọi vào ở cổng `8080` (bất biến — `Dockerfile EXPOSE 8080`, `launchSettings.json`, `ASPNETCORE_URLS=http://+:8080`). Toàn bộ 8 Microservices chạy độc lập từ cổng `8001` đến `8008`.
 Cột **Trạng thái phía Gateway** dưới đây là phần **đã kiểm chứng trong repo này**; cột Database là **quy hoạch** của monorepo, repo gateway không chứa DB nào (0 `DbContext`, 0 `DbSet`).
 | STT | Tên Service | Port | Database *(quy hoạch)* | Nhiệm vụ chính | Trạng thái phía Gateway | Bằng chứng |
 |:---:|:---|:---:|:---|:---|:---|:---|
-| **0** | **Nexus.Gateway** | **8000** | *(Redis: 6379)* | Edge Proxy, JWT/RBAC, RateLimit, MockEngine, OpenTelemetry | ⚠️ Một phần | 4/15 controller có action (16 action), 1/8 gRPC client |
+| **0** | **Nexus.Gateway** | **8080** | *(Redis: 6379)* | Edge Proxy, JWT/RBAC, RateLimit, MockEngine, OpenTelemetry | ⚠️ Một phần | 4/15 controller có action (16 action), 1/8 gRPC client |
 | **1** | **Users Service** | **8001** | `usermanagement_db` (5433) | Đăng ký, đăng nhập, phát hành JWT, User Profile, RBAC, Duyệt Seller | ✅ CÓ (client + proto + 5 action) | `Extensions/GrpcClientsExtension.cs`, `Contracts/shop.proto`, `AuthController`, `UsersController` |
 | **2** | **Catalog Service** | **8002** | `category_db` (5434) | Danh mục, sản phẩm, tồn kho ảo | ❌ CHƯA CÓ client/rpc — controller `Products`/`Categories`/`Inventory` là stub 0 action | `Controllers/{Products,Categories,Inventory}Controller.cs` |
 | **3** | **Commerce Service** | **8003** | `commerce_db` (5435) | Giỏ hàng, đơn hàng, Checkout Saga | ❌ CHƯA CÓ client/rpc — controller `Cart`/`Orders` stub | `Controllers/{Cart,Orders}Controller.cs` |
@@ -43,7 +43,7 @@ Cần hoàn thiện RPC, triển khai backend và test tích hợp cho từng se
 Khi bắt tay vào code hoặc hoàn thiện từng service backend (`Users`, `Catalog`, `Commerce`, `Wallet`...), hãy làm theo các bước sau.
 > ⚠️ **Lưu ý phạm vi**: repo gateway là **self-contained**; các bước dưới đây hướng dẫn sửa code ở **repo backend** tương ứng, không phải tạo file trong repo này.
 ### Bước 1: Hạ Tầng Database & RabbitMQ (Docker Compose)
-⚠️ **`docker-compose.yml` của repo này chỉ định nghĩa service `gateway`** (port `${GATEWAY_PORT:-8000}:8000`, mount docker socket, network `nexus-network`) — **không** có Postgres/RabbitMQ/Tempo/Grafana.
+⚠️ **`docker-compose.yml` của repo này chỉ định nghĩa service `gateway`** (port `${GATEWAY_PORT:-8080}:8080`, mount docker socket, network `nexus-network`) — **không** có Postgres/RabbitMQ/Tempo/Grafana.
 Hạ tầng DB + RabbitMQ phải chạy từ stack của monorepo hoặc từ repo backend tương ứng:
 ```bash
 # Từ thư mục gốc monorepo, dùng compose của hạ tầng (không phải compose của gateway)
@@ -179,13 +179,13 @@ public override async Task<UserProfile> GetProfile(UserProfileRequest request, S
    }
    ```
 3. ⚠️ **Chỉ service `users` chạy được `Real`** hiện tại. Với service khác phải làm Bước 2 (thêm rpc + client) và viết action trong controller tương ứng (hiện là stub 0 action), nếu không sẽ nhận lỗi vì không có client/không có action.
-4. Bật Gateway (nếu chưa chạy: `./run-dev.sh` hoặc `dotnet run --project Nexus.Gateway`) ⇒ `http://localhost:8000`.
+4. Bật Gateway (nếu chưa chạy: `./run-dev.sh` hoặc `dotnet run --project Nexus.Gateway`) ⇒ `http://localhost:8080`.
 5. Endpoint **đang chạy thật** để test nhanh:
-   - `POST http://localhost:8000/api/v1/auth/register` (Mock: `Seeds/auth/register.json`)
-   - `POST http://localhost:8000/api/v1/auth/login` (Mock: `Seeds/auth/login.json`; Real: chưa chạy vì `rpc Login` chưa implement)
-   - `GET http://localhost:8000/api/v1/users/me` (cần token hợp lệ)
+   - `POST http://localhost:8080/api/v1/auth/register` (Mock: `Seeds/auth/register.json`)
+   - `POST http://localhost:8080/api/v1/auth/login` (Mock: `Seeds/auth/login.json`; Real: chưa chạy vì `rpc Login` chưa implement)
+   - `GET http://localhost:8080/api/v1/users/me` (cần token hợp lệ)
    - Quản trị: `GET /api/v1/gateway/modes`, `PUT /api/v1/gateway/mode`, `GET /api/v1/gateway/prober/status`
 6. ⚠️ Các API khác **không** "được phục vụ bằng Seed mock data" như bản cũ mô tả: chỉ `auth` (4 file) và `users` (5 file) có seed; route của 11 controller stub trả **404** trừ khi có `Mocks/*.mock.json` khớp (6 file: `auth-login`, `auth-register`, `auth-resend-otp`, `auth-verify-otp`, `catalog-products`, `users-me`).
-7. Swagger: `http://localhost:8000/swagger` chỉ hiển thị **16 action** của 4 controller có action.
+7. Swagger: `http://localhost:8080/swagger` chỉ hiển thị **16 action** của 4 controller có action.
 ---
 Chúc bạn code backend thuận lợi và hiệu quả!

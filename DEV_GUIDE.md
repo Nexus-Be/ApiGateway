@@ -159,10 +159,10 @@ Khi chạy local:
 ./run-dev.sh # Unix; PowerShell dùng ./run-dev.ps1
 ```
 ```
-Swagger UI sẵn sàng tại `http://localhost:8000/swagger` (ở môi trường Development).
+Swagger UI sẵn sàng tại `http://localhost:8080/swagger` (ở môi trường Development).
 ---
 ## 4. Hướng Dẫn Giám Sát Distributed Tracing (Grafana Tempo)
-Gateway có cấu hình OpenTelemetry (`Nexus.Gateway/Extensions/TelemetryExtension.cs`, `AddSource(BackendDispatcher.ActivityName)`), exporter OTLP lấy từ `OTEL_EXPORTER_OTLP_ENDPOINT`. **Tempo/Grafana không nằm trong repo này**: `docker-compose.yml` của ApiGateway chỉ định nghĩa duy nhất service `gateway` (port `${GATEWAY_PORT:-8000}`, mount `/var/run/docker.sock`, join network `nexus-network`). Hạ tầng tracing phải do cụm root cung cấp; nếu chưa có, biến `OTEL_EXPORTER_OTLP_ENDPOINT` trỏ tới endpoint không tồn tại và trace sẽ không được gửi đi.
+Gateway có cấu hình OpenTelemetry (`Nexus.Gateway/Extensions/TelemetryExtension.cs`, `AddSource(BackendDispatcher.ActivityName)`), exporter OTLP lấy từ `OTEL_EXPORTER_OTLP_ENDPOINT`. **Tempo/Grafana không nằm trong repo này**: `docker-compose.yml` của ApiGateway chỉ định nghĩa duy nhất service `gateway` (port `${GATEWAY_PORT:-8080}`, mount `/var/run/docker.sock`, join network `nexus-network`). Hạ tầng tracing phải do cụm root cung cấp; nếu chưa có, biến `OTEL_EXPORTER_OTLP_ENDPOINT` trỏ tới endpoint không tồn tại và trace sẽ không được gửi đi.
 ### Khởi Động Gateway
 ```bash
 docker compose up -d          # chỉ dựng nexus-apigateway từ Dockerfile trong repo này

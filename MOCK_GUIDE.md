@@ -183,7 +183,7 @@ Hiện trạng thật: `Seeds/auth/` có 4 file (`login`, `register`, `verify-ot
    }
    ```
    Giá trị đang lưu trong repo: `users` và `auction` = `Mock`, `catalog` và 5 service còn lại = `Real`.
-2. Mở trình duyệt: `http://localhost:8000/swagger` (Development).
+2. Mở trình duyệt: `http://localhost:8080/swagger` (Development).
 3. Tìm endpoint vừa khai báo $\rightarrow$ **Try it out** $\rightarrow$ **Execute**.
 4. Gateway trả response bọc trong `ApiResponse<T>`:
    ```json

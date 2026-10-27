@@ -1,4 +1,8 @@
 {
+  "documentUrls": [
+    "https://storage.example.com/seller-docs/id_front.jpg",
+    "https://storage.example.com/seller-docs/id_back.jpg"
+  ],
   "fileUrls": [
     "https://storage.example.com/seller-docs/id_front.jpg",
     "https://storage.example.com/seller-docs/id_back.jpg"
