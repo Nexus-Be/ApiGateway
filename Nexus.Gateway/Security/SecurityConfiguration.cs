@@ -29,15 +29,18 @@ public static class SecurityConfiguration
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(o =>
             {
-                o.Authority = authority;
+                if (string.IsNullOrEmpty(signingKey))
+                {
+                    o.Authority = authority;
+                }
                 o.Audience = audience;
                 o.RequireHttpsMetadata = requireHttpsMetadata;
                 o.MapInboundClaims = false;
 
                 var tvp = new TokenValidationParameters
                 {
-                    ValidateIssuer = !string.IsNullOrEmpty(authority),
-                    ValidIssuer = authority,
+                    ValidateIssuer = !string.IsNullOrEmpty(issuer),
+                    ValidIssuer = issuer,
                     ValidateAudience = !string.IsNullOrEmpty(audience),
                     ValidAudience = audience,
                     ValidateLifetime = true,
