@@ -19,10 +19,9 @@ Gateway được tái cấu trúc thành 3 khối phân tách triệt để, đ�
 2. TẦNG PHẦN GIỮA: The Dispatching Core (Dispatching/)
    - ModeEvaluator: Phân giải service và effective mode (Real / Mock).
    - MockDataMapper: Nạp file JSON từ Seeds/{service}/{entity}.json.
-   - HttpBackendCaller: Giao tiếp RESTful downstream qua IHttpClientFactory (Port 8001-8008), forward Authorization, x-trace-id, x-user-id, x-user-role, x-client-ip.
-   - GrpcServiceCaller: (Legacy) Đính kèm Authorization, Idempotency-Key, x-trace-id và gọi typed gRPC Client qua HTTP/2.
+   - HttpBackendCaller: Giao tiếp RESTful downstream qua IHttpClientFactory (Port 8001-8008), forward Authorization, x-trace-id, x-user-id, x-user-role, x-client-ip (100% RESTful, CẤM gRPC).
    - GatewayDispatcher: Nhận lệnh -> phối hợp các bộ trên -> chuyển dữ liệu gốc sang Đầu Ra.
-   - GatewayBaseController: Cung cấp ForwardAsync / ForwardPagedAsync cho Controller kế thừa.
+   - GatewayBaseController: Cung cấp ForwardAsync / ForwardPagedAsync / ForwardNoContentAsync cho Controller kế thừa.
          │
          ▼
 3. TẦNG ĐẦU RA: Universal Output & Exception Handling (Responses/ & Middleware/)
@@ -38,9 +37,9 @@ Gateway được tái cấu trúc thành 3 khối phân tách triệt để, đ�
 |:---|:---|:---|
 | `IModeEvaluator` / `ModeEvaluator` | ✅ CÓ | `Nexus.Gateway/Dispatching/ModeEvaluator.cs:8-14` |
 | `IMockDataMapper` / `MockDataMapper` | ✅ CÓ | `Nexus.Gateway/Dispatching/MockDataMapper.cs:27` |
-| `IHttpBackendCaller` / `HttpBackendCaller` | ✅ CÓ | `Nexus.Gateway/Dispatching/HttpBackendCaller.cs:17` |
+| `IHttpBackendCaller` / `HttpBackendCaller` | ✅ CÓ (Duy nhất) | `Nexus.Gateway/Dispatching/HttpBackendCaller.cs:17` |
 | `GatewayBaseController` (ForwardAsync / ForwardPagedAsync) | ✅ CÓ | `Nexus.Gateway/Controllers/GatewayBaseController.cs` |
-| `IGrpcServiceCaller` / `GrpcServiceCaller` (Legacy) | ✅ CÓ | `Nexus.Gateway/Dispatching/GrpcServiceCaller.cs:24` |
+| `IGrpcServiceCaller` / `GrpcServiceCaller` | ❌ BÃI BỎ | Đã loại bỏ gRPC, chuyển 100% sang REST downstream |
 | `IGatewayDispatcher` / `GatewayDispatcher` (Circuit Breaker Fast-Fail & REST Forwarding) | ✅ CÓ | `Nexus.Gateway/Dispatching/GatewayDispatcher.cs:33` |
 | `BackendDispatcher` (wrapper tương thích ngược) | ✅ CÓ | `Nexus.Gateway/BackendDispatcher.cs:8` |
 1. **`IModeEvaluator` / `ModeEvaluator`** (`Dispatching/ModeEvaluator.cs`):

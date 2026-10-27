@@ -1,5 +1,5 @@
 # API GATEWAY SPEC KIT — CHỈ DẪN KỸ THUẬT CHO AI AGENT & DEVELOPER
-> **Trạng thái triển khai (2026-10-27):** ✅ Hoàn tất — 15/15 Controllers đã hoàn thiện đầy đủ action, 46 seed JSON fixtures, 372/372 test cases PASS 100%. Đã chuyển đổi hoàn toàn cơ chế giao tiếp downstream từ gRPC sang RESTful HTTP/JSON qua `HttpBackendCaller` và `GatewayBaseController.ForwardAsync`.
+> **Trạng thái triển khai (2026-10-27):** ✅ Hoàn tất — 15/15 Controllers đã hoàn thiện đầy đủ action, 46 seed JSON fixtures, 384/384 test cases PASS 100%. Đã chuyển đổi hoàn toàn cơ chế giao tiếp downstream từ gRPC sang RESTful HTTP/JSON qua `HttpBackendCaller` và `GatewayBaseController.ForwardAsync` (CẤM gRPC).
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
 > **Cập nhật lần cuối:** 2026-10-27.
 
@@ -27,5 +27,5 @@ Chào mừng bạn (Developer hoặc AI Coding Agent) đến với repository **
 | Phụ thuộc hạ tầng | Redis `localhost:6379` (distributed rate limiting) | ✅ CÓ | `appsettings.json`; `Middleware/RedisRateLimitMiddleware.cs` |
 | Database nghiệp vụ | **0** (không `DbContext`, không `DbSet`) | ✅ CÓ | grep `DbSet` trong `Nexus.Gateway/` |
 | Tiền tố route | `/api/v1/{service}/...` | ✅ CÓ | `Controllers/*.cs` |
-| Bộ kiểm thử | 372 test cases PASS 100% | ✅ CÓ | `Nexus.Gateway.Tests/` |
-| Giao tiếp downstream | RESTful HTTP/JSON qua `HttpBackendCaller` (Port 8001-8008) | ✅ CÓ | `Dispatching/HttpBackendCaller.cs` |
+| Bộ kiểm thử | 384 test cases PASS 100% | ✅ CÓ | `Nexus.Gateway.Tests/` |
+| Giao tiếp downstream | RESTful HTTP/JSON qua `HttpBackendCaller` (Port 8001-8008, CẤM gRPC) | ✅ CÓ | `Dispatching/HttpBackendCaller.cs` |

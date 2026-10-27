@@ -30,14 +30,9 @@ Số liệu kiểm chứng thực tế:
 ```bash
 cd src/Services/ApiGateway
 # Đếm controller và action thật
-ls Nexus.Gateway/Controllers/*.cs | wc -l          # -> 15
-grep -rc '\[Http' Nexus.Gateway/Controllers/*.cs   # -> 4 file khác 0, tổng 16
-# gRPC client đã đăng ký
-grep -n 'AddNamedGrpcClient' Nexus.Gateway/Extensions/GrpcClientsExtension.cs   # -> 1 (users)
-# Hợp đồng proto
-grep -nE '^service |^  rpc ' Nexus.Gateway/Contracts/shop.proto                  # -> 1 service, 5 rpc
-# Dữ liệu mock
-ls Nexus.Gateway/Seeds/*/*.json Nexus.Gateway/Mocks/*.mock.json                  # -> 9 seed, 6 mock
-# File cấu hình bị ignore (KHÔNG commit)
-git check-ignore -v Nexus.Gateway/appsettings.json Nexus.Gateway/appsettings.Development.json
+ls Nexus.Gateway/Controllers/*.cs | wc -l          # -> 15 controllers
+# Kiểm tra giao tiếp downstream RESTful (CẤM gRPC)
+grep -rn 'ForwardAsync' Nexus.Gateway/Controllers/*.cs
+# Chạy bộ test suite 384 tests PASS 100%
+dotnet test Nexus.Gateway.Tests/Nexus.Gateway.Tests.csproj -c Release
 ```

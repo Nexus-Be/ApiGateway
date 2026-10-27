@@ -7,7 +7,7 @@
 Repository này chứa mã nguồn của **Nexus API Gateway (.NET 8)**:
 - Đóng vai trò là **Edge Reverse Proxy** duy nhất đứng trước toàn bộ 8 Microservices backend.
 - Cung cấp giao diện RESTful JSON cho các ứng dụng Client (Web, Mobile).
-- Chuyển đổi và định tuyến các HTTP request sang các cuộc gọi **RESTful HTTP/JSON downstream** tới 8 backend microservices qua `HttpBackendCaller` và `IHttpClientFactory` (đồng thời vẫn giữ khả năng tương thích gRPC legacy).
+- Chuyển đổi và định tuyến các HTTP request sang các cuộc gọi **RESTful HTTP/JSON downstream** tới 8 backend microservices qua `HttpBackendCaller` và `IHttpClientFactory` (loại bỏ hoàn toàn gRPC, 100% RESTful HTTP/JSON).
 - Đảm bảo an ninh vòng ngoài: Kiểm tra token JWT, kiểm soát quyền truy cập RBAC, áp đặt giới hạn tần suất gọi (Distributed Rate Limiting qua Redis), giới hạn kích thước gói tin (Kestrel MaxRequestBodySize = 64KB).
 - Hỗ trợ độc lập phát triển cho Frontend qua **Mock Engine** (declarative `Mocks/*.mock.json` + seed `Seeds/`) và **AuthMode hai trạng thái** (`Enforce`/`Standard` vs `Bypass`, Bypass chỉ ở Development).
 Bounded context: cổng `8000`, **0 database nghiệp vụ**, 1 Redis cho rate limit (`localhost:6379`).
@@ -31,4 +31,4 @@ Bounded context: cổng `8000`, **0 database nghiệp vụ**, 1 Redis cho rate l
 | Giao tiếp downstream | RESTful HTTP/JSON qua `HttpBackendCaller` | ✅ HOÀN TẤT | `Nexus.Gateway/Dispatching/HttpBackendCaller.cs` |
 | Helper Controller | `GatewayBaseController.ForwardAsync` / `ForwardPagedAsync` | ✅ HOÀN TẤT | `Nexus.Gateway/Controllers/GatewayBaseController.cs` |
 | Seed fixture | 46 file JSON phủ khắp 8 backend services | ✅ HOÀN TẤT | `Nexus.Gateway/Seeds/` |
-| Test suite | 372/372 test cases PASS 100% | ✅ HOÀN TẤT | `Nexus.Gateway.Tests/` |
+| Test suite | 384/384 test cases PASS 100% | ✅ HOÀN TẤT | `Nexus.Gateway.Tests/` |
