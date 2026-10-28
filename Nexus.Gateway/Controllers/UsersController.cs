@@ -27,6 +27,7 @@ public sealed class UsersController : GatewayBaseController
     }
 
     [HttpGet("me")]
+    [HttpGet("users/me")]
     [Authorize(GatewayPolicies.Authenticated)]
     [EnableRateLimiting("user-frequent")]
     [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]

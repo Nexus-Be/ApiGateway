@@ -94,14 +94,25 @@ public sealed class AuthController : GatewayBaseController
     public Task<IResult> Login([FromBody] LoginRequestDto body)
     {
         Response.Headers.CacheControl = "no-store";
-        if (string.IsNullOrWhiteSpace(body.EffectiveIdentifier) || string.IsNullOrEmpty(body.Password))
+        var identifier = body.EffectiveIdentifier;
+        if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrEmpty(body.Password))
             throw new GatewayInputException("Username and password are required.");
+
+        var downstreamBody = new
+        {
+            identifier = identifier,
+            username = identifier,
+            email = identifier.Contains('@') ? identifier : body.Email,
+            password = body.Password,
+            deviceInfo = body.DeviceInfo,
+            ipAddress = body.IpAddress
+        };
 
         return ForwardAsync(
             Service,
             "/api/v1/auth/login",
             HttpMethod.Post,
-            body: body,
+            body: downstreamBody,
             mockSeed: "login",
             successMessage: "Login successful."
         );

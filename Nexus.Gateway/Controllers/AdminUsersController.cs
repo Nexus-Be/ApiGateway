@@ -199,6 +199,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpGet("user")]
+    [HttpGet("users")]
     [Authorize(GatewayPolicies.Staff)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListUsers(
@@ -231,6 +232,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPost("user")]
+    [HttpPost("users")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateUser([FromBody] CreateAdminUserDto body)
@@ -252,6 +254,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpGet("user/{userId}")]
+    [HttpGet("users/{userId}")]
     [Authorize(GatewayPolicies.Staff)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserDetailResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetUserDetail([FromRoute] string userId)
@@ -268,6 +271,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPut("user/{userId}")]
+    [HttpPut("users/{userId}")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateUser(
@@ -288,6 +292,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpDelete("user/{userId}")]
+    [HttpDelete("users/{userId}")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public Task<IResult> DeleteUser(
@@ -307,6 +312,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPatch("user/{userId}/ban")]
+    [HttpPatch("users/{userId}/ban")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserBanResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> BanUser(
@@ -327,6 +333,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPatch("user/{userId}/unban")]
+    [HttpPatch("users/{userId}/unban")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserUnbanResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UnbanUser(
@@ -363,6 +370,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPut("user/{userId}/roles")]
+    [HttpPut("users/{userId}/roles")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserRolesResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> AssignRoles(
@@ -383,6 +391,7 @@ public sealed class AdminUsersController : GatewayBaseController
     }
 
     [HttpPatch("user/{userId}/reputation")]
+    [HttpPatch("users/{userId}/reputation")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AdminUserReputationResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> AdjustReputation(
@@ -430,11 +439,11 @@ public sealed class AdminUsersController : GatewayBaseController
         );
     }
 
-    [HttpPut("roles/{roleId:int}/permissions")]
+    [HttpPut("roles/{roleId}/permissions")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AdminRolePermissionsUpdatedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateRolePermissions(
-        [FromRoute] int roleId,
+        [FromRoute] string roleId,
         [FromBody] UpdateAdminRolePermissionsDto body)
     {
         return ForwardAsync(

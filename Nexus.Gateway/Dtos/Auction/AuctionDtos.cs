@@ -259,17 +259,26 @@ public sealed class AuctionSagaResponseDto
 }
 
 /// <summary>AUC-07: POST /api/v1/auctions/{auctionId}/bids — 201 Created</summary>
+/// <summary>Row 143: POST /api/v1/auctions/{auctionId}/bids</summary>
 public sealed class PlaceBidResponseDto
 {
     public string? BidId { get; set; }
     public string? AuctionId { get; set; }
-    public int BidSeq { get; set; }
+    public string? BidderId { get; set; }
+    public string? BidderDisplayName { get; set; }
     public decimal Amount { get; set; }
-    public string? PlacedAt { get; set; }
+    public string? BidAt { get; set; }
+    public bool IsLeading { get; set; }
     public decimal CurrentPriceAmount { get; set; }
     public int BidCount { get; set; }
-    public string? ScheduledEndAt { get; set; }
-    public int ExtensionCount { get; set; }
+    public string? NewScheduledEndAt { get; set; }
+    public bool Extended { get; set; }
+
+    // Backwards-compatible aliases
+    public int BidSeq { get; set; }
+    public string? PlacedAt { get => BidAt; set => BidAt = value; }
+    public string? ScheduledEndAt { get => NewScheduledEndAt; set => NewScheduledEndAt = value; }
+    public int ExtensionCount { get => Extended ? 1 : 0; set => Extended = value > 0; }
 }
 
 /// <summary>AUC-03: GET /api/v1/auctions/{auctionId}/bids — list item

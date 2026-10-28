@@ -239,21 +239,29 @@ public sealed class SaveTemplateRequest
 {
     public string? Code { get; set; }
     public string? NotificationType { get; set; }
+    public string? ChannelCode { get; set; }
+    public string? SubjectTemplate { get; set; }
     public string? BodyTemplate { get; set; }
+    public bool IsMandatory { get; set; }
+    public string? Locale { get; set; }
+    public bool IsActive { get; set; }
+
+    // Backwards-compatible aliases
     public string? TemplateKey { get; set; }
     public string? Name { get; set; }
-    public string? Subject { get; set; }
-    public string? BodyHtml { get; set; }
+    public string? Subject { get => SubjectTemplate; set => SubjectTemplate = value; }
+    public string? BodyHtml { get => BodyTemplate; set => BodyTemplate = value; }
     public string? BodyText { get; set; }
-    public string? Channel { get; set; }
-    public bool IsActive { get; set; }
+    public string? Channel { get => ChannelCode; set => ChannelCode = value; }
 }
 
 /// <summary>PATCH /api/v1/admin/notification-channels/{id} — alias for UpdateNotificationChannelRequest</summary>
 public sealed class UpdateChannelRequest
 {
-    public bool IsEnabled { get; set; }
+    public string? Name { get; set; }
+    public string? Provider { get; set; }
     public object? Config { get; set; }
+    public bool IsEnabled { get; set; }
 }
 
 /// <summary>PUT /api/v1/me/notification-preferences — alias for UpdateNotificationPreferencesRequest</summary>

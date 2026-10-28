@@ -43,6 +43,7 @@ public sealed class OtpResponseDto
 /// <summary>USER-02: PATCH /api/v1/me — profile updated response</summary>
 public sealed class MyProfileUpdatedResponseDto
 {
+    public string? Id { get => UserId; set => UserId = value; }
     public string? UserId { get; set; }
     public string? Email { get; set; }
     public string? Username { get; set; }
@@ -50,6 +51,8 @@ public sealed class MyProfileUpdatedResponseDto
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string? PhoneNumber { get; set; }
+    public string? AvatarUrl { get; set; }
+    public string? Address { get; set; }
     public string? UpdatedAt { get; set; }
 }
 
@@ -63,6 +66,7 @@ public sealed class AvatarUploadedResponseDto
 /// <summary>USER-03: GET /api/v1/me/avatar — avatar info</summary>
 public sealed class AvatarResponseDto
 {
+    public string? UserId { get; set; }
     public string? AvatarUrl { get; set; }
     public string? UpdatedAt { get; set; }
 }
@@ -71,6 +75,7 @@ public sealed class AvatarResponseDto
 public sealed class UploadFilesResponseDto
 {
     public List<UploadedFileItemDto>? Files { get; set; }
+    public List<string>? FileUrls { get; set; }
 }
 
 public sealed class UploadedFileItemDto
@@ -86,6 +91,7 @@ public sealed class UploadedFileItemDto
 public sealed class SessionListResponseDto
 {
     public List<SessionItemDto>? Items { get; set; }
+    public UserPaginationDto? Pagination { get; set; }
 }
 
 public sealed class SessionItemDto
@@ -103,7 +109,13 @@ public sealed class MyReputationResponseDto
 {
     public string? UserId { get; set; }
     public int ReputationScore { get; set; }
+    public string? TrustLevel { get => ReputationLevel; set => ReputationLevel = value; }
     public string? ReputationLevel { get; set; }
+    public bool CanBid { get; set; } = true;
+    public bool CanSell { get; set; } = true;
+    public int PositiveRatingCount { get => TotalPositive; set => TotalPositive = value; }
+    public int NegativeRatingCount { get => TotalNegative; set => TotalNegative = value; }
+    public int? NextLevelThreshold { get; set; }
     public int TotalPositive { get; set; }
     public int TotalNegative { get; set; }
 }
@@ -133,10 +145,16 @@ public sealed class PenaltyListResponseDto
 
 public sealed class PenaltyItemDto
 {
+    public string? Id { get => PenaltyId; set => PenaltyId = value; }
     public string? PenaltyId { get; set; }
+    public string? ViolationType { get => Type; set => Type = value; }
     public string? Type { get; set; }
     public string? Reason { get; set; }
+    public string? PenaltyApplied { get; set; }
+    public int PointsDeducted { get; set; }
+    public string? Status { get; set; }
     public string? AdminId { get; set; }
+    public string? IssuedAt { get => CreatedAt; set => CreatedAt = value; }
     public string? ExpiresAt { get; set; }
     public string? CreatedAt { get; set; }
 }
@@ -166,6 +184,7 @@ public sealed class UserReportCreatedResponseDto
     public string? TargetId { get; set; }
     public string? Reason { get; set; }
     public string? Status { get; set; }
+    public string? SubmittedAt { get => CreatedAt; set => CreatedAt = value; }
     public string? CreatedAt { get; set; }
 }
 
@@ -179,12 +198,15 @@ public sealed class UserReviewListResponseDto
 
 public sealed class UserReviewItemDto
 {
+    public string? Id { get => ReviewId; set => ReviewId = value; }
     public string? ReviewId { get; set; }
     public string? ReviewerId { get; set; }
+    public string? ReviewerName { get => ReviewerDisplayName; set => ReviewerDisplayName = value; }
     public string? ReviewerDisplayName { get; set; }
     public string? ReviewerAvatarUrl { get; set; }
     public int Rating { get; set; }
     public string? Comment { get; set; }
+    public List<string>? MediaUrls { get; set; }
     public string? OrderId { get; set; }
     public bool IsHidden { get; set; }
     public string? CreatedAt { get; set; }
@@ -214,11 +236,15 @@ public sealed class PublicUserProfileResponseDto
     public string? Username { get; set; }
     public string? DisplayName { get; set; }
     public string? AvatarUrl { get; set; }
-    public string? Role { get; set; }
     public int ReputationScore { get; set; }
-    public string? ReputationLevel { get; set; }
-    public string? SellerStatus { get; set; }
-    public string? MemberSince { get; set; }
+    public string? TrustLevel { get; set; }
+    public bool IsSeller { get; set; }
+    public string? CreatedAt { get; set; }
+    public string? Id { get => UserId; set => UserId = value; }
+    public string? Role { get; set; }
+    public string? ReputationLevel { get => TrustLevel; set => TrustLevel = value; }
+    public string? SellerStatus { get => IsSeller ? "Approved" : "None"; set => IsSeller = value == "Approved"; }
+    public string? MemberSince { get => CreatedAt; set => CreatedAt = value; }
 }
 
 /// <summary>USER-14: GET /api/v1/users/{userId}/reputation</summary>
@@ -226,7 +252,13 @@ public sealed class UserReputationResponseDto
 {
     public string? UserId { get; set; }
     public int ReputationScore { get; set; }
+    public string? TrustLevel { get => ReputationLevel; set => ReputationLevel = value; }
     public string? ReputationLevel { get; set; }
+    public List<string>? Badges { get; set; }
+    public bool CanBid { get; set; } = true;
+    public bool CanSell { get; set; } = true;
+    public int TotalReviews { get; set; }
+    public decimal PositiveRatio { get; set; }
     public int TotalPositive { get; set; }
     public int TotalNegative { get; set; }
 }
@@ -236,65 +268,104 @@ public sealed class UserReputationResponseDto
 /// <summary>SELLER-01: GET /api/v1/me/seller/profile — seller own profile</summary>
 public sealed class SellerOwnProfileResponseDto
 {
-    public string? UserId { get; set; }
-    public string? StoreName { get; set; }
-    public string? StoreDescription { get; set; }
+    public string? SellerId { get; set; }
+    public string? ShopName { get; set; }
+    public string? BusinessEmail { get; set; }
+    public string? Hotline { get; set; }
+    public AddressInputDto? PickupAddress { get; set; }
+    public decimal Rating { get; set; }
+    public int TotalOrders { get; set; }
+    public string? Status { get; set; }
+    public string? JoinedAt { get; set; }
+
+    // Backwards-compatible aliases
+    public string? UserId { get => SellerId; set => SellerId = value; }
+    public string? StoreName { get => ShopName; set => ShopName = value; }
+    public string? ContactEmail { get => BusinessEmail; set => BusinessEmail = value; }
+    public string? ContactPhone { get => Hotline; set => Hotline = value; }
     public string? StoreLogoUrl { get; set; }
     public string? StoreBannerUrl { get; set; }
-    public string? ContactEmail { get; set; }
-    public string? ContactPhone { get; set; }
-    public string? Status { get; set; }
-    public double AverageRating { get; set; }
-    public int TotalReviews { get; set; }
-    public string? CreatedAt { get; set; }
+    public string? StoreDescription { get; set; }
+    public double AverageRating { get => (double)Rating; set => Rating = (decimal)value; }
+    public int TotalReviews { get => TotalOrders; set => TotalOrders = value; }
+    public string? CreatedAt { get => JoinedAt; set => JoinedAt = value; }
 }
 
 /// <summary>SELLER-02: PATCH /api/v1/me/seller/profile — seller profile updated</summary>
 public sealed class SellerOwnProfileUpdatedResponseDto
 {
-    public string? UserId { get; set; }
-    public string? StoreName { get; set; }
-    public string? StoreDescription { get; set; }
+    public string? SellerId { get; set; }
+    public string? ShopName { get; set; }
+    public string? Hotline { get; set; }
+    public AddressInputDto? PickupAddress { get; set; }
+    public string? UpdatedAt { get; set; }
+
+    // Backwards-compatible aliases
+    public string? UserId { get => SellerId; set => SellerId = value; }
+    public string? StoreName { get => ShopName; set => ShopName = value; }
+    public string? ContactPhone { get => Hotline; set => Hotline = value; }
     public string? StoreLogoUrl { get; set; }
     public string? StoreBannerUrl { get; set; }
     public string? ContactEmail { get; set; }
-    public string? ContactPhone { get; set; }
-    public string? UpdatedAt { get; set; }
+    public string? StoreDescription { get; set; }
 }
 
 /// <summary>SELLER-03: GET /api/v1/users/{userId}/seller — public seller profile</summary>
 public sealed class SellerPublicProfileResponseDto
 {
     public string? SellerId { get; set; }
-    public string? StoreName { get; set; }
-    public string? StoreDescription { get; set; }
-    public string? StoreLogoUrl { get; set; }
-    public string? StoreBannerUrl { get; set; }
-    public string? Status { get; set; }
-    public double AverageRating { get; set; }
-    public int TotalReviews { get; set; }
+    public string? ShopName { get; set; }
+    public string? AvatarUrl { get; set; }
+    public decimal Rating { get; set; }
     public int TotalProducts { get; set; }
-    public string? MemberSince { get; set; }
+    public string? JoinedAt { get; set; }
+
+    // Backwards-compatible aliases
+    public string? StoreName { get => ShopName; set => ShopName = value; }
+    public string? StoreLogoUrl { get => AvatarUrl; set => AvatarUrl = value; }
+    public double AverageRating { get => (double)Rating; set => Rating = (decimal)value; }
+    public string? MemberSince { get => JoinedAt; set => JoinedAt = value; }
+    public string? Status { get; set; }
+    public int TotalReviews { get; set; }
+    public string? StoreDescription { get; set; }
+    public string? StoreBannerUrl { get; set; }
+}
+
+public sealed class SellerRegistrationDocumentDto
+{
+    public string? Id { get; set; }
+    public string? FileName { get; set; }
+    public string? FileUrl { get; set; }
+    public string? FileType { get; set; }
+    public string? UploadedAt { get; set; }
 }
 
 /// <summary>SELLER-04: GET /api/v1/me/seller/registration/status — registration status</summary>
 public sealed class SellerRegistrationStatusResponseDto
 {
-    public string? UserId { get; set; }
+    public string? RegistrationId { get; set; }
+    public string? ShopName { get; set; }
+    public string? BusinessEmail { get; set; }
+    public string? Hotline { get; set; }
     public string? Status { get; set; }
     public string? RejectedReason { get; set; }
     public string? SubmittedAt { get; set; }
     public string? ReviewedAt { get; set; }
+    public List<SellerRegistrationDocumentDto>? Documents { get; set; }
+
+    // Backwards-compatible aliases
+    public string? UserId { get; set; }
 }
 
 /// <summary>SELLER-05: POST /api/v1/me/seller/registration — registration submitted</summary>
 public sealed class SellerRegistrationCreatedResponseDto
 {
     public string? RegistrationId { get; set; }
-    public string? UserId { get; set; }
+    public string? BusinessEmail { get; set; }
     public string? Status { get; set; }
     public int OtpExpiresIn { get; set; }
     public string? CreatedAt { get; set; }
+    public string? UserId { get; set; }
 }
 
 /// <summary>SELLER-06: POST /api/v1/me/seller/registration/otp/verify — OTP verified</summary>
@@ -302,8 +373,8 @@ public sealed class VerifySellerOtpResponseDto
 {
     public string? RegistrationId { get; set; }
     public string? Status { get; set; }
-    public bool IsVerified { get; set; }
     public string? VerifiedAt { get; set; }
+    public bool IsVerified { get; set; } = true;
 }
 
 /// <summary>SELLER-07: POST /api/v1/me/seller/registration/otp/resend — OTP resent</summary>
@@ -326,10 +397,14 @@ public sealed class AdminUserListResponseDto
 
 public sealed class AdminUserListItemDto
 {
+    public string? Id { get => UserId; set => UserId = value; }
     public string? UserId { get; set; }
     public string? Email { get; set; }
     public string? Username { get; set; }
     public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? PhoneNumber { get; set; }
     public string? AvatarUrl { get; set; }
     public string? Status { get; set; }
     public string[]? Roles { get; set; }
@@ -341,6 +416,7 @@ public sealed class AdminUserListItemDto
 /// <summary>ADMIN-02: GET /api/v1/admin/users/{userId} — full user detail</summary>
 public sealed class AdminUserDetailResponseDto
 {
+    public string? Id { get => UserId; set => UserId = value; }
     public string? UserId { get; set; }
     public string? Email { get; set; }
     public string? Username { get; set; }
@@ -353,6 +429,9 @@ public sealed class AdminUserDetailResponseDto
     public string[]? Roles { get; set; }
     public string[]? Permissions { get; set; }
     public int ReputationScore { get; set; }
+    public string? TrustLevel { get; set; }
+    public object? SellerProfile { get; set; }
+    public object? AuditHistory { get; set; }
     public bool IsBanned { get; set; }
     public string? BanReason { get; set; }
     public string? BannedUntil { get; set; }
@@ -375,19 +454,26 @@ public sealed class AdminUserCreatedResponseDto
 /// <summary>ADMIN-04: PUT /api/v1/admin/users/{userId} — admin updates user</summary>
 public sealed class AdminUserUpdatedResponseDto
 {
+    public string? Id { get => UserId; set => UserId = value; }
     public string? UserId { get; set; }
     public string? Email { get; set; }
     public string? Username { get; set; }
     public string? DisplayName { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? PhoneNumber { get; set; }
     public string? Status { get; set; }
+    public string? UpdatedBy { get; set; }
     public string? UpdatedAt { get; set; }
 }
 
 /// <summary>ADMIN-05: POST /api/v1/admin/users/{userId}/ban</summary>
 public sealed class AdminUserBanResponseDto
 {
+    public string? Id { get => UserId; set => UserId = value; }
     public string? UserId { get; set; }
     public string? Status { get; set; }
+    public string? Reason { get => BanReason; set => BanReason = value; }
     public string? BanReason { get; set; }
     public string? BannedUntil { get; set; }
     public string? BannedBy { get; set; }
@@ -397,6 +483,7 @@ public sealed class AdminUserBanResponseDto
 /// <summary>ADMIN-06: POST /api/v1/admin/users/{userId}/unban</summary>
 public sealed class AdminUserUnbanResponseDto
 {
+    public string? Id { get => UserId; set => UserId = value; }
     public string? UserId { get; set; }
     public string? Status { get; set; }
     public string? UnbannedBy { get; set; }
@@ -435,11 +522,16 @@ public sealed class AdminSellerRegistrationItemDto
 {
     public string? RegistrationId { get; set; }
     public string? UserId { get; set; }
-    public string? UserEmail { get; set; }
-    public string? StoreName { get; set; }
+    public string? ShopName { get; set; }
+    public string? BusinessEmail { get; set; }
+    public string? Hotline { get; set; }
     public string? Status { get; set; }
     public string? SubmittedAt { get; set; }
     public string? ReviewedAt { get; set; }
+
+    // Backwards-compatible aliases
+    public string? UserEmail { get; set; }
+    public string? StoreName { get => ShopName; set => ShopName = value; }
 }
 
 /// <summary>ADMIN-SELLER-02: GET /api/v1/admin/seller-registrations/{id} — detail</summary>
@@ -447,16 +539,24 @@ public sealed class AdminSellerRegistrationDetailResponseDto
 {
     public string? RegistrationId { get; set; }
     public string? UserId { get; set; }
-    public string? UserEmail { get; set; }
-    public string? StoreName { get; set; }
-    public string? StoreDescription { get; set; }
-    public string? ContactEmail { get; set; }
-    public string? ContactPhone { get; set; }
+    public string? ShopName { get; set; }
+    public string? BusinessEmail { get; set; }
+    public string? Hotline { get; set; }
+    public AddressInputDto? WarehouseAddress { get; set; }
+    public string? IdentityCardNumber { get; set; }
     public string? Status { get; set; }
     public string? RejectedReason { get; set; }
-    public string? ReviewedBy { get; set; }
     public string? SubmittedAt { get; set; }
     public string? ReviewedAt { get; set; }
+    public string? ReviewedBy { get; set; }
+    public List<SellerRegistrationDocumentDto>? Documents { get; set; }
+
+    // Backwards-compatible aliases
+    public string? UserEmail { get; set; }
+    public string? StoreName { get => ShopName; set => ShopName = value; }
+    public string? StoreDescription { get; set; }
+    public string? ContactEmail { get => BusinessEmail; set => BusinessEmail = value; }
+    public string? ContactPhone { get => Hotline; set => Hotline = value; }
 }
 
 /// <summary>ADMIN-SELLER-03: POST /api/v1/admin/seller-registrations/{id}/approve</summary>
@@ -483,16 +583,28 @@ public sealed class RejectSellerRegistrationResponseDto
 /// <summary>ADMIN-SELLER-05: GET /api/v1/admin/sellers/{userId} — admin seller detail</summary>
 public sealed class AdminSellerDetailResponseDto
 {
+    public string? SellerId { get => UserId; set => UserId = value; }
     public string? UserId { get; set; }
+    public string? ShopName { get => StoreName; set => StoreName = value; }
+    public string? BusinessEmail { get => ContactEmail; set => ContactEmail = value; }
+    public string? Hotline { get => ContactPhone; set => ContactPhone = value; }
+    public string? OwnerUserId { get => UserId; set => UserId = value; }
+    public string? IdentityCardNumber { get; set; }
+    public AddressInputDto? PickupAddress { get; set; }
+    public decimal Rating { get => (decimal)AverageRating; set => AverageRating = (double)value; }
+    public int TotalOrders { get; set; }
+    public int TotalProducts { get; set; }
+    public string? Status { get; set; }
+    public string? JoinedAt { get => CreatedAt; set => CreatedAt = value; }
+    public object? AuditHistory { get; set; }
+
+    // Backwards-compatible aliases
     public string? StoreName { get; set; }
     public string? StoreDescription { get; set; }
     public string? ContactEmail { get; set; }
     public string? ContactPhone { get; set; }
-    public string? Status { get; set; }
     public double AverageRating { get; set; }
     public int TotalReviews { get; set; }
-    public int TotalProducts { get; set; }
-    public int TotalOrders { get; set; }
     public string? CreatedAt { get; set; }
 }
 
@@ -507,12 +619,17 @@ public sealed class AdminReportListResponseDto
 
 public sealed class AdminReportItemDto
 {
+    public string? Id { get => ReportId; set => ReportId = value; }
     public string? ReportId { get; set; }
     public string? ReporterId { get; set; }
     public string? ReporterEmail { get; set; }
+    public string? ReportedUserId { get => TargetId; set => TargetId = value; }
     public string? TargetType { get; set; }
+    public string? ViolationType { get => TargetType; set => TargetType = value; }
     public string? TargetId { get; set; }
     public string? Reason { get; set; }
+    public string? Description { get => Reason; set => Reason = value; }
+    public List<string>? EvidenceUrls { get; set; }
     public string? Status { get; set; }
     public string? CreatedAt { get; set; }
     public string? ResolvedAt { get; set; }
@@ -637,7 +754,8 @@ public sealed class AdminAuditLogItemDto
 /// <summary>Controller request: roles assignment by Admin</summary>
 public sealed class AssignAdminUserRolesDto
 {
-    public string[]? Roles { get; set; }
+    public string[]? RoleCodes { get; set; }
+    public string[]? Roles { get => RoleCodes; set => RoleCodes = value; }
     public string? Reason { get; set; }
 }
 

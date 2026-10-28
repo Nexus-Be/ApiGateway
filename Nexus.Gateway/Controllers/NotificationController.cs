@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Nexus.Gateway.Common;
 using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.Dtos.Notification;
+using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
 /// <summary>
@@ -32,7 +33,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Đăng ký hoặc làm mới device token (NOTI-01)</summary>
     [HttpPost("notifications/devices")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<RegisterDeviceTokenResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> RegisterDeviceToken([FromBody] RegisterDeviceTokenRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.Platform) ||
@@ -60,7 +62,7 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Thu hồi hoặc vô hiệu hóa device token qua DELETE body (NOTI-02)</summary>
     [HttpDelete("notifications/devices")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
     public Task<IResult> RevokeDeviceToken([FromBody] RevokeDeviceTokenRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.Token))
@@ -77,9 +79,28 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
+    /// <summary>Thu hồi hoặc vô hiệu hóa device token qua route parameter (NOTI-02 / Row 187)</summary>
+    [HttpDelete("notifications/devices/{token}")]
+    [Authorize(GatewayPolicies.Authenticated)]
+    public Task<IResult> RevokeDeviceTokenByRoute([FromRoute] string token)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            throw new GatewayInputException("Token is required.", "Token");
+        }
+
+        return ForwardNoContentAsync(
+            Service,
+            $"/api/v1/notifications/devices/{Uri.EscapeDataString(token)}",
+            HttpMethod.Delete,
+            mockSeed: "device-revoke"
+        );
+    }
+
     /// <summary>Lấy danh sách cấu hình bật/tắt nhận thông báo của người dùng (NOTI-03)</summary>
     [HttpGet("notifications/preferences")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<List<NotificationPreferenceItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> GetMyPreferences()
     {
         return ForwardAsync(
@@ -93,7 +114,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Cập nhật tùy chọn bật/tắt nhận thông báo (NOTI-04)</summary>
     [HttpPut("notifications/preferences")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<UpdatePreferencesResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdatePreferences([FromBody] UpdatePreferencesRequest body)
     {
         if (body.Preferences == null || body.Preferences.Count == 0)
@@ -113,7 +135,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Lấy danh sách lịch sử thông báo in-app quả chuông (NOTI-05)</summary>
     [HttpGet("notifications/me")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<InAppNotificationItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> GetMyNotifications(
         [FromQuery] bool? isRead = null,
         [FromQuery] string? notificationType = null,
@@ -143,7 +166,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Đánh dấu thông báo đã đọc qua batch body (NOTI-06 / NOTI-08)</summary>
     [HttpPatch("notifications/me/read")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<MarkReadResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> MarkNotificationsAsRead([FromBody] MarkReadRequest body)
     {
         return ForwardAsync(
@@ -158,7 +182,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff xem cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
     [HttpGet("admin/notifications/channels/{code}")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<NotificationChannelResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetNotificationChannel([FromRoute] string code)
     {
         return ForwardAsync(
@@ -172,7 +197,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff cập nhật cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
     [HttpPut("admin/notifications/channels/{code}")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<NotificationChannelResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> UpdateNotificationChannel([FromRoute] string code, [FromBody] UpdateChannelRequest body)
     {
         return ForwardAsync(
@@ -187,7 +213,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff xem danh sách mẫu thông báo (NOTI-08 sheet / NOTI-12)</summary>
     [HttpGet("admin/notifications/templates")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<List<NotificationTemplateItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> GetNotificationTemplates(
         [FromQuery] string? channelCode = null,
         [FromQuery] string? notificationType = null)
@@ -208,7 +235,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff tạo mẫu nội dung thông báo mới (NOTI-08 sheet / NOTI-10)</summary>
     [HttpPost("admin/notifications/templates")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<NotificationTemplateCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateNotificationTemplate([FromBody] SaveTemplateRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.Code) ||
@@ -231,7 +259,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff tra cứu lịch sử thông báo toàn hệ thống (NOTI-09 sheet)</summary>
     [HttpGet("admin/notifications")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<AdminNotificationItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> SearchNotificationHistory(
         [FromQuery] Guid? userId = null,
         [FromQuery] string? notificationType = null,
@@ -258,7 +287,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff tra cứu nhật ký sự kiện kỹ thuật message bus (NOTI-13)</summary>
     [HttpGet("admin/event-logs")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<EventLogItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> GetEventLogs(
         [FromQuery] string? sourceService = null,
         [FromQuery] string? eventType = null,
@@ -282,9 +312,10 @@ public sealed class NotificationController : GatewayBaseController
     }
 
     /// <summary>Admin/Staff xem chi tiết toàn bộ raw JSON payload của sự kiện kỹ thuật (NOTI-14)</summary>
-    [HttpGet("admin/event-logs/{id:guid}")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
-    public Task<IResult> GetEventLogDetail([FromRoute] Guid id)
+    [HttpGet("admin/event-logs/{id}")]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<EventLogDetailResponseDto>), StatusCodes.Status200OK)]
+    public Task<IResult> GetEventLogDetail([FromRoute] string id)
     {
         return ForwardAsync(
             Service,
@@ -297,7 +328,8 @@ public sealed class NotificationController : GatewayBaseController
 
     /// <summary>Admin/Staff theo dõi trạng thái sức khỏe Message Broker (NOTI-16 sheet / NOTI-14)</summary>
     [HttpGet("admin/health/broker")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<BrokerHealthResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetBrokerHealthStatus([FromQuery] int limit = 50)
     {
         var query = new Dictionary<string, string?>

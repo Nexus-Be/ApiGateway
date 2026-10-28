@@ -64,6 +64,7 @@ public sealed class WalletAdjustmentRequest
     public decimal Amount { get; set; }
     public string? Reason { get; set; }
     public string? AdjustmentType { get; set; }  // CREDIT | DEBIT
+    public string? Direction { get => AdjustmentType; set => AdjustmentType = value; }
 }
 
 // ============================================================
@@ -170,13 +171,15 @@ public sealed class AdjustBalanceRequest
 {
     public decimal Amount { get; set; }
     public string? Reason { get; set; }
-    public string? Direction { get; set; } // "CREDIT" | "DEBIT"
+    public string? AdjustmentType { get; set; } // "CREDIT" | "DEBIT"
+    public string? Direction { get => AdjustmentType; set => AdjustmentType = value; }
 }
 
 /// <summary>POST /api/v1/wallet/topup/vnpay — alias for CreateVnpayTopupRequest</summary>
 public sealed class TopupVnPayRequest
 {
     public decimal Amount { get; set; }
+    public string? BankCode { get; set; }
     public string? ReturnUrl { get; set; }
     public string? IpAddress { get; set; }
 }

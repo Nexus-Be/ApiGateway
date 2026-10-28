@@ -206,6 +206,7 @@ public sealed class ProductsController : GatewayBaseController
 
     /// <summary>Thêm ảnh cho sản phẩm (CAT-12)</summary>
     [HttpPost("product/{productId}pics")]
+    [HttpPost("product/{productId}/pics")]
     [Authorize(GatewayPolicies.Seller)]
     [RequestSizeLimit(20 * 1024 * 1024)]
     [ProducesResponseType(typeof(ApiResponse<ProductImageAddResponseDto>), StatusCodes.Status201Created)]
@@ -227,6 +228,7 @@ public sealed class ProductsController : GatewayBaseController
 
     /// <summary>Xem ảnh của sản phẩm (CAT-40)</summary>
     [HttpGet("product/{productId}pics")]
+    [HttpGet("product/{productId}/pics")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ProductImageListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListProductImages([FromRoute] string productId, [FromQuery] string? variantId)
@@ -249,6 +251,7 @@ public sealed class ProductsController : GatewayBaseController
 
     /// <summary>Xoá danh sách ảnh của sản phẩm (CAT-13)</summary>
     [HttpDelete("product/{productId}pics")]
+    [HttpDelete("product/{productId}/pics")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public Task<IResult> DeleteProductImages([FromRoute] string productId, [FromQuery] string? ids)

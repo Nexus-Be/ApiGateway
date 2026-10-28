@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Nexus.Gateway.Common;
 using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.Dtos.Commerce;
+using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
 /// <summary>
@@ -34,7 +35,8 @@ public sealed class CartController : GatewayBaseController
 
     /// <summary>Lấy giỏ hàng hiện tại của người dùng (CART-01)</summary>
     [HttpGet("cart")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<CartResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetCart()
     {
         return ForwardAsync(Service, "/api/v1/cart", HttpMethod.Get, mockSeed: "cart-get");
@@ -42,7 +44,8 @@ public sealed class CartController : GatewayBaseController
 
     /// <summary>Thêm một hoặc nhiều sản phẩm vào giỏ hàng (CART-02)</summary>
     [HttpPost("cart/items")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<AddCartItemResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> AddCartItem([FromBody] AddCartItemRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.ProductId) && string.IsNullOrWhiteSpace(body.SkuId))
@@ -55,8 +58,9 @@ public sealed class CartController : GatewayBaseController
 
     /// <summary>Đổi số lượng của một dòng trong giỏ hàng (CART-03)</summary>
     [HttpPatch("cart/items/{cartItemId}")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
-    public Task<IResult> UpdateCartItem(string cartItemId, [FromBody] UpdateCartItemRequest body)
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<UpdateCartItemResponseDto>), StatusCodes.Status200OK)]
+    public Task<IResult> UpdateCartItem([FromRoute] string cartItemId, [FromBody] UpdateCartItemRequest body)
     {
         if (string.IsNullOrWhiteSpace(cartItemId))
             throw new GatewayInputException("Cart item ID is required.", "CartItemId");
@@ -68,7 +72,8 @@ public sealed class CartController : GatewayBaseController
 
     /// <summary>Xoá một hoặc nhiều dòng khỏi giỏ hàng (CART-04)</summary>
     [HttpDelete("cart/items")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<RemoveCartItemsResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> RemoveCartItems([FromBody] RemoveCartItemsRequest body)
     {
         if (!body.All && (body.CartItemIds is null || body.CartItemIds.Count == 0))
@@ -79,7 +84,8 @@ public sealed class CartController : GatewayBaseController
 
     /// <summary>Xoá toàn bộ giỏ hàng (CART-05)</summary>
     [HttpDelete("cart/items/all")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<ClearCartResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ClearCart()
     {
         return ForwardAsync(Service, "/api/v1/cart/items/all", HttpMethod.Delete, mockSeed: "cart-clear");
@@ -87,7 +93,8 @@ public sealed class CartController : GatewayBaseController
 
     /// <summary>Kiểm tra tính hợp lệ của các dòng được chọn trước khi checkout (CART-06)</summary>
     [HttpGet("cart/items/select")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<List<CartItemValidationDto>>), StatusCodes.Status200OK)]
     public Task<IResult> SelectCartItems([FromQuery(Name = "cartItemIds")] List<string>? cartItemIds)
     {
         if (cartItemIds is null || cartItemIds.Count == 0)

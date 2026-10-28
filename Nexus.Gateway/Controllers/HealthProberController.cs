@@ -1,16 +1,16 @@
-using Microsoft.AspNetCore.Mvc.Filters;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
-
 namespace Nexus.Gateway.Controllers;
 
+using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Nexus.Gateway.Clients;
 using Nexus.Gateway.Dtos.HealthProber;
 using Nexus.Gateway.HealthProber;
@@ -98,7 +98,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
             if (authVal.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
                 var token = authVal["Bearer ".Length..].Trim();
-                if (!string.IsNullOrEmpty(token) && !token.Contains('.')) // exclude JWT
+                if (!string.IsNullOrEmpty(token) && !token.Contains('.'))
                 {
                     apiKey = token;
                     return true;

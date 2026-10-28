@@ -16,9 +16,12 @@ public sealed record RegisterRequestDto(
     string? PhoneNumber = null);
 
 /// <summary>AUTH-02: POST /api/v1/auth/otp/verify (Exactly 2 fields as specified in flow_mock_excel.xlsx)</summary>
-public sealed record VerifyOtpRequestDto(
-    string Email,
-    string Otp);
+public sealed class VerifyOtpRequestDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string Otp { get; set; } = string.Empty;
+    public string? OtpCode { get => Otp; set => Otp = value ?? string.Empty; }
+}
 
 /// <summary>AUTH-03: POST /api/v1/auth/otp/resend (Exactly 2 fields)</summary>
 public sealed record ResendOtpRequestDto(
@@ -26,15 +29,20 @@ public sealed record ResendOtpRequestDto(
     string? Type = null); // "REGISTER" | "FORGOT_PASSWORD"
 
 /// <summary>AUTH-04: POST /api/v1/auth/login (Excel specifies identifier, password, deviceInfo, ipAddress)</summary>
-public sealed record LoginRequestDto(
-    string? Identifier = null,
-    string Password = "",
-    string? DeviceInfo = null,
-    string? IpAddress = null,
-    string? Username = null)
+public sealed class LoginRequestDto
 {
+    public string? Identifier { get; set; }
+    public string? Email { get; set; }
+    public string? Username { get; set; }
+    public string Password { get; set; } = string.Empty;
+    public string? DeviceInfo { get; set; }
+    public string? IpAddress { get; set; }
+
     [JsonIgnore]
-    public string EffectiveIdentifier => !string.IsNullOrWhiteSpace(Identifier) ? Identifier : (Username ?? string.Empty);
+    public string EffectiveIdentifier =>
+        !string.IsNullOrWhiteSpace(Identifier) ? Identifier :
+        !string.IsNullOrWhiteSpace(Email) ? Email :
+        (Username ?? string.Empty);
 }
 
 /// <summary>AUTH-05: POST /api/v1/auth/refresh</summary>
@@ -47,11 +55,14 @@ public sealed record ForgotPasswordRequestDto(
     string Email);
 
 /// <summary>AUTH-07: PUT /api/v1/auth/password/reset</summary>
-public sealed record ResetPasswordRequestDto(
-    string Email,
-    string OtpCode,
-    string NewPassword,
-    string ConfirmPassword);
+public sealed class ResetPasswordRequestDto
+{
+    public string Email { get; set; } = string.Empty;
+    public string OtpCode { get; set; } = string.Empty;
+    public string? Otp { get => OtpCode; set => OtpCode = value ?? string.Empty; }
+    public string NewPassword { get; set; } = string.Empty;
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
 
 /// <summary>AUTH-08: PATCH /api/v1/auth/password</summary>
 public sealed record ChangePasswordRequestDto(

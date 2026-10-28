@@ -381,9 +381,9 @@ public sealed class AuctionController : GatewayBaseController
     }
 
     /// <summary>Internal: Lấy tóm tắt phiên đấu giá theo auctionId (Row 147 / AUC-35)</summary>
-    [HttpGet("/internal/v1/auctions/{auctionId:guid}/summary")]
+    [HttpGet("/internal/v1/auctions/{auctionId}/summary")]
     [AllowAnonymous]
-    public Task<IResult> GetInternalAuctionSummary([FromRoute] Guid auctionId)
+    public Task<IResult> GetInternalAuctionSummary([FromRoute] string auctionId)
     {
         return ForwardAsync(
             Service,

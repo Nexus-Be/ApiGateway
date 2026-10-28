@@ -103,6 +103,7 @@ public sealed class ShipmentTrackingUpdatedResponseDto
 {
     public string? ShipmentId { get; set; }
     public string? TrackingNumber { get; set; }
+    public string? CurrentStatus { get => Status; set => Status = value; }
     public string? Status { get; set; }
     public string? Location { get; set; }
     public string? UpdatedAt { get; set; }
@@ -113,6 +114,7 @@ public sealed class ShipmentCompletedResponseDto
 {
     public string? ShipmentId { get; set; }
     public string? Status { get; set; }       // DELIVERED
+    public string? CompletedAt { get => DeliveredAt; set => DeliveredAt = value; }
     public string? DeliveredAt { get; set; }
     public string? OrderId { get; set; }
 }
@@ -128,4 +130,3 @@ public sealed class PaginationDto
     public bool HasPreviousPage { get; set; }
     public bool HasNextPage { get; set; }
 }
-

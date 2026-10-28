@@ -313,6 +313,7 @@ public sealed class CategoryListItemDto
     public int Level { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; }
+    public List<CategoryListItemDto>? Children { get; set; }
 }
 
 /// <summary>CAT-31: POST /api/v1/categories — 201 Created</summary>
@@ -320,6 +321,7 @@ public sealed class CategoryCreatedResponseDto
 {
     public string? CategoryId { get; set; }
     public string? Name { get; set; }
+    public int Level { get; set; }
 }
 
 /// <summary>CAT-32: PUT /api/v1/categories/{categoryId} — 200 OK</summary>
@@ -327,6 +329,12 @@ public sealed class CategoryUpdatedResponseDto
 {
     public string? CategoryId { get; set; }
     public string? Name { get; set; }
+    public string? ParentId { get; set; }
+    public string? Description { get; set; }
+    public int Level { get; set; }
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; }
+    public string? UpdatedAt { get; set; }
 }
 
 /// <summary>GET /api/v1/categories/{categoryId}</summary>
@@ -343,19 +351,37 @@ public sealed class CategoryDetailResponseDto
 
 // ---------- STOCK RESPONSES ----------
 
-/// <summary>Stock-in response (simple message)</summary>
+/// <summary>Stock-in response — Row 114 (F2)</summary>
 public sealed class StockInResponseDto
 {
+    public List<StockInResultItemDto>? Items { get; set; }
+    public PaginationDto? Pagination { get; set; }
     public string? Message { get; set; }
+}
+
+public sealed class StockInResultItemDto
+{
+    public string? SkuId { get; set; }
+    public int AddedQuantity { get; set; }
+    public int StockQuantity { get; set; }
 }
 
 // ---------- AUCTION PRODUCT RESPONSES ----------
 
-/// <summary>CAT: POST /api/v1/products/auction — 201 Created</summary>
+/// <summary>CAT: POST /api/v1/product/auction — 201 Created (Row 125)</summary>
 public sealed class AuctionProductCreatedResponseDto
 {
     public string? ProductId { get; set; }
+    public string? Status { get; set; }
+    public string? SaleType { get; set; }
+    public AuctionProductVariantCreatedDto? Variant { get; set; }
     public string? Name { get; set; }
+}
+
+public sealed class AuctionProductVariantCreatedDto
+{
+    public string? VariantId { get; set; }
+    public string? SkuCode { get; set; }
 }
 
 /// <summary>GET auction product detail</summary>
@@ -411,6 +437,8 @@ public sealed class ProductStatusResponseDto
 {
     public string? ProductId { get; set; }
     public string? Status { get; set; }
+    public string? StatusReason { get; set; }
+    public string? PublishedAt { get; set; }
     public bool IsAvailable { get; set; }
     public int TotalStock { get; set; }
 }

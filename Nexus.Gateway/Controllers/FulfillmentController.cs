@@ -11,6 +11,7 @@ using Nexus.Gateway.Common;
 using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.Dtos.Commerce;
 using Nexus.Gateway.Dtos.Fulfillment;
+using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
 /// <summary>
@@ -30,8 +31,10 @@ public sealed class FulfillmentController : GatewayBaseController
 
     /// <summary>Xem chi tiết một vận đơn kèm lịch sử hành trình (FUL-19)</summary>
     [HttpGet("shipments/{shipmentId}")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
-    public Task<IResult> GetShipment(string shipmentId)
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<ShipmentDetailResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public Task<IResult> GetShipment([FromRoute] string shipmentId)
     {
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
@@ -46,8 +49,10 @@ public sealed class FulfillmentController : GatewayBaseController
 
     /// <summary>Liệt kê các vận đơn của một đơn hàng (FUL-18)</summary>
     [HttpGet("shipments/order/{orderId}")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
-    public Task<IResult> GetShipmentsByOrder(string orderId)
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<List<ShipmentListItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public Task<IResult> GetShipmentsByOrder([FromRoute] string orderId)
     {
         if (string.IsNullOrWhiteSpace(orderId))
             throw new GatewayInputException("Order ID is required.", "OrderId");
@@ -62,7 +67,9 @@ public sealed class FulfillmentController : GatewayBaseController
 
     /// <summary>Danh sách vận đơn của người bán, lọc theo trạng thái (FUL-20)</summary>
     [HttpGet("seller/shipment")]
-    [Authorize(Policy = GatewayPolicies.Seller)]
+    [Authorize(GatewayPolicies.Seller)]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<SellerShipmentListItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public Task<IResult> ListSellerShipments([FromQuery] PaginationRequest pagination, [FromQuery] string? status)
     {
         pagination.EnsureValid();
@@ -84,7 +91,9 @@ public sealed class FulfillmentController : GatewayBaseController
 
     /// <summary>Tìm kiếm vận đơn của người bán theo từ khoá và khoảng ngày (FUL-20)</summary>
     [HttpGet("seller/shipment/search")]
-    [Authorize(Policy = GatewayPolicies.Seller)]
+    [Authorize(GatewayPolicies.Seller)]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<SellerShipmentListItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public Task<IResult> SearchSellerShipments(
         [FromQuery] PaginationRequest pagination,
         [FromQuery] string? keyword,
@@ -114,8 +123,10 @@ public sealed class FulfillmentController : GatewayBaseController
 
     /// <summary>Người bán xem chi tiết vận đơn của mình (FUL-19, FUL-20)</summary>
     [HttpGet("seller/shipment/{shipmentId}")]
-    [Authorize(Policy = GatewayPolicies.Seller)]
-    public Task<IResult> GetSellerShipment(string shipmentId)
+    [Authorize(GatewayPolicies.Seller)]
+    [ProducesResponseType(typeof(ApiResponse<ShipmentDetailResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public Task<IResult> GetSellerShipment([FromRoute] string shipmentId)
     {
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
@@ -130,8 +141,10 @@ public sealed class FulfillmentController : GatewayBaseController
 
     /// <summary>Cập nhật trạng thái vận đơn nhận từ đơn vị vận chuyển (FUL-17)</summary>
     [HttpPatch("shipments/{shipmentId}/tracking")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
-    public Task<IResult> UpdateShipmentTracking(string shipmentId, [FromBody] UpdateShipmentTrackingRequest body)
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<ShipmentTrackingUpdatedResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public Task<IResult> UpdateShipmentTracking([FromRoute] string shipmentId, [FromBody] UpdateShipmentTrackingRequest body)
     {
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
@@ -150,8 +163,10 @@ public sealed class FulfillmentController : GatewayBaseController
 
     /// <summary>Người mua xác nhận đã nhận hàng (FUL-23)</summary>
     [HttpPost("shipment/{shipmentId}/complete")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
-    public Task<IResult> CompleteShipment(string shipmentId)
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<ShipmentCompletedResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public Task<IResult> CompleteShipment([FromRoute] string shipmentId)
     {
         if (string.IsNullOrWhiteSpace(shipmentId))
             throw new GatewayInputException("Shipment ID is required.", "ShipmentId");
@@ -167,6 +182,8 @@ public sealed class FulfillmentController : GatewayBaseController
     /// <summary>Nhận webhook trạng thái từ đơn vị vận chuyển (FUL-17)</summary>
     [HttpPost("shipments/webhook")]
     [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public Task<IResult> ShipmentWebhook([FromBody] ShipmentWebhookRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.TrackingNumber))

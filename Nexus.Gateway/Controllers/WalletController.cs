@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Nexus.Gateway.Common;
 using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.Dtos.Wallet;
+using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
 /// <summary>
@@ -30,7 +31,8 @@ public sealed class WalletController : GatewayBaseController
 
     /// <summary>Lấy thông tin ví và số dư khả dụng/bị khóa của cá nhân (WAL-02)</summary>
     [HttpGet("wallets/me")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<WalletInfoResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetMyWallet()
     {
         return ForwardAsync(
@@ -44,7 +46,8 @@ public sealed class WalletController : GatewayBaseController
 
     /// <summary>Tạo yêu cầu nạp tiền qua VNPay và lấy URL thanh toán (WAL-03)</summary>
     [HttpPost("wallets/topups/vnpay")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<VnpayTopupCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> InitiateVnPayTopup([FromBody] TopupVnPayRequest body)
     {
         if (body.Amount < 10000m)
@@ -65,6 +68,7 @@ public sealed class WalletController : GatewayBaseController
     /// <remarks>Public callback, không cần đăng nhập; trả nguyên định dạng VNPay, không bọc ApiResponse.</remarks>
     [HttpPost("wallets/vnpay/ipn")]
     [AllowAnonymous]
+    [ProducesResponseType(typeof(VnPayIpnResponse), StatusCodes.Status200OK)]
     public IResult ProcessVnPayIpn()
     {
         return Results.Ok(new VnPayIpnResponse { RspCode = "00", Message = "Confirm success." });
@@ -72,7 +76,8 @@ public sealed class WalletController : GatewayBaseController
 
     /// <summary>Tạo phiên thanh toán trực tiếp qua cổng VNPay cho đơn hàng (WAL-05B)</summary>
     [HttpPost("wallets/checkout/direct")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<DirectCheckoutResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> InitiateDirectPayment([FromBody] DirectCheckoutRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.OrderId))
@@ -92,7 +97,8 @@ public sealed class WalletController : GatewayBaseController
 
     /// <summary>Yêu cầu rút tiền từ ví về tài khoản ngân hàng (WAL-07)</summary>
     [HttpPost("wallets/withdrawals")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<WithdrawalCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> RequestWithdrawal([FromBody] WithdrawalRequest body)
     {
         if (body.Amount < 50000m)
@@ -117,7 +123,8 @@ public sealed class WalletController : GatewayBaseController
 
     /// <summary>Quản trị viên / Nhân viên tài chính duyệt hoặc từ chối yêu cầu rút tiền (WAL-08)</summary>
     [HttpPatch("admin/wallets/withdrawals/{withdrawalId}")]
-    [Authorize(Policy = GatewayPolicies.StaffOrAdmin)]
+    [Authorize(GatewayPolicies.StaffOrAdmin)]
+    [ProducesResponseType(typeof(ApiResponse<WithdrawalProcessedResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ProcessWithdrawal(string withdrawalId, [FromBody] ProcessWithdrawalRequest body)
     {
         if (string.IsNullOrWhiteSpace(withdrawalId))
@@ -138,7 +145,8 @@ public sealed class WalletController : GatewayBaseController
 
     /// <summary>Tra cứu lịch sử biến động sổ cái (wallet_transactions) cá nhân (WAL-09)</summary>
     [HttpGet("wallets/transactions")]
-    [Authorize(Policy = GatewayPolicies.Authenticated)]
+    [Authorize(GatewayPolicies.Authenticated)]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<WalletTransactionItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> GetTransactions(
         [FromQuery] int page = 1,
         [FromQuery] int limit = 20,
@@ -169,7 +177,8 @@ public sealed class WalletController : GatewayBaseController
 
     /// <summary>Admin điều chỉnh số dư ví thủ công kèm kiểm toán (WAL-10)</summary>
     [HttpPost("admin/wallets/{walletId}/adjustments")]
-    [Authorize(Policy = GatewayPolicies.Admin)]
+    [Authorize(GatewayPolicies.Admin)]
+    [ProducesResponseType(typeof(ApiResponse<WalletAdjustmentResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> AdjustBalance(string walletId, [FromBody] AdjustBalanceRequest body)
     {
         if (string.IsNullOrWhiteSpace(walletId))

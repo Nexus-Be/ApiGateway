@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Nexus.Gateway.Common;
 using Nexus.Gateway.Dispatching;
 using Nexus.Gateway.Dtos.Commerce;
+using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
 /// <summary>
@@ -30,7 +31,8 @@ public sealed class OrdersController : GatewayBaseController
     /// <summary>Lấy danh sách đơn hàng của người mua (Row 78 / ORD-07)</summary>
     [HttpGet("orders")]
     [HttpGet("order")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<OrderListItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> ListOrders(
         [FromQuery] PaginationRequest pagination,
         [FromQuery] string? status = null,
@@ -60,7 +62,8 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Tính trước tiền hàng, giảm giá và phí ship (CHK-01)</summary>
     [HttpPost("checkout/quote")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<CheckoutQuoteResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> CreateCheckoutQuote([FromBody] CheckoutQuoteRequest body)
     {
         if (body.CartItemIds is null || body.CartItemIds.Count == 0)
@@ -86,7 +89,8 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Tạo đơn hàng từ quote đã tính (ORD-01)</summary>
     [HttpPost("orders")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<CreateOrderResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateOrder([FromBody] CreateOrderRequest body)
     {
         if (string.IsNullOrWhiteSpace(body.QuoteId))
@@ -108,7 +112,8 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Xem chi tiết một đơn hàng (ORD-02)</summary>
     [HttpGet("order/{orderId}")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<OrderDetailResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetOrder(string orderId)
     {
         if (string.IsNullOrWhiteSpace(orderId))
@@ -124,7 +129,8 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Xem chi tiết một đơn con theo người bán (ORD-03)</summary>
     [HttpGet("subOrder/{subOrderId}")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<SubOrderDetailDto>), StatusCodes.Status200OK)]
     public Task<IResult> GetSubOrder(string subOrderId)
     {
         if (string.IsNullOrWhiteSpace(subOrderId))
@@ -140,7 +146,8 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Người mua huỷ đơn khi chưa thanh toán (ORD-06)</summary>
     [HttpPost("orders/{orderId}/cancel")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
+    [ProducesResponseType(typeof(ApiResponse<CancelOrderResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> CancelOrder(string orderId, [FromBody] CancelOrderRequest body)
     {
         if (string.IsNullOrWhiteSpace(orderId))
@@ -159,7 +166,7 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Người bán chấp nhận đơn con (ORD-04)</summary>
     [HttpPost("orders/{orderId}/accept")]
-    [Authorize(Policy = GatewayPolicies.Seller)]
+    [Authorize(GatewayPolicies.Seller)]
     public Task<IResult> AcceptSubOrder(string orderId, [FromBody] SubOrderDecisionRequest body)
     {
         if (string.IsNullOrWhiteSpace(orderId))
@@ -178,7 +185,7 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Người bán từ chối đơn con (ORD-05)</summary>
     [HttpPost("orders/{orderId}/reject")]
-    [Authorize(Policy = GatewayPolicies.Seller)]
+    [Authorize(GatewayPolicies.Seller)]
     public Task<IResult> RejectSubOrder(string orderId, [FromBody] SubOrderDecisionRequest body)
     {
         if (string.IsNullOrWhiteSpace(orderId))
@@ -215,7 +222,7 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Đánh giá sản phẩm sau khi đơn hoàn tất (Row 90 / COM-19)</summary>
     [HttpPost("order/{orderId}/products/{productId}/reviews")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> CreateProductReview(
         [FromRoute] string orderId,
         [FromRoute] string productId,
@@ -241,7 +248,7 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Đánh giá người bán/người mua theo đơn hàng (Row 91 / COM-20)</summary>
     [HttpPost("order/{orderId}/user/{userId}")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> CreateUserFeedback(
         [FromRoute] string orderId,
         [FromRoute] string userId,
@@ -267,7 +274,7 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Cập nhật đánh giá sản phẩm (Row 92 / COM-21)</summary>
     [HttpPatch("order/{orderId}/products/{productId}/reviews")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> UpdateProductReview(
         [FromRoute] string orderId,
         [FromRoute] string productId,
@@ -292,7 +299,7 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Cập nhật đánh giá người dùng (Row 93 / COM-22)</summary>
     [HttpPatch("order/{orderId}/user/{userId}")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> UpdateUserFeedback(
         [FromRoute] string orderId,
         [FromRoute] string userId,
@@ -317,7 +324,7 @@ public sealed class OrdersController : GatewayBaseController
 
     /// <summary>Yêu cầu hoàn tiền đơn hàng con (Row 97 / COM-26)</summary>
     [HttpPost("subOrder/{subOrderId}/refund")]
-    [Authorize(Policy = GatewayPolicies.Customer)]
+    [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> RefundSubOrder(
         [FromRoute] string subOrderId,
         [FromBody] RefundSubOrderRequest body)

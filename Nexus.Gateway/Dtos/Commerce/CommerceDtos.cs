@@ -273,16 +273,36 @@ public sealed class InvalidVoucherDto
 /// <summary>ORD-01: POST /api/v1/orders — 201 Created</summary>
 public sealed class CreateOrderResponseDto
 {
-    public string? OrderId { get; set; }
-    public string? OrderNo { get; set; }
-    public decimal TotalAmount { get; set; }
+    public string? OrderGroupId { get; set; }
     public string? Status { get; set; }
+    public decimal TotalAmount { get; set; }
     public string? PaymentDeadlineAt { get; set; }
-    public string? PaymentMethod { get; set; }
-    public string? PaymentUrl { get; set; }
+    public List<OrderGroupSubOrderDto>? Orders { get; set; }
+    public OrderPaymentInfoDto? Payment { get; set; }
+
+    // Backwards-compatible aliases
+    public string? OrderId { get => OrderGroupId; set => OrderGroupId = value; }
+    public string? OrderNo { get; set; }
+    public string? PaymentMethod { get => Payment?.PaymentMethod; set { Payment ??= new(); Payment.PaymentMethod = value; } }
+    public string? PaymentUrl { get => Payment?.DeepLink ?? Payment?.QrCodeUrl; set { Payment ??= new(); Payment.DeepLink = value; } }
     public List<string>? SubOrderIds { get; set; }
     public List<SubOrderSummaryDto>? SubOrders { get; set; }
     public string? CreatedAt { get; set; }
+}
+
+public sealed class OrderGroupSubOrderDto
+{
+    public string? OrderId { get; set; }
+    public string? SellerId { get; set; }
+    public decimal TotalAmount { get; set; }
+    public string? Status { get; set; }
+}
+
+public sealed class OrderPaymentInfoDto
+{
+    public string? QrCodeUrl { get; set; }
+    public string? DeepLink { get; set; }
+    public string? PaymentMethod { get; set; }
 }
 
 public sealed class SubOrderSummaryDto
@@ -294,8 +314,8 @@ public sealed class SubOrderSummaryDto
     public int ItemCount { get; set; }
 }
 
-/// <summary>ORD-02: GET /api/v1/orders/{orderId}</summary>
-public sealed class OrderDetailResponseDto
+/// <summary>Row 78 / ORD-07: GET /api/v1/orders — List item in paged result</summary>
+public sealed class OrderListItemDto
 {
     public string? OrderId { get; set; }
     public string? OrderNo { get; set; }
@@ -307,6 +327,27 @@ public sealed class OrderDetailResponseDto
     public string? ContactPhone { get; set; }
     public string? CreatedAt { get; set; }
     public List<SubOrderDetailDto>? SubOrders { get; set; }
+}
+
+/// <summary>ORD-02: GET /api/v1/orders/{orderId}</summary>
+public sealed class OrderDetailResponseDto
+{
+    public string? OrderId { get; set; }
+    public string? OrderNo { get; set; }
+    public string? Status { get; set; }
+    public decimal SubtotalAmount { get; set; }
+    public decimal ShippingFee { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TotalAmount { get; set; }
+    public string? PaymentMethod { get; set; }
+    public string? ShippingAddress { get; set; }
+    public string? ContactPhone { get; set; }
+    public string? Note { get; set; }
+    public string? CreatedAt { get; set; }
+    public List<SubOrderDetailDto>? SubOrders { get; set; }
+
+    // Backwards-compatible alias
+    public string? BuyerId { get; set; }
 }
 
 public sealed class SubOrderDetailDto
