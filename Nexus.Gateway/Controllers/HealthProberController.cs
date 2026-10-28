@@ -202,9 +202,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
             $"Health prober for all canonical services has been {action}.");
     }
 
-    /// <summary>
-    /// API kiểm tra sức khỏe thủ công tức thì (Manual Health Check on Demand)
-    /// </summary>
+    /// <summary>Kiểm tra sức khỏe thủ công tức thì (Manual Health Check on Demand)</summary>
     [HttpPost("gateway/prober/{service}/check")]
     [ProducesResponseType(typeof(ApiResponse<HealthCheckSample>), StatusCodes.Status200OK)]
     public async Task<IResult> ManualHealthCheck(
@@ -229,9 +227,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
         return _factory.SuccessResult(HttpContext, sample, message);
     }
 
-    /// <summary>
-    /// Lấy danh sách trạng thái kiểm tra sức khỏe của toàn bộ cơ sở dữ liệu các service
-    /// </summary>
+    /// <summary>Lấy danh sách trạng thái kiểm tra sức khỏe của toàn bộ cơ sở dữ liệu các service</summary>
     [HttpGet("gateway/prober/databases/status")]
     public async Task<IResult> GetAllDatabasesStatus(CancellationToken cancellationToken)
     {
@@ -242,9 +238,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
             "Retrieved health status for all service databases.");
     }
 
-    /// <summary>
-    /// Lấy trạng thái kiểm tra cơ sở dữ liệu của một service cụ thể
-    /// </summary>
+    /// <summary>Lấy trạng thái kiểm tra cơ sở dữ liệu của một service cụ thể</summary>
     [HttpGet("gateway/prober/databases/status/{service}")]
     public async Task<IResult> GetDatabaseStatus([FromRoute] string service, CancellationToken cancellationToken)
     {
@@ -264,9 +258,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
             $"Retrieved database health status for service '{service}'.");
     }
 
-    /// <summary>
-    /// Bật/tắt kiểm tra và truyền chuỗi kết nối cho cơ sở dữ liệu của service
-    /// </summary>
+    /// <summary>Bật/tắt kiểm tra và truyền chuỗi kết nối cho cơ sở dữ liệu của service</summary>
     [HttpPut("gateway/prober/databases/{service}")]
     public async Task<IResult> ToggleDatabaseProber(
         [FromRoute] string service,
@@ -290,9 +282,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
             $"Database prober for service '{service}' has been {action}.");
     }
 
-    /// <summary>
-    /// Kích hoạt kiểm tra sức khỏe thủ công (Keep-alive SELECT 1) cho cơ sở dữ liệu của service
-    /// </summary>
+    /// <summary>Kích hoạt kiểm tra sức khỏe thủ công (Keep-alive SELECT 1) cho cơ sở dữ liệu của service</summary>
     [HttpPost("gateway/prober/databases/{service}/check")]
     public async Task<IResult> ManualDatabaseCheck(
         [FromRoute] string service,
@@ -315,9 +305,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
         return _factory.SuccessResult(HttpContext, result, message);
     }
 
-    /// <summary>
-    /// Kiểm tra trạng thái hiện tại của chính service CheckHeal
-    /// </summary>
+    /// <summary>Kiểm tra trạng thái hiện tại của chính service CheckHeal</summary>
     [HttpGet("gateway/prober/healthcheck-service/status")]
     public async Task<IResult> GetCheckHealServiceStatus(CancellationToken cancellationToken)
     {
@@ -328,9 +316,7 @@ public sealed class HealthProberController : ControllerBase, IActionFilter
             "Retrieved CheckHealService operational status.");
     }
 
-    /// <summary>
-    /// Kích hoạt chủ động probe kiểm tra sức khỏe service CheckHeal từ Gateway
-    /// </summary>
+    /// <summary>Kích hoạt chủ động probe kiểm tra sức khỏe service CheckHeal từ Gateway</summary>
     [HttpPost("gateway/prober/healthcheck-service/check")]
     public async Task<IResult> CheckHealthCheckService(CancellationToken cancellationToken)
     {

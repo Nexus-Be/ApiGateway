@@ -12,9 +12,6 @@ using Nexus.Gateway.Dtos.Catalog;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// Inventory HTTP API — gateway-side slice of the F2 stock flows (CAT-09, CAT-10).
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("catalog")]

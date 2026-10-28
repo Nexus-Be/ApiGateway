@@ -15,9 +15,6 @@ using Nexus.Gateway.Dtos.Auction;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// Auction HTTP API — the gateway-side slice of the auction flow contract (F3, AUC-01 through AUC-19).
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("auction")]
@@ -30,8 +27,6 @@ public sealed class AuctionController : GatewayBaseController
         : base(dispatcher)
     {
     }
-
-    // ---------------------------------------------------------------- Public / buyer
 
     /// <summary>Xem danh sách phiên đấu giá (AUC-01)</summary>
     [HttpGet("auctions")]
@@ -166,8 +161,6 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    // ---------------------------------------------------------------- Seller
-
     /// <summary>Seller tạo phiên đấu giá (AUC-10)</summary>
     [HttpPost("auctions")]
     [Authorize(GatewayPolicies.Seller)]
@@ -271,8 +264,6 @@ public sealed class AuctionController : GatewayBaseController
             }
         );
     }
-
-    // ---------------------------------------------------------------- Admin / staff
 
     /// <summary>Nhật ký đổi trạng thái của 1 phiên (AUC-18)</summary>
     [HttpGet("auctions/{auctionId}/status-history")]

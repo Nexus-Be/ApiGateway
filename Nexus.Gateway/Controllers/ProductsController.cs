@@ -14,9 +14,6 @@ using Nexus.Gateway.Dtos.Catalog;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// Product HTTP API — gateway-side slice of the F2 product flow (CAT-01 .. CAT-13, CAT-30/31, CAT-40/42/43).
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("catalog")]
@@ -29,8 +26,6 @@ public sealed class ProductsController : GatewayBaseController
         : base(dispatcher)
     {
     }
-
-    // ---------------------------------------------------------------- list / search
 
     /// <summary>Xem danh sách sản phẩm của shop (CAT-06) / Tìm kiếm sản phẩm (Row 41)</summary>
     [HttpGet("products")]
@@ -125,8 +120,6 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    // ---------------------------------------------------------------- detail / write
-
     /// <summary>Xem chi tiết một sản phẩm (CAT-05)</summary>
     [HttpGet("product/{productId}")]
     [AllowAnonymous]
@@ -202,8 +195,6 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    // ---------------------------------------------------------------- images
-
     /// <summary>Thêm ảnh cho sản phẩm (CAT-12)</summary>
     [HttpPost("product/{productId}pics")]
     [HttpPost("product/{productId}/pics")]
@@ -270,8 +261,6 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    // ---------------------------------------------------------------- rating
-
     /// <summary>Điểm đánh giá trung bình của sản phẩm (CAT-31)</summary>
     [HttpGet("products/{productId}/totalRating")]
     [AllowAnonymous]
@@ -319,8 +308,6 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    // ---------------------------------------------------------------- status
-
     /// <summary>Đổi trạng thái sản phẩm (CAT-03)</summary>
     [HttpPatch("product/{productId}/status")]
     [Authorize(GatewayPolicies.Seller)]
@@ -338,8 +325,6 @@ public sealed class ProductsController : GatewayBaseController
             mockSeed: "product-status"
         );
     }
-
-    // ---------------------------------------------------------------- variants
 
     /// <summary>Thêm biến thể cho sản phẩm (CAT-07)</summary>
     [HttpPost("product/{productId}/variants")]
@@ -408,8 +393,6 @@ public sealed class ProductsController : GatewayBaseController
             mockSeed: "variant"
         );
     }
-
-    // ---------------------------------------------------------------- auction products
 
     /// <summary>Tạo sản phẩm đấu giá (CAT-43)</summary>
     [HttpPost("product/auction")]

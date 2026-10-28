@@ -14,11 +14,6 @@ using Nexus.Gateway.Dtos.Notification;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// Notification surface (NOTI-01 to NOTI-16).
-/// Endpoints follow flow_mock_excel.xlsx and Functions.xlsx:
-/// User/Client routes at /api/v1/notifications/* and Admin routes at /api/v1/admin/notifications/* and /api/v1/admin/*.
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("notification")]

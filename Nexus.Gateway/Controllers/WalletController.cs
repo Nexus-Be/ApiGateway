@@ -13,10 +13,6 @@ using Nexus.Gateway.Dtos.Wallet;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// F5 wallet surface (WAL-02, WAL-03, WAL-04, WAL-05B, WAL-07, WAL-08, WAL-09, WAL-10).
-/// Routes follow the F5 contract sheet: <c>/api/v1/wallets/*</c> and <c>/api/v1/admin/wallets/*</c>.
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("wallet")]
@@ -65,7 +61,6 @@ public sealed class WalletController : GatewayBaseController
     }
 
     /// <summary>Webhook nhận kết quả IPN từ VNPay (nạp ví hoặc thanh toán đơn trực tiếp) (WAL-04)</summary>
-    /// <remarks>Public callback, không cần đăng nhập; trả nguyên định dạng VNPay, không bọc ApiResponse.</remarks>
     [HttpPost("wallets/vnpay/ipn")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(VnPayIpnResponse), StatusCodes.Status200OK)]

@@ -13,14 +13,6 @@ using Nexus.Gateway.Dtos.Commerce;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// F1 cart surface (CART-01 .. CART-06). Routes follow the F1 contract sheet:
-/// <c>/api/v1/cart</c> and <c>/api/v1/cart/items</c> — no <c>/commerce</c> segment.
-/// </summary>
-/// <remarks>
-/// <para>Mock: đọc <c>Seeds/commerce/*.json</c> qua <c>IGatewayDispatcher</c>; response bọc trong <c>ApiResponse&lt;T&gt;</c>.</para>
-/// <para>Real: chuyển tiếp HTTP REST downstream sang Commerce service (port 8003).</para>
-/// </remarks>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("commerce")]

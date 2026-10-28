@@ -14,9 +14,6 @@ using Nexus.Gateway.Dtos.Fulfillment;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// Fulfillment HTTP API — gateway-side slice of the F4 shipping flows (FUL-17 .. FUL-23).
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("fulfillment")]

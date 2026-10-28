@@ -14,9 +14,6 @@ using Nexus.Gateway.Dtos.Catalog;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// Category HTTP API — gateway-side slice of the F2 category flow (CAT-15 .. CAT-19).
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("catalog")]

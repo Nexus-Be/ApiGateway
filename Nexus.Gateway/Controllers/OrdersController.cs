@@ -12,10 +12,6 @@ using Nexus.Gateway.Dtos.Commerce;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 
-/// <summary>
-/// F1 checkout and order surface (CHK-01, ORD-01 .. ORD-05). Routes follow the F1 contract sheet:
-/// <c>/api/v1/checkout/*</c>, <c>/api/v1/orders/*</c>, <c>/api/v1/order/{orderId}</c>.
-/// </summary>
 [ApiController]
 [Route("api/v1")]
 [BackendTag("commerce")]
