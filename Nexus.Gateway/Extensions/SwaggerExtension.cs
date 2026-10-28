@@ -79,6 +79,7 @@ public static class SwaggerExtension
                 }] = Array.Empty<string>()
             });
 
+            o.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
             o.OperationFilter<GatewayHeaderOperationFilter>();
             o.DocumentFilter<MockEngineDocumentFilter>();
         });

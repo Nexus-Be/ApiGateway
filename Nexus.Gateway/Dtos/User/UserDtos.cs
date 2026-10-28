@@ -2,35 +2,20 @@ namespace Nexus.Gateway.Dtos.User;
 
 using Microsoft.AspNetCore.Http;
 
-public sealed class RefreshTokenDto
-{
-    public string? RefreshToken { get; set; }
-    public string? DeviceInfo { get; set; }
-}
+// ============================================================
+// USER REQUEST DTOs — aligned with flow_mock_excel.xlsx
+// ============================================================
 
-public sealed class ForgotPasswordDto
-{
-    public string? Email { get; set; }
-}
+// ---------- ME ----------
 
-public sealed class ResetPasswordDto
+/// <summary>USER-02: PATCH /api/v1/me — cập nhật hồ sơ cá nhân</summary>
+public sealed class UpdateMyProfileDto
 {
-    public string? Email { get; set; }
-    public string? OtpCode { get; set; }
-    public string? NewPassword { get; set; }
-    public string? ConfirmPassword { get; set; }
-}
-
-public sealed class ChangePasswordDto
-{
-    public string? OldPassword { get; set; }
-    public string? NewPassword { get; set; }
-    public string? ConfirmPassword { get; set; }
-}
-
-public sealed class LogoutDto
-{
-    public string? RefreshToken { get; set; }
+    public string? Username { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? PhoneNumber { get; set; }
+    public AddressInputDto? Address { get; set; }
 }
 
 public sealed class AddressInputDto
@@ -41,22 +26,21 @@ public sealed class AddressInputDto
     public string? StreetAddress { get; set; }
 }
 
-public sealed class UpdateMyProfileDto
-{
-    public string? Username { get; set; }
-    public string? FirstName { get; set; }
-    public string? LastName { get; set; }
-    public string? PhoneNumber { get; set; }
-    public AddressInputDto? Address { get; set; }
-    public int? ProvinceId { get; set; }
-    public int? DistrictId { get; set; }
-    public string? WardCode { get; set; }
-    public string? StreetAddress { get; set; }
-}
+// ---------- SESSIONS ----------
+// USER-03: GET /api/v1/me/sessions — no request body
+// USER-04: DELETE /api/v1/me/sessions/{id} — path only, no body
+// USER-05: POST /api/v1/auth/logout-all — no body (handled by AuthController)
 
+// ---------- AVATAR ----------
+// USER-06: POST /api/v1/me/avatar — multipart/form-data (IFormFile)
+// USER-06B: GET /api/v1/me/avatar — no body
+
+// ---------- REVIEWS ----------
+
+/// <summary>REVIEW-01: POST /api/v1/reviews</summary>
 public sealed class CreateReviewDto
 {
-    public string? TransactionType { get; set; }
+    public string? TransactionType { get; set; } // "ORDER" | "AUCTION"
     public string? TransactionId { get; set; }
     public string? TargetUserId { get; set; }
     public int? Rating { get; set; }
@@ -64,78 +48,55 @@ public sealed class CreateReviewDto
     public List<string>? MediaUrls { get; set; }
 }
 
+// ---------- REPORTS ----------
+
+/// <summary>REPORT-01: POST /api/v1/users/reports</summary>
 public sealed class CreateUserReportDto
 {
     public string? ReportedUserId { get; set; }
-    public string? ViolationType { get; set; }
+    public string? ViolationType { get; set; } // "SPAM" | "FRAUD" | "INAPPROPRIATE_CONTENT"
     public string? Description { get; set; }
     public List<string>? EvidenceUrls { get; set; }
 }
 
+// ---------- SELLER REGISTRATION ----------
+
+/// <summary>SELLER-01: POST /api/v1/seller/registration</summary>
 public sealed class CreateSellerRegistrationDto
 {
     public string? ShopName { get; set; }
     public string? BusinessEmail { get; set; }
     public string? Hotline { get; set; }
     public AddressInputDto? WarehouseAddress { get; set; }
-    public int? ProvinceId { get; set; }
-    public int? DistrictId { get; set; }
-    public string? WardCode { get; set; }
-    public string? StreetAddress { get; set; }
     public string? IdentityCardNumber { get; set; }
 }
 
+/// <summary>SELLER-02: POST /api/v1/seller/registration/otp/resend</summary>
 public sealed class ResendSellerRegistrationOtpDto
 {
     public string? RegistrationId { get; set; }
     public string? BusinessEmail { get; set; }
 }
 
+/// <summary>SELLER-04: POST /api/v1/seller/otp/verify</summary>
 public sealed class VerifySellerOtpDto
 {
     public string? RegistrationId { get; set; }
     public string? OtpCode { get; set; }
 }
 
+/// <summary>SELLER-07: PATCH /api/v1/seller/profile</summary>
 public sealed class UpdateSellerOwnProfileDto
 {
     public string? ShopName { get; set; }
     public string? Hotline { get; set; }
     public AddressInputDto? PickupAddress { get; set; }
-    public int? ProvinceId { get; set; }
-    public int? DistrictId { get; set; }
-    public string? WardCode { get; set; }
-    public string? StreetAddress { get; set; }
     public string? Description { get; set; }
 }
 
-public sealed class ApproveSellerRegistrationDto
-{
-    public string? Note { get; set; }
-}
+// ---------- ADMIN USER MANAGEMENT ----------
 
-public sealed class RejectSellerRegistrationDto
-{
-    public string? RejectionReason { get; set; }
-}
-
-public sealed class ResolveAdminReportDto
-{
-    public string? Action { get; set; }
-    public int? PointsDeducted { get; set; }
-    public string? ResolutionNote { get; set; }
-}
-
-public sealed class DismissAdminReportDto
-{
-    public string? Reason { get; set; }
-}
-
-public sealed class HideAdminReviewDto
-{
-    public string? Reason { get; set; }
-}
-
+/// <summary>ADMIN-01B: POST /api/v1/admin/user</summary>
 public sealed class CreateAdminUserDto
 {
     public string? Email { get; set; }
@@ -146,6 +107,7 @@ public sealed class CreateAdminUserDto
     public List<string>? RoleCodes { get; set; }
 }
 
+/// <summary>ADMIN-03: PUT /api/v1/admin/user/{userId}</summary>
 public sealed class UpdateAdminUserDto
 {
     public string? FirstName { get; set; }
@@ -155,387 +117,111 @@ public sealed class UpdateAdminUserDto
     public string? Reason { get; set; }
 }
 
+/// <summary>ADMIN-04: DELETE /api/v1/admin/user/{userId}</summary>
 public sealed class DeleteAdminUserDto
 {
     public string? Reason { get; set; }
 }
 
+/// <summary>ADMIN-05: PATCH /api/v1/admin/user/{userId}/ban</summary>
 public sealed class BanAdminUserDto
 {
     public string? Reason { get; set; }
-    public int? BanDurationDays { get; set; }
+    public int? BanDurationDays { get; set; } // 0 = vĩnh viễn
 }
 
+/// <summary>ADMIN-06: PATCH /api/v1/admin/user/{userId}/unban</summary>
 public sealed class UnbanAdminUserDto
 {
     public string? Reason { get; set; }
 }
 
-public sealed class AssignAdminUserRolesDto
+/// <summary>ADMIN-10: PUT /api/v1/admin/user/{userId}/roles</summary>
+public sealed class UpdateUserRolesDto
 {
     public List<string>? RoleCodes { get; set; }
     public List<int>? RoleIds { get; set; }
     public string? Reason { get; set; }
 }
 
-public sealed class AdjustAdminUserReputationDto
+/// <summary>ADMIN-14: PATCH /api/v1/admin/user/{userId}/reputation</summary>
+public sealed class AdjustReputationDto
 {
-    public int? Delta { get; set; }
+    public int? Delta { get; set; } // [-50..+50]
     public string? Reason { get; set; }
 }
 
-public sealed class UpdateAdminRolePermissionsDto
+/// <summary>ADMIN-18: PUT /api/v1/admin/roles/{roleId}/permissions</summary>
+public sealed class UpdateRolePermissionsDto
 {
     public string? Description { get; set; }
     public List<int>? PermissionIds { get; set; }
 }
 
-public sealed class UpdateAdminConfigDto
+/// <summary>ADMIN-13: PUT /api/v1/admin/configs</summary>
+public sealed class UpdateSystemConfigDto
 {
     public string? Key { get; set; }
     public string? Value { get; set; }
     public string? Reason { get; set; }
 }
 
+// ---------- ADMIN MODERATION ----------
+
+/// <summary>REPORT-03: PUT /api/v1/admin/reports/{reportId}/resolve</summary>
+public sealed class ResolveAdminReportDto
+{
+    public string? Action { get; set; } // "DEDUCT_REPUTATION" | "BAN_USER"
+    public int? PointsDeducted { get; set; }
+    public string? ResolutionNote { get; set; }
+}
+
+/// <summary>REPORT-04: PUT /api/v1/admin/reports/{reportId}/dismiss</summary>
+public sealed class DismissAdminReportDto
+{
+    public string? Reason { get; set; }
+}
+
+/// <summary>REVIEW-04: PUT /api/v1/admin/reviews/{id}/hide</summary>
+public sealed class HideAdminReviewDto
+{
+    public string? Reason { get; set; }
+}
+
+// ---------- ADMIN SELLER REGISTRATION ----------
+
+/// <summary>ADMIN-08: PUT /api/v1/admin/seller-registrations/{registrationId}/approve</summary>
+public sealed class ApproveSellerRegistrationDto
+{
+    public string? Note { get; set; }
+}
+
+/// <summary>ADMIN-09: PUT /api/v1/admin/seller-registrations/{registrationId}/reject</summary>
+public sealed class RejectSellerRegistrationDto
+{
+    public string? RejectionReason { get; set; }
+}
+
+// ---------- UPLOAD FORM MODELS ----------
+
+/// <summary>POST /api/v1/me/avatar — single file upload form</summary>
 public sealed class UploadSingleFileForm
 {
-    public IFormFile? File { get; set; }
+    public Microsoft.AspNetCore.Http.IFormFile? File { get; set; }
 }
 
+/// <summary>POST /api/v1/files/upload — multiple files upload form</summary>
 public sealed class UploadMultipleFilesForm
 {
-    public List<IFormFile>? Files { get; set; }
+    public List<Microsoft.AspNetCore.Http.IFormFile>? Files { get; set; }
 }
 
+/// <summary>POST /api/v1/me/seller/registration/documents — seller docs upload form</summary>
 public sealed class UploadSellerDocumentsForm
 {
     public string? RegistrationId { get; set; }
-    public List<IFormFile>? Files { get; set; }
-}
-
-// ============================================================================
-// Response DTOs for Gateway Swagger / Documentation Contracts
-// ============================================================================
-
-public sealed class UserProfileDto
-{
-    public string? Id { get; set; }
-    public string? UserId { get; set; }
-    public string? Username { get; set; }
-    public string? Email { get; set; }
-    public string? DisplayName { get; set; }
-    public string? FirstName { get; set; }
-    public string? LastName { get; set; }
-    public string? PhoneNumber { get; set; }
-    public string? AvatarUrl { get; set; }
-    public string? Address { get; set; }
-    public int ReputationScore { get; set; }
-    public string? TrustLevel { get; set; }
-    public bool IsSeller { get; set; }
-    public List<string>? Roles { get; set; }
-    public List<string>? Permissions { get; set; }
-    public string? Status { get; set; }
-    public DateTime? CreatedAt { get; set; }
-}
-
-public sealed class OtpResponseDto
-{
-    public string? Message { get; set; }
-    public int ExpiresInSeconds { get; set; }
-}
-
-public sealed class LoginResponseDto
-{
-    public string? AccessToken { get; set; }
-    public string? RefreshToken { get; set; }
-    public int ExpiresIn { get; set; }
-    public UserProfileDto? User { get; set; }
-}
-
-public sealed class RefreshTokenResponseDto
-{
-    public string? AccessToken { get; set; }
-    public string? RefreshToken { get; set; }
-    public int ExpiresIn { get; set; }
-}
-
-public sealed class ForgotPasswordResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class ResetPasswordResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class ChangePasswordResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class LogoutResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class LogoutAllResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class SessionListResponseDto
-{
-    public List<object>? Sessions { get; set; }
-}
-
-public sealed class MyProfileUpdatedResponseDto
-{
-    public string? Message { get; set; }
-    public UserProfileDto? Profile { get; set; }
-}
-
-public sealed class AvatarResponseDto
-{
-    public string? AvatarUrl { get; set; }
-}
-
-public sealed class AvatarUploadedResponseDto
-{
-    public string? AvatarUrl { get; set; }
-}
-
-public sealed class MyReputationResponseDto
-{
-    public int Score { get; set; }
-    public string? Rank { get; set; }
-}
-
-public sealed class PenaltyListResponseDto
-{
-    public List<object>? Penalties { get; set; }
-}
-
-public sealed class PublicUserProfileResponseDto
-{
-    public string? UserId { get; set; }
-    public string? Username { get; set; }
-    public string? DisplayName { get; set; }
-    public string? AvatarUrl { get; set; }
-    public int ReputationScore { get; set; }
-}
-
-public sealed class SellerPublicProfileResponseDto
-{
-    public string? SellerId { get; set; }
-    public string? ShopName { get; set; }
-    public string? Description { get; set; }
-    public string? AvatarUrl { get; set; }
-    public int ReputationScore { get; set; }
-}
-
-public sealed class UserReputationResponseDto
-{
-    public int Score { get; set; }
-    public string? Rank { get; set; }
-}
-
-public sealed class ReputationHistoryResponseDto
-{
-    public List<object>? History { get; set; }
-}
-
-public sealed class UserReviewListResponseDto
-{
-    public List<object>? Reviews { get; set; }
-}
-
-public sealed class UploadFilesResponseDto
-{
-    public List<string>? FileUrls { get; set; }
-}
-
-public sealed class ReviewCreatedResponseDto
-{
-    public string? ReviewId { get; set; }
-    public string? Message { get; set; }
-}
-
-public sealed class UserReportCreatedResponseDto
-{
-    public string? ReportId { get; set; }
-    public string? Message { get; set; }
-}
-
-public sealed class MyReportListResponseDto
-{
-    public List<object>? Reports { get; set; }
-}
-
-public sealed class SellerRegistrationCreatedResponseDto
-{
-    public string? RegistrationId { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class SellerRegistrationOtpResendResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class VerifySellerOtpResponseDto
-{
-    public string? RegistrationId { get; set; }
-    public string? Status { get; set; }
-    public string? Message { get; set; }
-}
-
-public sealed class SellerRegistrationStatusResponseDto
-{
-    public string? RegistrationId { get; set; }
-    public string? Status { get; set; }
-    public string? Reason { get; set; }
-}
-
-public sealed class SellerOwnProfileResponseDto
-{
-    public string? SellerId { get; set; }
-    public string? ShopName { get; set; }
-    public string? Hotline { get; set; }
-    public string? Description { get; set; }
-}
-
-public sealed class SellerOwnProfileUpdatedResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class AdminSellerRegistrationListResponseDto
-{
-    public List<object>? Registrations { get; set; }
-}
-
-public sealed class AdminSellerRegistrationDetailResponseDto
-{
-    public string? RegistrationId { get; set; }
-    public string? ShopName { get; set; }
-    public string? BusinessEmail { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class ApproveSellerRegistrationResponseDto
-{
-    public string? RegistrationId { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class RejectSellerRegistrationResponseDto
-{
-    public string? RegistrationId { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class AdminReportListResponseDto
-{
-    public List<object>? Reports { get; set; }
-}
-
-public sealed class ResolveAdminReportResponseDto
-{
-    public string? ReportId { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class DismissAdminReportResponseDto
-{
-    public string? ReportId { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class HideAdminReviewResponseDto
-{
-    public string? ReviewId { get; set; }
-    public bool IsHidden { get; set; }
-}
-
-public sealed class AdminUserListResponseDto
-{
-    public List<UserProfileDto>? Users { get; set; }
-}
-
-public sealed class AdminUserCreatedResponseDto
-{
-    public string? UserId { get; set; }
-    public string? Email { get; set; }
-}
-
-public sealed class AdminUserDetailResponseDto
-{
-    public UserProfileDto? User { get; set; }
-}
-
-public sealed class AdminUserUpdatedResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class AdminUserBanResponseDto
-{
-    public string? UserId { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class AdminUserUnbanResponseDto
-{
-    public string? UserId { get; set; }
-    public string? Status { get; set; }
-}
-
-public sealed class AdminSellerDetailResponseDto
-{
-    public string? SellerId { get; set; }
-    public string? ShopName { get; set; }
-}
-
-public sealed class AdminUserRolesResponseDto
-{
-    public string? UserId { get; set; }
-    public List<string>? Roles { get; set; }
-}
-
-public sealed class AdminUserReputationResponseDto
-{
-    public string? UserId { get; set; }
-    public int ReputationScore { get; set; }
-}
-
-public sealed class AdminRoleListResponseDto
-{
-    public List<object>? Roles { get; set; }
-}
-
-public sealed class AdminPermissionListResponseDto
-{
-    public List<object>? Permissions { get; set; }
-}
-
-public sealed class AdminRolePermissionsUpdatedResponseDto
-{
-    public string? Message { get; set; }
-}
-
-public sealed class AdminAuditLogListResponseDto
-{
-    public List<object>? AuditLogs { get; set; }
-}
-
-public sealed class AdminConfigListResponseDto
-{
-    public List<object>? Configs { get; set; }
-}
-
-public sealed class AdminConfigUpdatedResponseDto
-{
-    public string? Key { get; set; }
-    public string? Value { get; set; }
+    public List<Microsoft.AspNetCore.Http.IFormFile>? Files { get; set; }
+    public Microsoft.AspNetCore.Http.IFormFile? BusinessLicense { get; set; }
+    public Microsoft.AspNetCore.Http.IFormFile? IdentityDocument { get; set; }
+    public List<Microsoft.AspNetCore.Http.IFormFile>? AdditionalDocuments { get; set; }
 }
