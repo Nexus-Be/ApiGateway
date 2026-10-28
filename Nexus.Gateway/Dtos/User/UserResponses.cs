@@ -10,6 +10,7 @@ namespace Nexus.Gateway.Dtos.User;
 /// <summary>AUTH-01 / USER-01: current logged-in user profile (used as ProducesResponseType)</summary>
 public sealed class UserProfileDto
 {
+    public string? Id { get; set; }
     public string? UserId { get; set; }
     public string? Email { get; set; }
     public string? Username { get; set; }
@@ -18,8 +19,13 @@ public sealed class UserProfileDto
     public string? LastName { get; set; }
     public string? PhoneNumber { get; set; }
     public string? AvatarUrl { get; set; }
+    public string? Address { get; set; }
+    public int ReputationScore { get; set; }
+    public string? TrustLevel { get; set; }
     public string? Role { get; set; }
     public string[]? Roles { get; set; }
+    public string[]? Permissions { get; set; }
+    public bool IsSeller { get; set; }
     public string? Status { get; set; }
     public string? CreatedAt { get; set; }
 }

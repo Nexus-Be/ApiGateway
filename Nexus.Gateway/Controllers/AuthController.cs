@@ -29,14 +29,14 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<RegisterResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> Register([FromBody] RegisterRequestDto body)
     {
         var username = body.Username ?? (body.Email?.Contains('@') == true ? body.Email.Split('@')[0] : null);
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(body.Email) || !body.Email.Contains('@') || (body.Password?.Length ?? 0) < 8)
             throw new GatewayInputException("Username, valid email, and password with at least 8 characters are required.");
 
-        var displayName = body.DisplayName ?? $"{body.FirstName} {body.LastName}".Trim();
+        var displayName = $"{body.FirstName} {body.LastName}".Trim();
         if (string.IsNullOrWhiteSpace(displayName)) displayName = username;
 
         return ForwardAsync(
@@ -52,10 +52,10 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("otp/verify")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<VerifyOtpResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> VerifyOtp([FromBody] VerifyOtpRequestDto body)
     {
-        if (string.IsNullOrWhiteSpace(body.Email) || string.IsNullOrWhiteSpace(body.ResolvedOtp))
+        if (string.IsNullOrWhiteSpace(body.Email) || string.IsNullOrWhiteSpace(body.Otp))
             throw new GatewayInputException("Email and OTP code are required.");
 
         return ForwardAsync(
@@ -71,7 +71,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("otp/resend")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
-    [ProducesResponseType(typeof(ApiResponse<OtpResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ResendOtpResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ResendOtp([FromBody] ResendOtpRequestDto body)
     {
         if (string.IsNullOrWhiteSpace(body.Email))
@@ -94,7 +94,7 @@ public sealed class AuthController : GatewayBaseController
     public Task<IResult> Login([FromBody] LoginRequestDto body)
     {
         Response.Headers.CacheControl = "no-store";
-        if (string.IsNullOrWhiteSpace(body.Username) || string.IsNullOrEmpty(body.Password))
+        if (string.IsNullOrWhiteSpace(body.EffectiveIdentifier) || string.IsNullOrEmpty(body.Password))
             throw new GatewayInputException("Username and password are required.");
 
         return ForwardAsync(
@@ -111,7 +111,7 @@ public sealed class AuthController : GatewayBaseController
     [AllowAnonymous]
     [EnableRateLimiting("auth-login")]
     [ProducesResponseType(typeof(ApiResponse<RefreshTokenResponseDto>), StatusCodes.Status200OK)]
-    public Task<IResult> Refresh([FromBody] RefreshTokenDto body)
+    public Task<IResult> Refresh([FromBody] RefreshTokenRequestDto body)
     {
         Response.Headers.CacheControl = "no-store";
         var refreshToken = UserValidation.EnsureRequired(body.RefreshToken, "RefreshToken", "Refresh token");
@@ -130,7 +130,7 @@ public sealed class AuthController : GatewayBaseController
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<ForgotPasswordResponseDto>), StatusCodes.Status200OK)]
-    public Task<IResult> ForgotPassword([FromBody] ForgotPasswordDto body)
+    public Task<IResult> ForgotPassword([FromBody] ForgotPasswordRequestDto body)
     {
         var email = UserValidation.EnsureEmail(body.Email);
 
@@ -148,7 +148,7 @@ public sealed class AuthController : GatewayBaseController
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<ResetPasswordResponseDto>), StatusCodes.Status200OK)]
-    public Task<IResult> ResetPassword([FromBody] ResetPasswordDto body)
+    public Task<IResult> ResetPassword([FromBody] ResetPasswordRequestDto body)
     {
         var email = UserValidation.EnsureEmail(body.Email);
         var otp = UserValidation.EnsureOtp(body.OtpCode);
@@ -173,7 +173,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPatch("password")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<ChangePasswordResponseDto>), StatusCodes.Status200OK)]
-    public Task<IResult> ChangePassword([FromBody] ChangePasswordDto body)
+    public Task<IResult> ChangePassword([FromBody] ChangePasswordRequestDto body)
     {
         var oldPassword = UserValidation.EnsureRequired(body.OldPassword, "OldPassword", "Old password");
         var newPassword = UserValidation.EnsurePassword(body.NewPassword, "NewPassword");
@@ -197,7 +197,7 @@ public sealed class AuthController : GatewayBaseController
     [HttpPost("logout")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<LogoutResponseDto>), StatusCodes.Status200OK)]
-    public Task<IResult> Logout([FromBody] LogoutDto? body)
+    public Task<IResult> Logout([FromBody] LogoutRequestDto? body)
     {
         return ForwardAsync(
             Service,

@@ -277,9 +277,12 @@ public sealed class CreateOrderResponseDto
     public string? OrderNo { get; set; }
     public decimal TotalAmount { get; set; }
     public string? Status { get; set; }
+    public string? PaymentDeadlineAt { get; set; }
     public string? PaymentMethod { get; set; }
     public string? PaymentUrl { get; set; }
+    public List<string>? SubOrderIds { get; set; }
     public List<SubOrderSummaryDto>? SubOrders { get; set; }
+    public string? CreatedAt { get; set; }
 }
 
 public sealed class SubOrderSummaryDto
@@ -296,6 +299,7 @@ public sealed class OrderDetailResponseDto
 {
     public string? OrderId { get; set; }
     public string? OrderNo { get; set; }
+    public string? BuyerId { get; set; }
     public string? Status { get; set; }
     public decimal TotalAmount { get; set; }
     public string? PaymentMethod { get; set; }
@@ -308,9 +312,15 @@ public sealed class OrderDetailResponseDto
 public sealed class SubOrderDetailDto
 {
     public string? SubOrderId { get; set; }
+    public string? SubOrderNo { get; set; }
     public string? SellerId { get; set; }
     public string? SellerName { get; set; }
+    public string? ShopName { get; set; }
     public string? Status { get; set; }
+    public decimal ItemsAmount { get; set; }
+    public decimal ShippingFee { get; set; }
+    public decimal DiscountAmount { get; set; }
+    public decimal TotalAmount { get; set; }
     public decimal Amount { get; set; }
     public List<OrderItemDto>? Items { get; set; }
 }
