@@ -6,9 +6,7 @@
 
 services:
   gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: oaktree293/apigateway
     container_name: nexus-apigateway
     ports:
       - "${GATEWAY_PORT:-8080}:8080"
@@ -37,3 +35,4 @@ services:
 networks:
   default:
     name: nexus-network
+    external: true
