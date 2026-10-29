@@ -15,6 +15,7 @@ using Nexus.Gateway.Services;
 [EnableRateLimiting("api")]
 [Authorize(GatewayPolicies.GatewayAdmin)]
 [DisableMockAuthorizationBypass]
+[BackendTag("checkheal")]
 public sealed class GatewayControlController : ControllerBase
 {
     private readonly IGatewayRuntimeManager _manager;

@@ -12,6 +12,12 @@ public sealed class MockEngineDocumentFilter(IMockEngine mockEngine) : IDocument
 
         foreach (var def in definitions)
         {
+            if (!string.Equals(context.DocumentName, "v1", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(def.Service, context.DocumentName, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             var cleanPath = def.NormalizedPath;
             if (!swaggerDoc.Paths.ContainsKey(cleanPath))
             {

@@ -182,3 +182,31 @@ Xem tài liệu kiến trúc tại [specs/01_ARCHITECTURAL_BLUEPRINT.md](specs/0
 - **Saga Rollback** ❌: `HealthProber/SagaRollbackPublisher.cs` **chỉ ghi log**, chưa publish lên RabbitMQ/MassTransit — đặc tả mục tiêu, chưa triển khai.
 - **Docker Auto-Recovery** ⚠️: `HealthProber/DockerContainerRecoveryService.cs:26-55` gọi CLI `docker restart`; image runtime `mcr.microsoft.com/dotnet/aspnet:8.0` không có docker CLI nên trong container luôn thất bại (chỉ chạy được trên host có docker CLI).
 - **Log Tập Trung (LogService)** ⚠️: `Logging/GatewayBatchLogSink.cs:56-63` POST tới `{Serilog:Batching:RemoteEndpoint}/api/v1/log/batch` (mặc định `http://localhost:8004`) nhưng **endpoint này không tồn tại** ở Log service (`Log.Api/Program.cs` chỉ map `/health` và `/`), response bị bỏ qua và lỗi bị `catch {}` nuốt im lặng.
+
+---
+
+## 6. Quy chuẩn Bắt buộc khi Phát triển & Khai báo API mới (Mandatory API Rules)
+
+Mọi kỹ sư và AI Coding Agent khi phát triển, khai báo hoặc chỉnh sửa bất kỳ endpoint API nào trên API Gateway bắt buộc phải tuân thủ 7 điều khoản sau:
+
+1. **Cấm trùng lặp Route alias (No Duplicate Route Aliases)**:
+   - Tuyệt đối không khai báo nhiều route attributes trùng lặp (ví dụ `[HttpGet("user")]` và `[HttpGet("users")]`) trên cùng một Action.
+   - Mỗi Action chỉ có đúng một route endpoint chính thức duy nhất.
+2. **Quy ước Route Số ít cho User/AdminUser (Singular Route Convention)**:
+   - Toàn bộ endpoint liên quan đến User và AdminUser phải dùng danh từ số ít: `/api/v1/user`, `/api/v1/user/{userId}`, `/api/v1/admin/user`, `/api/v1/admin/user/{userId}`, `/api/v1/me`.
+   - Giữ nguyên danh từ số nhiều cho các collection chuẩn của các domain khác (`/api/v1/auctions`, `/api/v1/categories`, `/api/v1/wallets`, `/api/v1/notifications`).
+3. **Mô hình Thin Controller kế thừa `GatewayBaseController`**:
+   - Controller Gateway bắt buộc kế thừa `GatewayBaseController`, không chứa business logic hay nhánh rẽ Mock/Real.
+   - Chỉ thực hiện validate input cơ bản qua `UserValidation` / `ValidationHelpers` và ủy quyền downstream qua `ForwardAsync`, `ForwardPagedAsync`, hoặc `ForwardNoContentAsync`.
+4. **Phong bì dữ liệu chuẩn (Envelope Standard)**:
+   - Mọi endpoint trả dữ liệu đều phải bọc qua `ApiResponse<T>` hoặc `ApiResponse<PagedData<T>>`.
+   - Endpoint xóa hoặc không có payload body bắt buộc trả HTTP `204 NoContent` qua `ForwardNoContentAsync`.
+   - DTOs tuân thủ PascalCase trong C# và camelCase trong JSON serialization.
+5. **Chuẩn hóa XML Comment Endpoint**:
+   - Chỉ sử dụng duy nhất single-line XML `<summary>` ngắn gọn mô tả chức năng nghiệp vụ trực tiếp trên từng Action method.
+   - Cấm viết class-level remarks, section dividers kẻ ngang hoặc multi-line summary dài dòng.
+6. **Bắt buộc tạo Mock Seed Fixture**:
+   - Khi thêm endpoint mới vào Gateway, bắt buộc tạo seed fixture tương ứng tại `Seeds/{service}/{name}.json`.
+   - Đảm bảo Mock mode luôn hoạt động độc lập và vượt qua 100% test `UserSeedConformanceTests`.
+7. **Đồng bộ Tài liệu & Specs**:
+   - Bắt buộc cập nhật đồng thời file spec tương ứng (`specs/02_GATEWAY_CONTROLLERS_ROUTING.md`) và tài liệu API Frontend (`docs/FRONTEND_API_ENDPOINT_MAPPING.md`).

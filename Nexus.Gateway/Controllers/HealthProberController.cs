@@ -22,6 +22,7 @@ using Nexus.Gateway.Security;
 [EnableRateLimiting("api")]
 [Authorize(GatewayPolicies.GatewayAdmin)]
 [DisableMockAuthorizationBypass]
+[BackendTag("checkheal")]
 public sealed class HealthProberController : ControllerBase, IActionFilter
 {
     private readonly IHealthProberManager _manager;

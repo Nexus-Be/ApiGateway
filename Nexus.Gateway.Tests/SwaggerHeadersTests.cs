@@ -118,4 +118,100 @@ public class SwaggerHeadersTests : IClassFixture<Factory>
 
         Assert.True(response.Headers.Contains("X-Trace-Id"));
     }
+
+    [Fact]
+    public async Task SwaggerJson_UsersDoc_ContainsOnlyUsersEndpoints()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/swagger/users/swagger.json");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var paths = doc.RootElement.GetProperty("paths");
+
+        // Users doc must contain auth / user endpoints
+        Assert.True(paths.TryGetProperty("/api/v1/auth/login", out _) || paths.TryGetProperty("/api/v1/auth/register", out _));
+
+        // Users doc must NOT contain cart or categories or wallet
+        Assert.False(paths.TryGetProperty("/api/v1/cart", out _));
+        Assert.False(paths.TryGetProperty("/api/v1/categories", out _));
+        Assert.False(paths.TryGetProperty("/api/v1/wallets/me", out _));
+    }
+
+    [Fact]
+    public async Task SwaggerJson_CatalogDoc_ContainsOnlyCatalogEndpoints()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/swagger/catalog/swagger.json");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var paths = doc.RootElement.GetProperty("paths");
+
+        // Catalog doc must contain categories or products
+        Assert.True(paths.TryGetProperty("/api/v1/categories", out _) || paths.TryGetProperty("/api/v1/products", out _));
+
+        // Catalog doc must NOT contain auth login or cart
+        Assert.False(paths.TryGetProperty("/api/v1/auth/login", out _));
+        Assert.False(paths.TryGetProperty("/api/v1/cart", out _));
+    }
+
+    [Fact]
+    public async Task SwaggerJson_WalletDoc_ContainsOnlyWalletEndpoints()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/swagger/wallet/swagger.json");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var paths = doc.RootElement.GetProperty("paths");
+
+        // Wallet doc must contain wallet endpoints
+        Assert.True(paths.TryGetProperty("/api/v1/wallets/me", out _));
+
+        // Wallet doc must NOT contain categories or cart
+        Assert.False(paths.TryGetProperty("/api/v1/categories", out _));
+        Assert.False(paths.TryGetProperty("/api/v1/cart", out _));
+    }
+
+    [Fact]
+    public async Task SwaggerDownstream_UnknownService_ReturnsNotFound()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/swagger-downstream/unknown_service/swagger.json");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task SwaggerDownstream_OfflineService_ReturnsServiceUnavailable()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act - In local unit tests, downstream service on 8001 is offline
+        var response = await client.GetAsync("/swagger-downstream/users/swagger.json");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+    }
 }

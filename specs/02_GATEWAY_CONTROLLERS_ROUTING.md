@@ -37,13 +37,13 @@ $$\mathbf{/api/v1/...}$$
 - Attributes: `[ApiController]`, `[BackendTag("users")]`, `[EnableRateLimiting("api")]`
 - Actions (10 routes):
   - `POST /register` [AllowAnonymous] $\rightarrow$ Đăng ký tài khoản mới (`RegisterRequestDto`).
-  - `POST /verify-otp` & `POST /otp/verify` [AllowAnonymous] $\rightarrow$ Xác thực tài khoản bằng OTP (`VerifyOtpRequestDto`).
-  - `POST /resend-otp` & `POST /otp/resend` [AllowAnonymous] $\rightarrow$ Gửi lại mã OTP (`ResendOtpRequestDto`).
+  - `POST /otp/verify` [AllowAnonymous] $\rightarrow$ Xác thực tài khoản bằng OTP (`VerifyOtpRequestDto`).
+  - `POST /otp/resend` [AllowAnonymous] $\rightarrow$ Gửi lại mã OTP (`ResendOtpRequestDto`).
   - `POST /login` [AllowAnonymous] $\rightarrow$ Đăng nhập lấy access/refresh token (`LoginRequestDto`).
   - `POST /refresh` [AllowAnonymous] $\rightarrow$ Làm mới access token bằng refresh token (`RefreshTokenDto`).
   - `POST /password/forgot` [AllowAnonymous] $\rightarrow$ Yêu cầu đặt lại mật khẩu (`ForgotPasswordDto`).
   - `POST /password/reset` [AllowAnonymous] $\rightarrow$ Đặt lại mật khẩu mới bằng OTP (`ResetPasswordDto`).
-  - `POST /password/change` & `PATCH /password` [Authorize(Authenticated)] $\rightarrow$ Đổi mật khẩu (`ChangePasswordDto`).
+  - `PATCH /password` [Authorize(Authenticated)] $\rightarrow$ Đổi mật khẩu (`ChangePasswordDto`).
   - `POST /logout` [Authorize(Authenticated)] $\rightarrow$ Đăng xuất phiên hiện tại.
   - `POST /logout-all` [Authorize(Authenticated)] $\rightarrow$ Thu hồi toàn bộ phiên đăng nhập.
 
@@ -53,7 +53,7 @@ $$\mathbf{/api/v1/...}$$
 - Actions (26 routes):
   - `GET /me/sessions` [Authenticated] $\rightarrow$ Danh sách các phiên đăng nhập.
   - `DELETE /me/sessions/{id}` [Authenticated] $\rightarrow$ Thu hồi 1 phiên đăng nhập (204 NoContent).
-  - `GET /me` & `GET /users/me` [Authenticated] $\rightarrow$ Lấy thông tin cá nhân hiện tại.
+  - `GET /me` [Authenticated] $\rightarrow$ Lấy thông tin cá nhân hiện tại.
   - `PATCH /me` [Authenticated] $\rightarrow$ Cập nhật thông tin cá nhân (`UpdateMyProfileDto`).
   - `GET /me/avatar` [Authenticated] $\rightarrow$ Lấy avatar người dùng hiện tại.
   - `POST /me/avatar` [Authenticated] $\rightarrow$ Tải lên avatar mới (Multipart Form).
@@ -68,7 +68,7 @@ $$\mathbf{/api/v1/...}$$
   - `POST /review/files/upload` [Authenticated] $\rightarrow$ Tải lên ảnh/video bằng chứng đánh giá.
   - `POST /reviews` [Authenticated] $\rightarrow$ Gửi đánh giá mới (201 Created).
   - `POST /report/files/upload` [Authenticated] $\rightarrow$ Tải lên tài liệu khiếu nại.
-  - `POST /users/reports` [Authenticated] $\rightarrow$ Tạo báo cáo/khiếu nại người dùng (201 Created).
+  - `POST /user/reports` & `POST /users/reports` [Authenticated] $\rightarrow$ Tạo báo cáo/khiếu nại người dùng (201 Created).
   - `GET /me/reports` [Authenticated] $\rightarrow$ Danh sách khiếu nại đã gửi (paged).
   - `POST /seller/registration` [Authenticated] $\rightarrow$ Đăng ký mở cửa hàng người bán (201 Created).
   - `POST /seller/registration/otp/resend` [Authenticated] $\rightarrow$ Gửi lại mã OTP xác minh đăng ký bán hàng.
@@ -90,13 +90,13 @@ $$\mathbf{/api/v1/...}$$
   - `PUT /reports/{id}/resolve` [Staff] $\rightarrow$ Giải quyết khiếu nại.
   - `PUT /reports/{id}/dismiss` [Staff] $\rightarrow$ Bác bỏ khiếu nại.
   - `PUT /reviews/{id}/hide` [Staff] $\rightarrow$ Ẩn đánh giá vi phạm tiêu chuẩn.
-  - `GET /user` & `GET /users` [Staff] $\rightarrow$ Tìm kiếm / danh sách tài khoản (paged).
-  - `POST /user` & `POST /users` [Admin] $\rightarrow$ Tạo tài khoản mới (201 Created).
-  - `GET /user/{userId}` & `GET /users/{userId}` [Staff] $\rightarrow$ Chi tiết tài khoản quản trị.
-  - `PUT /user/{userId}` & `PUT /users/{userId}` [Admin] $\rightarrow$ Cập nhật thông tin tài khoản.
-  - `DELETE /user/{userId}` & `DELETE /users/{userId}` [Admin] $\rightarrow$ Xóa tài khoản (204 NoContent).
-  - `PATCH /user/{userId}/ban` & `PATCH /users/{userId}/ban` [Admin] $\rightarrow$ Khóa tài khoản kèm lý do.
-  - `PATCH /user/{userId}/unban` & `PATCH /users/{userId}/unban` [Admin] $\rightarrow$ Mở khóa tài khoản.
+  - `GET /user` [Staff] $\rightarrow$ Tìm kiếm / danh sách tài khoản (paged).
+  - `POST /user` [Admin] $\rightarrow$ Tạo tài khoản mới (201 Created).
+  - `GET /user/{userId}` [Staff] $\rightarrow$ Chi tiết tài khoản quản trị.
+  - `PUT /user/{userId}` [Admin] $\rightarrow$ Cập nhật thông tin tài khoản.
+  - `DELETE /user/{userId}` [Admin] $\rightarrow$ Xóa tài khoản (204 NoContent).
+  - `PATCH /user/{userId}/ban` [StaffOrAdmin] $\rightarrow$ Khóa tài khoản kèm lý do.
+  - `PATCH /user/{userId}/unban` [StaffOrAdmin] $\rightarrow$ Mở khóa tài khoản.
   - `GET /sellers/{id}` [Staff] $\rightarrow$ Chi tiết quản trị hồ sơ người bán.
   - `PUT /user/{userId}/roles` [Admin] $\rightarrow$ Cập nhật danh sách quyền/roles người dùng.
   - `PATCH /user/{userId}/reputation` [Admin] $\rightarrow$ Điều chỉnh điểm uy tín thủ công.

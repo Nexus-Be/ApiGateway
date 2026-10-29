@@ -27,7 +27,6 @@ public sealed class UsersController : GatewayBaseController
     }
 
     [HttpGet("me")]
-    [HttpGet("users/me")]
     [Authorize(GatewayPolicies.Authenticated)]
     [EnableRateLimiting("user-frequent")]
     [ProducesResponseType(typeof(ApiResponse<UserProfileDto>), StatusCodes.Status200OK)]
@@ -326,6 +325,7 @@ public sealed class UsersController : GatewayBaseController
         );
     }
 
+    [HttpPost("user/reports")]
     [HttpPost("users/reports")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<UserReportCreatedResponseDto>), StatusCodes.Status201Created)]
