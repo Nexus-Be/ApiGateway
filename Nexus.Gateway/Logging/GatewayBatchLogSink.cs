@@ -31,7 +31,7 @@ public sealed class GatewayBatchLogSink : IBatchedLogEventSink
                 Properties = e.Properties.ToDictionary(k => k.Key, v => v.Value.ToString())
             }).ToList();
 
-            // 1. Lưu dưới dạng snapshot file cụm (nếu cấu hình)
+            // 1. Save batch snapshot to file if configured
             if (_options.SaveBatchSnapshots)
             {
                 var dir = _options.BatchDirectory;
@@ -44,7 +44,7 @@ public sealed class GatewayBatchLogSink : IBatchedLogEventSink
                 await File.WriteAllTextAsync(fileName, json);
             }
 
-            // 2. Gửi cụm log tới remote service nếu được cấu hình
+            // 2. Send batch to remote service if configured
             if (!string.IsNullOrWhiteSpace(_options.RemoteEndpoint) && _httpClientFactory != null)
             {
                 using var client = _httpClientFactory.CreateClient("LogBatchSender");
@@ -56,7 +56,7 @@ public sealed class GatewayBatchLogSink : IBatchedLogEventSink
         }
         catch
         {
-            // Fail-safe: Serilog batch sink tuyệt đối không ném ngoại lệ làm gián đoạn hệ thống
+            // Fail-safe: Never throw unhandled exception from logging sink
         }
     }
 

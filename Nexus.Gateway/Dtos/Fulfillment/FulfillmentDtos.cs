@@ -8,7 +8,7 @@ namespace Nexus.Gateway.Dtos.Fulfillment;
 
 // ---------- REQUESTS ----------
 
-/// <summary>FUL-17: PATCH /api/v1/shipments/{shipmentId}/tracking — cập nhật trạng thái vận đơn</summary>
+/// <summary>FUL-17: PATCH /api/v1/shipments/{shipmentId}/tracking - update shipment tracking status</summary>
 public sealed class UpdateShipmentTrackingRequest
 {
     public string? Status { get; set; }       // PENDING|PICKED_UP|IN_TRANSIT|OUT_FOR_DELIVERY|DELIVERED|FAILED|RETURNED
@@ -17,7 +17,7 @@ public sealed class UpdateShipmentTrackingRequest
     public string? Timestamp { get; set; }
 }
 
-/// <summary>FUL-17: POST /api/v1/shipments/webhook — webhook từ đơn vị vận chuyển</summary>
+/// <summary>FUL-17: POST /api/v1/shipments/webhook - webhook from carrier</summary>
 public sealed class ShipmentWebhookRequest
 {
     public string? TrackingNumber { get; set; }
@@ -31,7 +31,7 @@ public sealed class ShipmentWebhookRequest
 // FULFILLMENT RESPONSE DTOs
 // ============================================================
 
-/// <summary>FUL-18: GET /api/v1/shipments/{shipmentId} — chi tiết vận đơn + hành trình</summary>
+/// <summary>FUL-18: GET /api/v1/shipments/{shipmentId} - shipment detail and tracking events</summary>
 public sealed class ShipmentDetailResponseDto
 {
     public string? ShipmentId { get; set; }
@@ -70,7 +70,7 @@ public sealed class ShipmentEventItemDto
     public string? OccurredAt { get; set; }
 }
 
-/// <summary>FUL-18: GET /api/v1/shipments/order/{orderId} — danh sách vận đơn theo đơn hàng (list item)</summary>
+/// <summary>FUL-18: GET /api/v1/shipments/order/{orderId} - list shipments by order</summary>
 public sealed class ShipmentListItemDto
 {
     public string? ShipmentId { get; set; }
@@ -83,7 +83,7 @@ public sealed class ShipmentListItemDto
     public string? CreatedAt { get; set; }
 }
 
-/// <summary>FUL-20: GET /api/v1/seller/shipment — danh sách vận đơn của seller (list item)</summary>
+/// <summary>FUL-20: GET /api/v1/seller/shipment - list seller shipments</summary>
 public sealed class SellerShipmentListItemDto
 {
     public string? ShipmentId { get; set; }
@@ -98,7 +98,7 @@ public sealed class SellerShipmentListItemDto
     public string? CreatedAt { get; set; }
 }
 
-/// <summary>FUL-17: PATCH /api/v1/shipments/{shipmentId}/tracking — 200 OK response</summary>
+/// <summary>FUL-17: PATCH /api/v1/shipments/{shipmentId}/tracking - 200 OK response</summary>
 public sealed class ShipmentTrackingUpdatedResponseDto
 {
     public string? ShipmentId { get; set; }
@@ -109,7 +109,7 @@ public sealed class ShipmentTrackingUpdatedResponseDto
     public string? UpdatedAt { get; set; }
 }
 
-/// <summary>FUL-23: POST /api/v1/shipment/{shipmentId}/complete — 200 OK (buyer xác nhận nhận hàng)</summary>
+/// <summary>FUL-23: POST /api/v1/shipment/{shipmentId}/complete - confirm delivery</summary>
 public sealed class ShipmentCompletedResponseDto
 {
     public string? ShipmentId { get; set; }

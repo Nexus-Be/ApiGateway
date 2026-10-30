@@ -25,7 +25,7 @@ public sealed class CartController : GatewayBaseController
     {
     }
 
-    /// <summary>Lấy giỏ hàng hiện tại của người dùng (CART-01)</summary>
+    /// <summary>Gets current user shopping cart.</summary>
     [HttpGet("cart")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<CartResponseDto>), StatusCodes.Status200OK)]
@@ -34,7 +34,7 @@ public sealed class CartController : GatewayBaseController
         return ForwardAsync(Service, "/api/v1/cart", HttpMethod.Get, mockSeed: "cart-get");
     }
 
-    /// <summary>Thêm một hoặc nhiều sản phẩm vào giỏ hàng (CART-02)</summary>
+    /// <summary>Adds items to shopping cart.</summary>
     [HttpPost("cart/items")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<AddCartItemResponseDto>), StatusCodes.Status200OK)]
@@ -48,7 +48,7 @@ public sealed class CartController : GatewayBaseController
         return ForwardAsync(Service, "/api/v1/cart/items", HttpMethod.Post, body: body, mockSeed: "cart-item-add");
     }
 
-    /// <summary>Đổi số lượng của một dòng trong giỏ hàng (CART-03)</summary>
+    /// <summary>Updates item quantity in shopping cart.</summary>
     [HttpPatch("cart/items/{cartItemId}")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<UpdateCartItemResponseDto>), StatusCodes.Status200OK)]
@@ -62,7 +62,7 @@ public sealed class CartController : GatewayBaseController
         return ForwardAsync(Service, $"/api/v1/cart/items/{cartItemId}", HttpMethod.Patch, body: body, mockSeed: "cart-item-update");
     }
 
-    /// <summary>Xoá một hoặc nhiều dòng khỏi giỏ hàng (CART-04)</summary>
+    /// <summary>Removes one or more items from shopping cart.</summary>
     [HttpDelete("cart/items")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<RemoveCartItemsResponseDto>), StatusCodes.Status200OK)]
@@ -74,7 +74,7 @@ public sealed class CartController : GatewayBaseController
         return ForwardAsync(Service, "/api/v1/cart/items", HttpMethod.Delete, body: body, mockSeed: "cart-item-remove");
     }
 
-    /// <summary>Xoá toàn bộ giỏ hàng (CART-05)</summary>
+    /// <summary>Clears all items from shopping cart.</summary>
     [HttpDelete("cart/items/all")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<ClearCartResponseDto>), StatusCodes.Status200OK)]
@@ -83,7 +83,7 @@ public sealed class CartController : GatewayBaseController
         return ForwardAsync(Service, "/api/v1/cart/items/all", HttpMethod.Delete, mockSeed: "cart-clear");
     }
 
-    /// <summary>Kiểm tra tính hợp lệ của các dòng được chọn trước khi checkout (CART-06)</summary>
+    /// <summary>Validates selected cart items prior to checkout.</summary>
     [HttpGet("cart/items/select")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<List<CartItemValidationDto>>), StatusCodes.Status200OK)]

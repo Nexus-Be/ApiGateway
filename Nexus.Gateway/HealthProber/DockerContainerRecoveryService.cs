@@ -21,7 +21,7 @@ public sealed class DockerContainerRecoveryService : IDockerContainerRecoverySer
 
         try
         {
-            // Kiểm tra sự tồn tại của docker socket
+            // Check Docker socket existence
             var dockerSocketPath = "/var/run/docker.sock";
             if (!System.IO.File.Exists(dockerSocketPath))
             {
@@ -29,7 +29,7 @@ public sealed class DockerContainerRecoveryService : IDockerContainerRecoverySer
                 return false;
             }
 
-            // Gọi lệnh docker recreate an toàn qua Docker Client hoặc CLI
+            // Execute docker restart command
             var startInfo = new System.Diagnostics.ProcessStartInfo
             {
                 FileName = "docker",

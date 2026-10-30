@@ -7,7 +7,7 @@ using System.Text.Json.Serialization;
 // WALLET REQUEST DTOs — aligned with flow_mock_excel.xlsx F5
 // ============================================================
 
-/// <summary>WAL-03: POST /api/v1/wallets/topups/vnpay — nạp tiền qua VNPay</summary>
+/// <summary>WAL-03: POST /api/v1/wallets/topups/vnpay - initiate VNPay top-up</summary>
 public sealed class CreateVnpayTopupRequest
 {
     public decimal Amount { get; set; }
@@ -15,7 +15,7 @@ public sealed class CreateVnpayTopupRequest
     public string? ReturnUrl { get; set; }
 }
 
-/// <summary>WAL-04: POST /api/v1/wallets/vnpay/ipn — Webhook IPN từ VNPay</summary>
+/// <summary>WAL-04: POST /api/v1/wallets/vnpay/ipn - VNPay IPN webhook</summary>
 public sealed class VnpayIpnRequest
 {
     public string? VnpTmnCode { get; set; }
@@ -32,7 +32,7 @@ public sealed class VnpayIpnRequest
     public string? VnpSecureHash { get; set; }
 }
 
-/// <summary>WAL-05B: POST /api/v1/wallets/checkout/direct — thanh toán đơn trực tiếp qua VNPay</summary>
+/// <summary>WAL-05B: POST /api/v1/wallets/checkout/direct - direct payment via VNPay</summary>
 public sealed class DirectCheckoutRequest
 {
     public string? OrderId { get; set; }
@@ -42,7 +42,7 @@ public sealed class DirectCheckoutRequest
     public string? ReturnUrl { get; set; }
 }
 
-/// <summary>WAL-07: POST /api/v1/wallets/withdrawals — Seller rút tiền</summary>
+/// <summary>WAL-07: POST /api/v1/wallets/withdrawals - seller withdrawal request</summary>
 public sealed class CreateWithdrawalRequest
 {
     public decimal Amount { get; set; }
@@ -51,14 +51,14 @@ public sealed class CreateWithdrawalRequest
     public string? AccountHolderName { get; set; }
 }
 
-/// <summary>WAL-08: PATCH /api/v1/admin/wallets/withdrawals/{id} — Admin duyệt/từ chối rút tiền</summary>
+/// <summary>WAL-08: PATCH /api/v1/admin/wallets/withdrawals/{id} - approve or reject withdrawal</summary>
 public sealed class ProcessWithdrawalRequest
 {
     public string? Action { get; set; }    // APPROVE | REJECT
     public string? AdminNote { get; set; }
 }
 
-/// <summary>WAL-10: POST /api/v1/admin/wallets/{walletId}/adjustments — Admin điều chỉnh số dư</summary>
+/// <summary>WAL-10: POST /api/v1/admin/wallets/{walletId}/adjustments - admin balance adjustment</summary>
 public sealed class WalletAdjustmentRequest
 {
     public decimal Amount { get; set; }

@@ -37,7 +37,7 @@ public static class LoggingExtensions
                 .Enrich.WithProperty("Application", "Nexus.Gateway")
                 .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}");
 
-            // 1. Lưu dưới dạng file rolling
+            // 1. Rolling file sink
             if (batchOptions.WriteToFile)
             {
                 var resolvedFilePath = string.IsNullOrWhiteSpace(batchOptions.FilePath)
@@ -53,7 +53,7 @@ public static class LoggingExtensions
                     outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
             }
 
-            // 2. Gom cụm và gửi theo cụm (Periodic Batching Sink)
+            // 2. Periodic batching sink
             if (batchOptions.Enabled)
             {
                 var httpFactory = services.GetService<IHttpClientFactory>();

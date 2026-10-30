@@ -49,7 +49,7 @@ public sealed class EnumConversionTests
 
         var json = JsonSerializer.Serialize(model, _options);
 
-        // Đảm bảo enum được chuyển thành chuỗi PascalCase
+        // Ensure enum is serialized to PascalCase string
         Assert.Contains("\"status\":\"PendingPayment\"", json);
         Assert.Contains("\"secondaryStatus\":\"Confirmed\"", json);
     }
@@ -101,5 +101,23 @@ public sealed class EnumConversionTests
 
         var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<TestOrderDto>(json, _options));
         Assert.Contains("Expected string value for enum 'TestOrderStatus', but got Number", ex.Message);
+    }
+
+    [Fact]
+    public void Rejects_numeric_strings_when_allow_integers_is_false()
+    {
+        var json = "{\"orderId\":\"ORD-006\",\"status\":\"99999\"}";
+
+        var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<TestOrderDto>(json, _options));
+        Assert.Contains("Invalid value '99999' for enum 'TestOrderStatus'", ex.Message);
+    }
+
+    [Fact]
+    public void Rejects_comma_separated_strings_on_non_flags_enum()
+    {
+        var json = "{\"orderId\":\"ORD-007\",\"status\":\"PendingPayment, Paid\"}";
+
+        var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<TestOrderDto>(json, _options));
+        Assert.Contains("Invalid value 'PendingPayment, Paid' for enum 'TestOrderStatus'", ex.Message);
     }
 }

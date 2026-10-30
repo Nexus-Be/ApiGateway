@@ -13,13 +13,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Nexus.Gateway.HealthProber;
 using Nexus.Gateway.Middleware;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 using Nexus.Gateway.Services;
 using StackExchange.Redis;
 
-public static class CoreServicesExtension
+public static class CoreServicesExtensions
 {
     public static IServiceCollection AddGatewayCoreServices(
         this IServiceCollection services,
@@ -69,7 +68,6 @@ public static class CoreServicesExtension
         });
         services.AddSingleton<IApiResponseFactory, ApiResponseFactory>();
         services.AddSingleton<IGatewayRuntimeManager, GatewayRuntimeManager>();
-        services.AddSingleton<IMockEngine, MockEngine>();
         services.AddSingleton<Dispatching.IModeEvaluator, Dispatching.ModeEvaluator>();
         services.AddSingleton<Dispatching.IMockDataMapper, Dispatching.MockDataMapper>();
         services.AddSingleton<Dispatching.IHttpBackendCaller, Dispatching.HttpBackendCaller>();

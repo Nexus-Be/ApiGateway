@@ -25,7 +25,7 @@ public sealed class WalletController : GatewayBaseController
     {
     }
 
-    /// <summary>Lấy thông tin ví và số dư khả dụng/bị khóa của cá nhân (WAL-02)</summary>
+    /// <summary>Gets personal wallet balance and status.</summary>
     [HttpGet("wallets/me")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<WalletInfoResponseDto>), StatusCodes.Status200OK)]
@@ -40,7 +40,7 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Tạo yêu cầu nạp tiền qua VNPay và lấy URL thanh toán (WAL-03)</summary>
+    /// <summary>Initiates a VNPay top-up request.</summary>
     [HttpPost("wallets/topups/vnpay")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<VnpayTopupCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -60,7 +60,7 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Webhook nhận kết quả IPN từ VNPay (nạp ví hoặc thanh toán đơn trực tiếp) (WAL-04)</summary>
+    /// <summary>Processes payment webhook notification from VNPay.</summary>
     [HttpPost("wallets/vnpay/ipn")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(VnPayIpnResponse), StatusCodes.Status200OK)]
@@ -69,7 +69,7 @@ public sealed class WalletController : GatewayBaseController
         return Results.Ok(new VnPayIpnResponse { RspCode = "00", Message = "Confirm success." });
     }
 
-    /// <summary>Tạo phiên thanh toán trực tiếp qua cổng VNPay cho đơn hàng (WAL-05B)</summary>
+    /// <summary>Initiates direct payment for an order via VNPay.</summary>
     [HttpPost("wallets/checkout/direct")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<DirectCheckoutResponseDto>), StatusCodes.Status200OK)]
@@ -90,7 +90,7 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Yêu cầu rút tiền từ ví về tài khoản ngân hàng (WAL-07)</summary>
+    /// <summary>Requests a balance withdrawal to a bank account.</summary>
     [HttpPost("wallets/withdrawals")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -116,7 +116,7 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Quản trị viên / Nhân viên tài chính duyệt hoặc từ chối yêu cầu rút tiền (WAL-08)</summary>
+    /// <summary>Approves or rejects a withdrawal request by administrator.</summary>
     [HttpPatch("admin/wallets/withdrawals/{withdrawalId}")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<WithdrawalProcessedResponseDto>), StatusCodes.Status200OK)]
@@ -138,7 +138,7 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Tra cứu lịch sử biến động sổ cái (wallet_transactions) cá nhân (WAL-09)</summary>
+    /// <summary>Lists personal wallet transactions history.</summary>
     [HttpGet("wallets/transactions")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<WalletTransactionItemDto>>), StatusCodes.Status200OK)]
@@ -170,7 +170,7 @@ public sealed class WalletController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin điều chỉnh số dư ví thủ công kèm kiểm toán (WAL-10)</summary>
+    /// <summary>Adjusts wallet balance manually with audit trail by administrator.</summary>
     [HttpPost("admin/wallets/{walletId}/adjustments")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<WalletAdjustmentResponseDto>), StatusCodes.Status200OK)]

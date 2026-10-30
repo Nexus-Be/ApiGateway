@@ -326,7 +326,6 @@ public sealed class UsersController : GatewayBaseController
     }
 
     [HttpPost("user/reports")]
-    [HttpPost("users/reports")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<UserReportCreatedResponseDto>), StatusCodes.Status201Created)]
     public Task<IResult> CreateUserReport([FromBody] CreateUserReportDto body)
@@ -337,7 +336,7 @@ public sealed class UsersController : GatewayBaseController
 
         return ForwardAsync(
             Service,
-            "/api/v1/users/reports",
+            "/api/v1/user/reports",
             HttpMethod.Post,
             body: body,
             mockSeed: "user-report-create",

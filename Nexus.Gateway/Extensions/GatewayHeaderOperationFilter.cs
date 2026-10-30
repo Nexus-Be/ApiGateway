@@ -5,10 +5,10 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 namespace Nexus.Gateway.Swagger;
 
 /// <summary>
-/// Tự động thêm các header điều khiển Gateway vào từng endpoint trên Swagger UI:
-/// - X-Gateway-Mode: Chuyển đổi giữa chế độ 'Mock' và 'Real'.
-/// - X-Gateway-Auth: Chuyển đổi giữa xác thực 'Bypass' (không cần login) và 'Enforce' (bắt buộc JWT).
-/// - X-Mock-Role: Giả lập vai trò ('buyer', 'seller', 'staff', 'admin') khi chạy chế độ Bypass.
+/// Automatically injects Gateway control headers into every endpoint on Swagger UI:
+/// - X-Gateway-Mode: Switch between 'Mock' and 'Real' modes.
+/// - X-Gateway-Auth: Switch between 'Bypass' (no token required) and 'Enforce' (JWT required).
+/// - X-Mock-Role: Simulate user roles ('buyer', 'seller', 'staff', 'admin') in Bypass mode.
 /// </summary>
 public sealed class GatewayHeaderOperationFilter : IOperationFilter
 {
@@ -16,13 +16,13 @@ public sealed class GatewayHeaderOperationFilter : IOperationFilter
     {
         operation.Parameters ??= new List<OpenApiParameter>();
 
-        // 1. X-Gateway-Mode: Cho phép đổi chế độ Mock / Real trực tiếp trên từng request
+        // 1. X-Gateway-Mode: Allows switching Mock / Real mode directly on each request
         operation.Parameters.Add(new OpenApiParameter
         {
             Name = "X-Gateway-Mode",
             In = ParameterLocation.Header,
             Required = false,
-            Description = "Chế độ xử lý của Gateway: 'Mock' (lấy dữ liệu mock/seed) hoặc 'Real' (chuyển tiếp tới backend RESTful microservice). Mặc định: 'Mock'.",
+            Description = "Gateway dispatch mode: 'Mock' (serve static mock/seed fixtures) or 'Real' (forward to backend RESTful microservice). Default: 'Mock'.",
             Schema = new OpenApiSchema
             {
                 Type = "string",
@@ -35,13 +35,13 @@ public sealed class GatewayHeaderOperationFilter : IOperationFilter
             }
         });
 
-        // 2. X-Gateway-Auth: Cho phép test không cần đăng nhập hoặc ép kiểm tra JWT thật
+        // 2. X-Gateway-Auth: Allows testing without authentication or enforcing valid JWT
         operation.Parameters.Add(new OpenApiParameter
         {
             Name = "X-Gateway-Auth",
             In = ParameterLocation.Header,
             Required = false,
-            Description = "Chế độ xác thực: 'Bypass' (không cần login khi test Mock) hoặc 'Enforce' (bắt buộc JWT hợp lệ). Mặc định: 'Bypass'.",
+            Description = "Authentication mode: 'Bypass' (bypass authentication in mock mode) or 'Enforce' (enforce valid JWT). Default: 'Bypass'.",
             Schema = new OpenApiSchema
             {
                 Type = "string",
@@ -54,13 +54,13 @@ public sealed class GatewayHeaderOperationFilter : IOperationFilter
             }
         });
 
-        // 3. X-Mock-Role: Cho phép đổi vai trò giả lập khi test
+        // 3. X-Mock-Role: Allows changing simulated role in testing
         operation.Parameters.Add(new OpenApiParameter
         {
             Name = "X-Mock-Role",
             In = ParameterLocation.Header,
             Required = false,
-            Description = "Vai trò giả lập khi ở chế độ Mock/Bypass: 'buyer', 'seller', 'staff', 'admin'. Mặc định: 'buyer'.",
+            Description = "Simulated user role when running in Mock/Bypass mode: 'buyer', 'seller', 'staff', 'admin'. Default: 'buyer'.",
             Schema = new OpenApiSchema
             {
                 Type = "string",

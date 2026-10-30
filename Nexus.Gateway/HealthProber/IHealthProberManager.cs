@@ -15,6 +15,6 @@ public interface IHealthProberManager
     Task<bool> DisableServiceProberAsync(string serviceName);
     Task SetBulkProberAsync(bool enableAll);
 
-    // Dùng cho test hoặc trigger thủ công
+    // Used for tests or manual triggers
     Task<HealthCheckSample> ProbeOnceAsync(string serviceName, CancellationToken cancellationToken = default);
 }

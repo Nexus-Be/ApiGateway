@@ -19,6 +19,14 @@ services:
       - Gateway__AuthMode=${GATEWAY_AUTH_MODE:-Enforce}
       - Gateway__RedisConnectionString=${REDIS_CONNECTION_STRING:-redis:6379}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4317}
+      - Gateway__Services__users__Mode=${GATEWAY_USERS_MODE:-Real}
+      - Gateway__Services__catalog__Mode=${GATEWAY_CATALOG_MODE:-Real}
+      - Gateway__Services__commerce__Mode=${GATEWAY_COMMERCE_MODE:-Real}
+      - Gateway__Services__log__Mode=${GATEWAY_LOG_MODE:-Real}
+      - Gateway__Services__auction__Mode=${GATEWAY_AUCTION_MODE:-Real}
+      - Gateway__Services__fulfillment__Mode=${GATEWAY_FULFILLMENT_MODE:-Real}
+      - Gateway__Services__notification__Mode=${GATEWAY_NOTIFICATION_MODE:-Real}
+      - Gateway__Services__wallet__Mode=${GATEWAY_WALLET_MODE:-Real}
       - Gateway__Services__users__Address=${USERS_SERVICE_URL:-http://user-service:8001}
       - Gateway__Services__catalog__Address=${CATALOG_SERVICE_URL:-http://catalog-service:8002}
       - Gateway__Services__commerce__Address=${COMMERCE_SERVICE_URL:-http://commerce-service:8003}
@@ -37,3 +45,4 @@ services:
 networks:
   default:
     name: nexus-network
+    external: true

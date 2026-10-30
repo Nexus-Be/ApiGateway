@@ -1,5 +1,5 @@
 # 00 — NHIỆM VỤ CỐT LÕI & RÀO CHẮN CHỐNG ẢO GIÁC (API GATEWAY)
-> **Trạng thái triển khai (2026-10-27):** ✅ Hoàn tất — 15/15 controllers đầy đủ actions, 46 seed JSON fixtures trong `Seeds/`, 372 test cases pass 100%. Cơ chế giao tiếp downstream đã chuyển đổi hoàn toàn sang RESTful HTTP/JSON qua `HttpBackendCaller` và `GatewayBaseController.ForwardAsync`.
+> **Trạng thái triển khai (2026-10-30):** ✅ Hoàn tất — 15/15 controllers đầy đủ actions (177 action), 163 seed JSON fixtures trong `Seeds/`, 412 test cases pass 100%. Cơ chế giao tiếp downstream là RESTful HTTP/JSON qua `HttpBackendCaller` và `GatewayBaseController.ForwardAsync`. Declarative mock (`Mocks/*.mock.json` + `MockEngine/`) đã bị gỡ bỏ.
 > **Nguồn sự thật:** code trong repo này (`file:line` ghi kèm trong từng bảng).
 > **Cập nhật lần cuối:** 2026-10-27.
 ---
@@ -9,7 +9,7 @@ Repository này chứa mã nguồn của **Nexus API Gateway (.NET 8)**:
 - Cung cấp giao diện RESTful JSON cho các ứng dụng Client (Web, Mobile).
 - Chuyển đổi và định tuyến các HTTP request sang các cuộc gọi **RESTful HTTP/JSON downstream** tới 8 backend microservices qua `HttpBackendCaller` và `IHttpClientFactory` (loại bỏ hoàn toàn gRPC, 100% RESTful HTTP/JSON).
 - Đảm bảo an ninh vòng ngoài: Kiểm tra token JWT, kiểm soát quyền truy cập RBAC, áp đặt giới hạn tần suất gọi (Distributed Rate Limiting qua Redis), giới hạn kích thước gói tin (Kestrel MaxRequestBodySize = 64KB).
-- Hỗ trợ độc lập phát triển cho Frontend qua **Mock Engine** (declarative `Mocks/*.mock.json` + seed `Seeds/`) và **AuthMode hai trạng thái** (`Enforce`/`Standard` vs `Bypass`, Bypass chỉ ở Development).
+- Hỗ trợ độc lập phát triển cho Frontend qua **Seed Fixtures** (`Seeds/{service}/{operation}.json` phục vụ duy nhất bởi Controller Action) và **AuthMode hai trạng thái** (`Enforce`/`Standard` vs `Bypass`, Bypass chỉ ở Development).
 Bounded context: cổng `8080`, **0 database nghiệp vụ**, 1 Redis cho rate limit (`localhost:6379`).
 ---
 ## 2. NHỮNG ĐIỀU CẤM KỴ ĐỐI VỚI AI AGENTS (ANTI-HALLUCINATION GUARDRAILS)

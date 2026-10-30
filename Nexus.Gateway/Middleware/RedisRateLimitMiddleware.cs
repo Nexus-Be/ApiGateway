@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 using StackExchange.Redis;
@@ -27,7 +26,6 @@ public sealed class RedisRateLimitMiddleware
         IDistributedRateLimitStore rateLimitStore,
         IOptionsMonitor<GatewayOptions> optionsMonitor,
         IWebHostEnvironment environment,
-        IMockEngine mockEngine,
         IApiResponseFactory responseFactory)
     {
         if (!context.Request.Path.StartsWithSegments("/gateway/api") && !context.Request.Path.StartsWithSegments("/api"))
@@ -63,7 +61,7 @@ public sealed class RedisRateLimitMiddleware
         var policy = options.GetRateLimitPolicy(policyName);
         var effectivePolicyName = !string.IsNullOrWhiteSpace(policyName) ? policyName.Trim().ToLowerInvariant() : "default";
 
-        var service = GatewaySecurityHelper.DetectServiceForRequest(context, mockEngine);
+        var service = GatewaySecurityHelper.DetectServiceForRequest(context);
         var principal = context.User.FindFirst("sub")?.Value;
         var identity = principal ?? context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
         var now = DateTimeOffset.UtcNow;

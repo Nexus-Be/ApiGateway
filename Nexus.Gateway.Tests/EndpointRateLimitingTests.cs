@@ -10,7 +10,6 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Nexus.Gateway.Middleware;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using Xunit;
 
@@ -182,7 +181,6 @@ public sealed class EndpointRateLimitingTests
             store,
             new StaticOptionsMonitor(options),
             new StaticEnvironment("Production"),
-            new DummyMockEngine(),
             new ApiResponseFactory());
 
         // Since rate limiting is disabled, store should not have been called
@@ -216,12 +214,5 @@ public sealed class EndpointRateLimitingTests
         public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
         public string ContentRootPath { get; set; } = string.Empty;
         public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-    }
-
-    private sealed class DummyMockEngine : IMockEngine
-    {
-        public IReadOnlyList<MockEndpointDefinition> GetDefinitions() => [];
-        public MockRouteMatch Match(string httpMethod, string requestPath) => MockRouteMatch.Failed;
-        public void Reload() { }
     }
 }

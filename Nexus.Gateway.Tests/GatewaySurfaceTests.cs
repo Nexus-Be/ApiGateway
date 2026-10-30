@@ -100,12 +100,14 @@ public sealed class GatewaySurfaceTests
     public async Task Real_mode_forwards_user_headers_to_downstream_rest()
     {
         string? lastAuthorization = null;
+        string? lastPermissions = null;
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, 0));
         await using var backend = builder.Build();
         backend.MapGet("/api/v1/me", (HttpContext ctx) =>
         {
             lastAuthorization = ctx.Request.Headers["authorization"].ToString();
+            lastPermissions = ctx.Request.Headers["x-user-permissions"].ToString();
             return Results.Ok(new
             {
                 success = true,
@@ -132,11 +134,14 @@ public sealed class GatewaySurfaceTests
             }
         };
         using var client = app.CreateClient();
-        client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenFor("seller-user", "seller"));
+        client.DefaultRequestHeaders.Authorization = new("Bearer", Factory.TokenWithPermissions("seller-user", ["seller"], "PRODUCT_CREATE", "PRODUCT_UPDATE"));
 
         using var response = await client.GetAsync("/gateway/api/v1/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("Real", response.Headers.GetValues("X-Gateway-Mode").Single());
         Assert.NotNull(lastAuthorization);
+        Assert.NotNull(lastPermissions);
+        Assert.Contains("PRODUCT_CREATE", lastPermissions);
+        Assert.Contains("PRODUCT_UPDATE", lastPermissions);
     }
 }

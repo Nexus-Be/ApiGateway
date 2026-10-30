@@ -54,20 +54,6 @@ public sealed class CatalogMockTests
     }
 
     [Fact]
-    public async Task SearchProducts_ProductsSearchRoute_ReturnsPagedEnvelope()
-    {
-        using var app = new Factory();
-        using var client = app.CreateClient();
-
-        var response = await client.GetAsync("/api/v1/products/search?page=1&pageSize=10");
-        using var doc = await OkJson(response);
-
-        AssertSuccessEnvelope(doc, 200);
-        var data = doc.RootElement.GetProperty("data");
-        Assert.True(data.GetProperty("items").GetArrayLength() > 0);
-    }
-
-    [Fact]
     public async Task ListProducts_RejectsInvalidPageSize()
     {
         using var app = new Factory();

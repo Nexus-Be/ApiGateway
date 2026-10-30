@@ -40,7 +40,6 @@ public static class HealthProberExtensions
 
         services.AddSingleton<IHealthIncidentLogger, FileRollingHealthIncidentLogger>();
         services.AddSingleton<IDockerContainerRecoveryService, DockerContainerRecoveryService>();
-        services.AddSingleton<ISagaRollbackPublisher, SagaRollbackPublisher>();
 
         services.AddSingleton<HealthProberManager>();
         services.AddSingleton<IHealthProberManager>(sp => sp.GetRequiredService<HealthProberManager>());

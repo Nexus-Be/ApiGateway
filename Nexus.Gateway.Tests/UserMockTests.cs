@@ -369,23 +369,11 @@ public sealed class UserMockTests
         using var app = new Factory();
         using var client = CreateClient(app, "buyer");
 
-        // Both plural (/users/reports) and standardized singular (/user/reports) are supported
-        var responsePlural = await client.PostAsJsonAsync("/api/v1/users/reports", new
-        {
-            reportedUserId = UserId,
-            violationType = "COUNTERFEIT",
-            description = "Counterfeit item"
-        });
-
-        Assert.Equal(HttpStatusCode.Created, responsePlural.StatusCode);
-        using var docPlural = Parse(await responsePlural.Content.ReadAsStringAsync());
-        AssertSuccessEnvelope(docPlural, 201);
-
         var responseSingular = await client.PostAsJsonAsync("/api/v1/user/reports", new
         {
             reportedUserId = UserId,
             violationType = "COUNTERFEIT",
-            description = "Counterfeit item singular"
+            description = "Counterfeit item"
         });
 
         Assert.Equal(HttpStatusCode.Created, responseSingular.StatusCode);

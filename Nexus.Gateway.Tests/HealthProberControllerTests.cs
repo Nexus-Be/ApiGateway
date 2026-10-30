@@ -19,7 +19,7 @@ public sealed class HealthProberControllerTests
         using var app = new Factory();
         using var client = app.CreateClient();
 
-        // 1. Không có token và không có API key -> 401 Unauthorized
+        // 1. No token and no API key -> 401 Unauthorized
         var unauthResp = await client.GetAsync("/api/v1/gateway/prober/status");
         Assert.Equal(HttpStatusCode.Unauthorized, unauthResp.StatusCode);
 
@@ -28,17 +28,17 @@ public sealed class HealthProberControllerTests
         var forbiddenResp = await client.GetAsync("/api/v1/gateway/prober/status");
         Assert.Equal(HttpStatusCode.Forbidden, forbiddenResp.StatusCode);
 
-        // 3. Token admin nhưng không truyền API key -> 401 Unauthorized
+        // 3. Admin token without API key -> 401 Unauthorized
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
         var noKeyResp = await client.GetAsync("/api/v1/gateway/prober/status");
         Assert.Equal(HttpStatusCode.Unauthorized, noKeyResp.StatusCode);
 
-        // 4. Token admin nhưng sai API key -> 401 Unauthorized
+        // 4. Admin token with invalid API key -> 401 Unauthorized
         client.DefaultRequestHeaders.Add("X-Api-Key", "invalid-key-xyz");
         var badKeyResp = await client.GetAsync("/api/v1/gateway/prober/status");
         Assert.Equal(HttpStatusCode.Unauthorized, badKeyResp.StatusCode);
 
-        // 5. Token admin và đúng API key -> 200 OK
+        // 5. Admin token with valid API key -> 200 OK
         client.DefaultRequestHeaders.Remove("X-Api-Key");
         client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
         var okResp = await client.GetAsync("/api/v1/gateway/prober/status");
@@ -51,7 +51,7 @@ public sealed class HealthProberControllerTests
         var data = doc.RootElement.GetProperty("data");
         Assert.Equal(8, data.GetArrayLength());
 
-        // 6. Truy cập chỉ bằng API key hợp lệ (không cần JWT token) -> 200 OK
+        // 6. Access via valid API key only (without JWT) -> 200 OK
         using var apiKeyOnlyClient = app.CreateClient();
         apiKeyOnlyClient.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
         var apiKeyOkResp = await apiKeyOnlyClient.GetAsync("/api/v1/gateway/prober/status");
@@ -66,18 +66,18 @@ public sealed class HealthProberControllerTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
         client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
 
-        // 1. Bật catalog prober
+        // 1. Enable catalog prober
         var enableResp = await client.PutAsJsonAsync("/api/v1/gateway/prober/catalog", new { enabled = true, intervalSeconds = 30 });
         Assert.Equal(HttpStatusCode.OK, enableResp.StatusCode);
 
-        // 2. Kiểm tra status của catalog
+        // 2. Verify catalog prober status
         var checkResp = await client.GetAsync("/api/v1/gateway/prober/status/catalog");
         Assert.Equal(HttpStatusCode.OK, checkResp.StatusCode);
         var checkContent = await checkResp.Content.ReadAsStringAsync();
         using var checkDoc = JsonDocument.Parse(checkContent);
         Assert.True(checkDoc.RootElement.GetProperty("data").GetProperty("isEnabled").GetBoolean());
 
-        // 3. Tắt catalog prober
+        // 3. Disable catalog prober
         var disableResp = await client.PutAsJsonAsync("/api/v1/gateway/prober/catalog", new { enabled = false });
         Assert.Equal(HttpStatusCode.OK, disableResp.StatusCode);
 
@@ -102,7 +102,7 @@ public sealed class HealthProberControllerTests
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Factory.TokenFor("admin1", "admin"));
         client.DefaultRequestHeaders.Add("X-Api-Key", ValidApiKey);
 
-        // Gọi API check thủ công trên service catalog
+        // Trigger manual check on catalog service
         var resp = await client.PostAsync("/api/v1/gateway/prober/catalog/check", null);
         Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
 
@@ -120,7 +120,7 @@ public sealed class HealthProberControllerTests
         using var app = new Factory();
         var proberManager = app.Services.GetRequiredService<IHealthProberManager>();
 
-        // Giả lập service users bị đánh dấu Unhealthy
+        // Simulate users service marked as Unhealthy
         var userState = proberManager.GetState("users")!;
         userState.Status = ProberRunStatus.Unhealthy;
 
@@ -133,7 +133,7 @@ public sealed class HealthProberControllerTests
 
         var response = await client.SendAsync(realReq);
 
-        // Circuit breaker ngắt ngay lập tức với HTTP 503 và errorCode: DOWNSTREAM_UNHEALTHY
+        // Circuit breaker trips immediately with HTTP 503 and errorCode: DOWNSTREAM_UNHEALTHY
         Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
         var content = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(content);

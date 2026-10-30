@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Http;
 
 // ---------- ME ----------
 
-/// <summary>USER-02: PATCH /api/v1/me — cập nhật hồ sơ cá nhân</summary>
+/// <summary>USER-02: PATCH /api/v1/me - update personal profile</summary>
 public sealed class UpdateMyProfileDto
 {
     public string? Username { get; set; }
@@ -127,7 +127,7 @@ public sealed class DeleteAdminUserDto
 public sealed class BanAdminUserDto
 {
     public string? Reason { get; set; }
-    public int? BanDurationDays { get; set; } // 0 = vĩnh viễn
+    public int? BanDurationDays { get; set; } // 0 = permanent
 }
 
 /// <summary>ADMIN-06: PATCH /api/v1/admin/user/{userId}/unban</summary>

@@ -14,7 +14,7 @@ Chào mừng bạn (Developer hoặc AI Coding Agent) đến với repository **
 | [01_ARCHITECTURAL_BLUEPRINT.md](01_ARCHITECTURAL_BLUEPRINT.md) | Kiến trúc 3 khối độc lập (Input Controllers $\rightarrow$ Dispatching Core $\rightarrow$ Output Factory) + pipeline 8 bước, REST downstream. | ✅ CÓ | `Nexus.Gateway/Dispatching/`, `Extensions/PipelineExtensions.cs` |
 | [02_GATEWAY_CONTROLLERS_ROUTING.md](02_GATEWAY_CONTROLLERS_ROUTING.md) | **15 file controller** đầy đủ actions, route prefix `/api/v1/...`, kế thừa `GatewayBaseController`. | ✅ CÓ | `Nexus.Gateway/Controllers/*.cs` |
 | [03_GATEWAY_STATE_SECURITY.md](03_GATEWAY_STATE_SECURITY.md) | JWT Bearer, phân quyền RBAC, hai trục cấu hình `Gateway:AuthMode` (`Enforce`/`Standard` vs `Bypass` — chỉ Development) và `Services:{name}:Mode` (`Real`/`Mock`). | ✅ CÓ | `Nexus.Gateway/GatewayOptions.cs:38-115` |
-| [04_MOCK_ENGINE_SEED_DATA.md](04_MOCK_ENGINE_SEED_DATA.md) | Seed fixtures `Seeds/{service}/{operation}.json` (46 file thật phủ 8 services), declarative mock `Mocks/*.mock.json` (6 file). | ✅ CÓ | `Nexus.Gateway/Seeds/`, `Nexus.Gateway/Mocks/`, `MockEngine/` |
+| [04_MOCK_ENGINE_SEED_DATA.md](04_MOCK_ENGINE_SEED_DATA.md) | Seed fixtures `Seeds/{service}/{operation}.json` (163 file thật phủ 9 nhóm service) — cơ chế mock duy nhất. | ✅ CÓ | `Nexus.Gateway/Seeds/`, `Dispatching/MockDataMapper.cs` |
 | [05_DEV_VERIFICATION_CHECKLIST.md](05_DEV_VERIFICATION_CHECKLIST.md) | Danh sách kiểm tra nghiệm thu, lệnh chạy test/build, sanity check bằng grep. | ✅ CÓ | file trong `specs/` |
 
 ---

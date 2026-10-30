@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using Nexus.Gateway.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
@@ -206,9 +207,23 @@ public class SwaggerHeadersTests : IClassFixture<Factory>
     public async Task SwaggerDownstream_OfflineService_ReturnsServiceUnavailable()
     {
         // Arrange
-        var client = _factory.CreateClient();
+        using var factory = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.PostConfigure<GatewayOptions>(o =>
+                {
+                    if (o.Services.TryGetValue("users", out var users))
+                    {
+                        users.Mode = "Real";
+                        users.Address = "http://127.0.0.1:59999";
+                    }
+                });
+            });
+        });
+        var client = factory.CreateClient();
 
-        // Act - In local unit tests, downstream service on 8001 is offline
+        // Act - Downstream service on 59999 is offline
         var response = await client.GetAsync("/swagger-downstream/users/swagger.json");
 
         // Assert

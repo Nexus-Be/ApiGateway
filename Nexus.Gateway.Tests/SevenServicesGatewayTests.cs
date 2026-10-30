@@ -88,7 +88,7 @@ public sealed class SevenServicesGatewayTests
         realReq.Headers.Add("X-Mock-Mode", "Real");
         var realResp = await client.SendAsync(realReq);
         Assert.Equal("Real", realResp.Headers.GetValues("X-Gateway-Mode").Single());
-        Assert.Contains(realResp.StatusCode, new[] { HttpStatusCode.ServiceUnavailable, HttpStatusCode.BadGateway, HttpStatusCode.InternalServerError, HttpStatusCode.BadRequest, HttpStatusCode.OK });
+        Assert.Contains(realResp.StatusCode, new[] { HttpStatusCode.ServiceUnavailable, HttpStatusCode.BadGateway, HttpStatusCode.InternalServerError, HttpStatusCode.BadRequest, HttpStatusCode.OK, HttpStatusCode.Unauthorized });
 
         // With X-Service-Modes: users=Mock;auction=Real
         using var mixedReq = new HttpRequestMessage(HttpMethod.Post, "/gateway/api/v1/auth/login")

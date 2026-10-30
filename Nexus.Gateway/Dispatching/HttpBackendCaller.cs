@@ -278,14 +278,25 @@ public sealed class HttpBackendCaller : IHttpBackendCaller
             {
                 request.Headers.TryAddWithoutValidation("x-user-email", email);
             }
+
+            var permissions = user.FindAll("permission")
+                .Concat(user.FindAll("permissions"))
+                .Select(p => p.Value?.Trim())
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (permissions.Count > 0)
+            {
+                request.Headers.TryAddWithoutValidation("x-user-permissions", string.Join(",", permissions));
+            }
         }
         else
         {
-            if (context.Request.Headers.TryGetValue("x-user-id", out var uid))
+            if (context.Request.Headers.TryGetValue("x-user-id", out var uid) && !string.IsNullOrWhiteSpace(uid))
                 request.Headers.TryAddWithoutValidation("x-user-id", (string?)uid);
-            if (context.Request.Headers.TryGetValue("x-user-roles", out var uroles))
+            if (context.Request.Headers.TryGetValue("x-user-roles", out var uroles) && !string.IsNullOrWhiteSpace(uroles))
                 request.Headers.TryAddWithoutValidation("x-user-roles", (string?)uroles);
-            if (context.Request.Headers.TryGetValue("x-user-email", out var umail))
+            if (context.Request.Headers.TryGetValue("x-user-email", out var umail) && !string.IsNullOrWhiteSpace(umail))
                 request.Headers.TryAddWithoutValidation("x-user-email", (string?)umail);
         }
 

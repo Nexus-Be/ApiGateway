@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Nexus.Gateway.Dtos.GatewayControl;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 using Nexus.Gateway.Services;
@@ -20,16 +19,13 @@ public sealed class GatewayControlController : ControllerBase
 {
     private readonly IGatewayRuntimeManager _manager;
     private readonly IApiResponseFactory _factory;
-    private readonly IMockEngine _engine;
 
     public GatewayControlController(
         IGatewayRuntimeManager manager,
-        IApiResponseFactory factory,
-        IMockEngine engine)
+        IApiResponseFactory factory)
     {
         _manager = manager;
         _factory = factory;
-        _engine = engine;
     }
 
     [HttpGet("gateway/modes")]
@@ -97,32 +93,5 @@ public sealed class GatewayControlController : ControllerBase
         }
         var state = new GatewayStateResponseDto(_manager.GetAuthMode(HttpContext), _manager.GetServiceModes());
         return _factory.SuccessResult(HttpContext, state, "Gateway modes updated.");
-    }
-
-    [HttpGet("mock-engine/definitions")]
-    public IResult GetMockDefinitions()
-    {
-        var defs = _engine.GetDefinitions().Select(d => new
-        {
-            d.Id,
-            d.Service,
-            d.Method,
-            d.Path,
-            d.Description,
-            d.Policy,
-            d.StatusCode,
-            d.ResponseType,
-            hasRequest = d.Request.HasValue,
-            hasResponse = d.Response.HasValue
-        });
-        return _factory.SuccessResult(HttpContext, defs, "Mock endpoint definitions retrieved.");
-    }
-
-    [HttpPost("mock-engine/reload")]
-    public IResult ReloadMockDefinitions()
-    {
-        _engine.Reload();
-        var count = _engine.GetDefinitions().Count;
-        return _factory.SuccessResult(HttpContext, new { loadedCount = count }, $"Reloaded {count} mock definitions successfully.");
     }
 }

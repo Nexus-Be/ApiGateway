@@ -27,9 +27,8 @@ public sealed class ProductsController : GatewayBaseController
     {
     }
 
-    /// <summary>Xem danh sách sản phẩm của shop (CAT-06) / Tìm kiếm sản phẩm (Row 41)</summary>
+    /// <summary>Lists products with optional filtering and pagination.</summary>
     [HttpGet("products")]
-    [HttpGet("products/search")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<ProductListItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> ListProducts(
@@ -70,7 +69,24 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Tìm kiếm, lọc sản phẩm của shop (CAT-06 + CAT-21)</summary>
+    /// <summary>Searches products with query parameters.</summary>
+    [HttpGet("products/search")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse<PagedData<ProductListItemDto>>), StatusCodes.Status200OK)]
+    public Task<IResult> SearchProducts(
+        [FromQuery] PaginationRequest pagination,
+        [FromQuery] string? keyword,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] string? status,
+        [FromQuery] Guid? sellerId,
+        [FromQuery] string? saleType,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortDir)
+    {
+        return ListProducts(pagination, keyword, categoryId, status, sellerId, saleType, sortBy, sortDir);
+    }
+
+    /// <summary>Searches seller products with filters.</summary>
     [HttpGet("product/search")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<ProductListItemDto>>), StatusCodes.Status200OK)]
@@ -120,7 +136,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem chi tiết một sản phẩm (CAT-05)</summary>
+    /// <summary>Gets product details by product ID.</summary>
     [HttpGet("product/{productId}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ProductDetailResponseDto>), StatusCodes.Status200OK)]
@@ -142,7 +158,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Tạo sản phẩm mới kèm biến thể đầu tiên (CAT-01)</summary>
+    /// <summary>Creates a new product with its first variant.</summary>
     [HttpPost("products")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<ProductCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -161,7 +177,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Cập nhật thông tin sản phẩm (CAT-02)</summary>
+    /// <summary>Updates product information.</summary>
     [HttpPatch("product/{productId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<ProductUpdatedResponseDto>), StatusCodes.Status200OK)]
@@ -179,7 +195,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Xoá sản phẩm (CAT-04)</summary>
+    /// <summary>Deletes a product by product ID.</summary>
     [HttpDelete("product/{productId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -195,9 +211,8 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Thêm ảnh cho sản phẩm (CAT-12)</summary>
+    /// <summary>Uploads images for a product.</summary>
     [HttpPost("product/{productId}pics")]
-    [HttpPost("product/{productId}/pics")]
     [Authorize(GatewayPolicies.Seller)]
     [RequestSizeLimit(20 * 1024 * 1024)]
     [ProducesResponseType(typeof(ApiResponse<ProductImageAddResponseDto>), StatusCodes.Status201Created)]
@@ -217,9 +232,8 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem ảnh của sản phẩm (CAT-40)</summary>
+    /// <summary>Lists product images with optional variant filter.</summary>
     [HttpGet("product/{productId}pics")]
-    [HttpGet("product/{productId}/pics")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ProductImageListResponseDto>), StatusCodes.Status200OK)]
     public Task<IResult> ListProductImages([FromRoute] string productId, [FromQuery] string? variantId)
@@ -240,9 +254,8 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Xoá danh sách ảnh của sản phẩm (CAT-13)</summary>
+    /// <summary>Deletes specified product images.</summary>
     [HttpDelete("product/{productId}pics")]
-    [HttpDelete("product/{productId}/pics")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public Task<IResult> DeleteProductImages([FromRoute] string productId, [FromQuery] string? ids)
@@ -261,7 +274,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Điểm đánh giá trung bình của sản phẩm (CAT-31)</summary>
+    /// <summary>Gets average rating summary for a product.</summary>
     [HttpGet("products/{productId}/totalRating")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ProductRatingSummaryResponseDto>), StatusCodes.Status200OK)]
@@ -277,7 +290,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Điểm trung bình và danh sách đánh giá của sản phẩm (CAT-30 + CAT-31)</summary>
+    /// <summary>Gets reviews and rating distribution for a product.</summary>
     [HttpGet("products/{productId}/rating")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<ProductRatingResponseDto>), StatusCodes.Status200OK)]
@@ -308,7 +321,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Đổi trạng thái sản phẩm (CAT-03)</summary>
+    /// <summary>Updates product status.</summary>
     [HttpPatch("product/{productId}/status")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<ProductStatusResponseDto>), StatusCodes.Status200OK)]
@@ -326,7 +339,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Thêm biến thể cho sản phẩm (CAT-07)</summary>
+    /// <summary>Creates a variant for a product.</summary>
     [HttpPost("product/{productId}/variants")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<VariantCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -345,7 +358,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Xoá một biến thể (CAT-11)</summary>
+    /// <summary>Deletes a product variant.</summary>
     [HttpDelete("variant/{variantId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -361,7 +374,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Cập nhật biến thể (CAT-08)</summary>
+    /// <summary>Updates a product variant.</summary>
     [HttpPatch("variant/{variantId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<VariantUpdatedResponseDto>), StatusCodes.Status200OK)]
@@ -378,7 +391,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem chi tiết một biến thể (CAT-42)</summary>
+    /// <summary>Gets product variant details.</summary>
     [HttpGet("variant/{variantId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<VariantDetailResponseDto>), StatusCodes.Status200OK)]
@@ -394,7 +407,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Tạo sản phẩm đấu giá (CAT-43)</summary>
+    /// <summary>Creates an auction product.</summary>
     [HttpPost("product/auction")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<AuctionProductCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -413,9 +426,8 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Tìm kiếm sản phẩm đấu giá của shop (CAT-06 + CAT-21)</summary>
+    /// <summary>Searches seller auction products.</summary>
     [HttpGet("product/auction/search")]
-    [HttpGet("product/aucction/search")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<ProductListItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> SearchAuctionProducts(
@@ -453,7 +465,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Danh sách sản phẩm đấu giá của shop (CAT-06)</summary>
+    /// <summary>Lists seller auction products.</summary>
     [HttpGet("product/auctions")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<ProductListItemDto>>), StatusCodes.Status200OK)]
@@ -480,7 +492,7 @@ public sealed class ProductsController : GatewayBaseController
         );
     }
 
-    /// <summary>Chi tiết sản phẩm đấu giá theo phiên (AUC-35 + CAT-05)</summary>
+    /// <summary>Gets auction product details by auction session ID.</summary>
     [HttpGet("product/auction/{auctionId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<AuctionProductDetailResponseDto>), StatusCodes.Status200OK)]

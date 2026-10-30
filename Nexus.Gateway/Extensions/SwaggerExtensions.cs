@@ -5,30 +5,29 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Security;
 using Nexus.Gateway.Swagger;
 
-public static class SwaggerExtension
+public static class SwaggerExtensions
 {
     private static readonly (string DocName, string Title, int Port, string Description)[] ServiceDocs =
     [
-        ("users", "User & Auth Service", 8001, "Quản lý người dùng, hồ sơ, xác thực và phân quyền."),
-        ("catalog", "Catalog Service", 8002, "Quản lý danh mục, sản phẩm và tồn kho ảo."),
-        ("commerce", "Commerce Service", 8003, "Quản lý giỏ hàng và đơn đặt hàng."),
-        ("log", "Log Service", 8004, "Nhật ký hệ thống và audit trail."),
-        ("auction", "Auction Service", 8005, "Đấu giá và phiên đặt giá trực tuyến."),
-        ("fulfillment", "Fulfillment Service", 8006, "Kho bãi vật lý và vận đơn giao vận."),
-        ("notification", "Notification Service", 8007, "Thông báo email và in-app."),
-        ("wallet", "Wallet Service", 8008, "Ví số dư, nạp rút và thanh toán giao dịch."),
-        ("checkheal", "Health & CheckHeal", 8009, "Kiểm tra sức khỏe hệ thống và điều khiển Gateway.")
+        ("users", "User & Auth Service", 8001, "User accounts, profile management, authentication, and authorization."),
+        ("catalog", "Catalog Service", 8002, "Categories, products, and virtual inventory management."),
+        ("commerce", "Commerce Service", 8003, "Shopping carts and order management."),
+        ("log", "Log Service", 8004, "Centralized system logs and audit trail."),
+        ("auction", "Auction Service", 8005, "Online auctions and real-time bidding sessions."),
+        ("fulfillment", "Fulfillment Service", 8006, "Physical warehouses, parcels, and shipment tracking."),
+        ("notification", "Notification Service", 8007, "Email and in-app notifications."),
+        ("wallet", "Wallet Service", 8008, "Wallet balance, deposits, withdrawals, and payments."),
+        ("checkheal", "Health & CheckHeal", 8009, "System health monitoring and Gateway keep-alive prober.")
     ];
 
     private const string GlobalNavigationMarkdown = """
 
         ### 🌐 Fast Service Navigation
 
-        | STT | Dịch Vụ | Port | Swagger Gateway (Mock & Auth) | Swagger Microservice Trực Tiếp |
+        | # | Service | Port | Gateway Swagger (Mock & Auth) | Direct Microservice Swagger |
         |:---:|:---|:---:|:---|:---|
         | 00 | **Nexus API Gateway (All APIs)** | `8080` | `/swagger/v1/swagger.json` | [http://localhost:8080/swagger](http://localhost:8080/swagger) |
         | 01 | **User & Auth Service** | `8001` | `/swagger/users/swagger.json` | [http://localhost:8001/swagger](http://localhost:8001/swagger) |
@@ -41,7 +40,7 @@ public static class SwaggerExtension
         | 08 | **Wallet Service** | `8008` | `/swagger/wallet/swagger.json` | [http://localhost:8008/swagger](http://localhost:8008/swagger) |
         | 09 | **Health & CheckHeal** | `8009` | `/swagger/checkheal/swagger.json` | [http://localhost:8009/swagger](http://localhost:8009/swagger) |
 
-        > Bạn có thể chuyển đổi nhanh giữa các tài liệu bằng menu dropdown **Select a spec** ở góc trên cùng bên phải.
+        > Quickly switch between service specifications using the **Select a spec** dropdown in the top-right corner.
         """;
 
     public static IServiceCollection AddGatewaySwagger(this IServiceCollection services)
@@ -54,13 +53,13 @@ public static class SwaggerExtension
                 Title = "Nexus API Gateway (All APIs)",
                 Version = "v1",
                 Description = $"""
-                    API Gateway cho 8 microservices (catalog, commerce, fulfillment, users, auction, notification, log, wallet) và CheckHeal.
+                    Edge API Gateway for 8 microservices (catalog, commerce, fulfillment, users, auction, notification, log, wallet) and CheckHeal.
 
-                    Hướng dẫn test độc lập & đổi chế độ trên Swagger UI:
-                    - Đổi chế độ xử lý: Sử dụng header 'X-Gateway-Mode' (chọn 'Mock' để lấy dữ liệu seed, hoặc 'Real' để gọi backend service thật).
-                    - Đổi chế độ xác thực: Sử dụng header 'X-Gateway-Auth' (chọn 'Bypass' để test mọi API không cần token, hoặc 'Enforce' để yêu cầu JWT thật).
-                    - Đổi vai trò test (RBAC): Sử dụng header 'X-Mock-Role' (chọn 'buyer', 'seller', 'staff', 'admin') hoặc bấm nút 'Authorize' 🔓 để thiết lập toàn cục.
-                    - Mọi header trên đều có sẵn dropdown trên từng API endpoint, thay đổi giá trị sẽ được gửi tự động khi bấm 'Execute'!
+                    Testing guide on Swagger UI:
+                    - Dispatch mode: Use 'X-Gateway-Mode' header ('Mock' to serve seed data, or 'Real' to call live backend services).
+                    - Authentication mode: Use 'X-Gateway-Auth' header ('Bypass' to test without tokens, or 'Enforce' to require valid JWT).
+                    - Role-based testing (RBAC): Use 'X-Mock-Role' header ('buyer', 'seller', 'staff', 'admin') or the 'Authorize' button.
+                    - All headers are available in endpoint parameter dropdowns.
                     {GlobalNavigationMarkdown}
                     """
             });
@@ -72,10 +71,10 @@ public static class SwaggerExtension
                     Title = $"Nexus Gateway - {title} (Port {port})",
                     Version = docName,
                     Description = $"""
-                        Tài liệu API nhóm {title} (Microservice Backend lắng nghe tại cổng {port}).
+                        API documentation for {title} (listening directly on port {port}).
                         {desc}
 
-                        Các API bên dưới được gọi thông qua Edge API Gateway (Port 8080) với đầy đủ cơ chế Mock Engine, Rate Limiting và Security.
+                        Endpoints below are routed through Edge API Gateway (port 8080) with Mock Engine, Rate Limiting, and Security.
                         {GlobalNavigationMarkdown}
                         """
                 });
@@ -108,7 +107,7 @@ public static class SwaggerExtension
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
-                Description = "Nhập JWT Bearer token thật HOẶC nhập tên vai trò giả lập ('admin', 'seller', 'staff', 'buyer') để test phân quyền."
+                Description = "Enter a valid JWT Bearer token or a simulated role ('admin', 'seller', 'staff', 'buyer') to test authorization."
             });
 
             o.AddSecurityDefinition("X-Gateway-Auth", new OpenApiSecurityScheme
@@ -116,7 +115,7 @@ public static class SwaggerExtension
                 Name = "X-Gateway-Auth",
                 Type = SecuritySchemeType.ApiKey,
                 In = ParameterLocation.Header,
-                Description = "Chế độ xác thực toàn cục: 'Bypass' (không cần login khi test Mock) hoặc 'Enforce' (bắt buộc JWT)."
+                Description = "Global authentication mode: 'Bypass' (bypass token validation in mock testing) or 'Enforce' (require valid JWT)."
             });
 
             o.AddSecurityDefinition("X-Gateway-Mode", new OpenApiSecurityScheme
@@ -124,7 +123,7 @@ public static class SwaggerExtension
                 Name = "X-Gateway-Mode",
                 Type = SecuritySchemeType.ApiKey,
                 In = ParameterLocation.Header,
-                Description = "Chế độ xử lý toàn cục: 'Mock' (lấy dữ liệu mock/seed) hoặc 'Real' (chuyển tiếp backend)."
+                Description = "Global dispatch mode: 'Mock' (serve static mock/seed fixtures) or 'Real' (forward to backend microservice)."
             });
 
             o.AddSecurityDefinition("X-Mock-Role", new OpenApiSecurityScheme
@@ -132,7 +131,7 @@ public static class SwaggerExtension
                 Name = "X-Mock-Role",
                 Type = SecuritySchemeType.ApiKey,
                 In = ParameterLocation.Header,
-                Description = "Vai trò giả lập toàn cục khi ở chế độ Bypass: 'buyer', 'seller', 'staff', 'admin'."
+                Description = "Simulated user role when in Bypass mode: 'buyer', 'seller', 'staff', 'admin'."
             });
 
             o.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -157,7 +156,6 @@ public static class SwaggerExtension
 
             o.CustomSchemaIds(type => type.FullName?.Replace('+', '.') ?? type.Name);
             o.OperationFilter<GatewayHeaderOperationFilter>();
-            o.DocumentFilter<MockEngineDocumentFilter>();
         });
 
         return services;

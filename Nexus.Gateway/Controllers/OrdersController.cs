@@ -24,9 +24,8 @@ public sealed class OrdersController : GatewayBaseController
     {
     }
 
-    /// <summary>Lấy danh sách đơn hàng của người mua (Row 78 / ORD-07)</summary>
+    /// <summary>Lists orders for the authenticated customer.</summary>
     [HttpGet("orders")]
-    [HttpGet("order")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<OrderListItemDto>>), StatusCodes.Status200OK)]
     public Task<IResult> ListOrders(
@@ -56,7 +55,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Tính trước tiền hàng, giảm giá và phí ship (CHK-01)</summary>
+    /// <summary>Calculates checkout quote including discounts and shipping.</summary>
     [HttpPost("checkout/quote")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<CheckoutQuoteResponseDto>), StatusCodes.Status200OK)]
@@ -83,7 +82,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Tạo đơn hàng từ quote đã tính (ORD-01)</summary>
+    /// <summary>Creates an order from a calculated checkout quote.</summary>
     [HttpPost("orders")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<CreateOrderResponseDto>), StatusCodes.Status201Created)]
@@ -106,7 +105,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem chi tiết một đơn hàng (ORD-02)</summary>
+    /// <summary>Gets order details by ID.</summary>
     [HttpGet("order/{orderId}")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<OrderDetailResponseDto>), StatusCodes.Status200OK)]
@@ -123,7 +122,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem chi tiết một đơn con theo người bán (ORD-03)</summary>
+    /// <summary>Gets sub-order details by ID.</summary>
     [HttpGet("subOrder/{subOrderId}")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<SubOrderDetailDto>), StatusCodes.Status200OK)]
@@ -140,7 +139,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Người mua huỷ đơn khi chưa thanh toán (ORD-06)</summary>
+    /// <summary>Cancels an unpaid order.</summary>
     [HttpPost("orders/{orderId}/cancel")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<CancelOrderResponseDto>), StatusCodes.Status200OK)]
@@ -160,7 +159,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Người bán chấp nhận đơn con (ORD-04)</summary>
+    /// <summary>Accepts a sub-order by seller.</summary>
     [HttpPost("orders/{orderId}/accept")]
     [Authorize(GatewayPolicies.Seller)]
     public Task<IResult> AcceptSubOrder(string orderId, [FromBody] SubOrderDecisionRequest body)
@@ -179,7 +178,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Người bán từ chối đơn con (ORD-05)</summary>
+    /// <summary>Rejects a sub-order by seller.</summary>
     [HttpPost("orders/{orderId}/reject")]
     [Authorize(GatewayPolicies.Seller)]
     public Task<IResult> RejectSubOrder(string orderId, [FromBody] SubOrderDecisionRequest body)
@@ -200,7 +199,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Webhook thông báo kết quả thanh toán từ payment gateway (Row 79 / COM-08)</summary>
+    /// <summary>Processes payment webhook notification from payment gateway.</summary>
     [HttpPost("payments/webhook")]
     [AllowAnonymous]
     public Task<IResult> PaymentWebhook([FromBody] PaymentWebhookRequest body)
@@ -216,7 +215,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Đánh giá sản phẩm sau khi đơn hoàn tất (Row 90 / COM-19)</summary>
+    /// <summary>Submits a product review after order completion.</summary>
     [HttpPost("order/{orderId}/products/{productId}/reviews")]
     [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> CreateProductReview(
@@ -242,7 +241,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Đánh giá người bán/người mua theo đơn hàng (Row 91 / COM-20)</summary>
+    /// <summary>Submits user feedback for an order.</summary>
     [HttpPost("order/{orderId}/user/{userId}")]
     [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> CreateUserFeedback(
@@ -268,7 +267,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Cập nhật đánh giá sản phẩm (Row 92 / COM-21)</summary>
+    /// <summary>Updates an existing product review.</summary>
     [HttpPatch("order/{orderId}/products/{productId}/reviews")]
     [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> UpdateProductReview(
@@ -293,7 +292,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Cập nhật đánh giá người dùng (Row 93 / COM-22)</summary>
+    /// <summary>Updates existing user feedback.</summary>
     [HttpPatch("order/{orderId}/user/{userId}")]
     [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> UpdateUserFeedback(
@@ -318,7 +317,7 @@ public sealed class OrdersController : GatewayBaseController
         );
     }
 
-    /// <summary>Yêu cầu hoàn tiền đơn hàng con (Row 97 / COM-26)</summary>
+    /// <summary>Requests a refund for a sub-order.</summary>
     [HttpPost("subOrder/{subOrderId}/refund")]
     [Authorize(GatewayPolicies.Customer)]
     public Task<IResult> RefundSubOrder(

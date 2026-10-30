@@ -5,47 +5,47 @@ public sealed class HealthProberOptions
     public const string SectionName = "Gateway:HealthProber";
 
     /// <summary>
-    /// Chu kỳ gõ cửa kiểm tra (mặc định 60 giây = 1 phút)
+    /// Probe interval in seconds (default: 60s).
     /// </summary>
     public int IntervalSeconds { get; set; } = 60;
 
     /// <summary>
-    /// Thời gian chờ phản hồi tối đa (mặc định 30 giây)
+    /// Maximum response timeout in seconds (default: 30s).
     /// </summary>
     public int TimeoutSeconds { get; set; } = 30;
 
     /// <summary>
-    /// Số lần lỗi liên tiếp trước khi kết luận Unhealthy (mặc định 5 lần)
+    /// Number of consecutive failures before marking Unhealthy (default: 5).
     /// </summary>
     public int FailureThreshold { get; set; } = 5;
 
     /// <summary>
-    /// Thời gian ân hạn khi container mới bật (mặc định 60 giây = 1 phút)
+    /// Container startup grace period in seconds (default: 60s).
     /// </summary>
     public int StartPeriodSeconds { get; set; } = 60;
 
     /// <summary>
-    /// Tự động xóa và tái tạo (recreate) container khi Unhealthy
+    /// Automatically restart/recreate container when Unhealthy.
     /// </summary>
     public bool AutoRecoverContainer { get; set; } = true;
 
     /// <summary>
-    /// Giới hạn số lần tự động hồi phục liên tiếp để tránh CrashLoopBackOff (mặc định 3 lần)
+    /// Maximum consecutive auto-recovery attempts to prevent CrashLoopBackOff (default: 3).
     /// </summary>
     public int MaxAutoRecoverAttempts { get; set; } = 3;
 
     /// <summary>
-    /// Thư mục lưu trữ log sự cố (Incident log) tại Gateway
+    /// Directory path for incident log storage at Gateway.
     /// </summary>
     public string LogDirectory { get; set; } = "logs/health";
 
     /// <summary>
-    /// Giới hạn số dòng tối đa trên 1 tệp log trước khi xoay sang tệp mới (mặc định 1000 dòng)
+    /// Maximum log lines per file before rotation (default: 1000).
     /// </summary>
     public int MaxLinesPerLogFile { get; set; } = 1000;
 
     /// <summary>
-    /// Mã API Key bảo mật dùng để xác thực quyền thao tác các API CheckHeal tại Gateway và CheckHealService
+    /// Secure API Key used to authenticate CheckHeal operations across Gateway and CheckHealService.
     /// </summary>
     public string ApiKey { get; set; } = string.Empty;
 }

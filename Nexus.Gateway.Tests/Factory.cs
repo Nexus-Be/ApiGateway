@@ -77,6 +77,23 @@ public sealed class Factory : WebApplicationFactory<Program>
         ));
     }
 
+    public static string TokenWithPermissions(string subject, string[] roles, params string[] permissions)
+    {
+        var claims = new List<Claim> { new("sub", subject) };
+        claims.AddRange(roles.Select(role => new Claim("role", role)));
+        claims.AddRange(permissions.Select(perm => new Claim("permission", perm)));
+
+        return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+            "tests",
+            "shoppingcart-api",
+            claims,
+            expires: DateTime.UtcNow.AddMinutes(5),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Secret)),
+                SecurityAlgorithms.HmacSha256)
+        ));
+    }
+
     public static string Token(string audience = "shoppingcart-api", bool expired = false)
     {
         return new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(

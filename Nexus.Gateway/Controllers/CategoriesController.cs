@@ -27,7 +27,7 @@ public sealed class CategoriesController : GatewayBaseController
     {
     }
 
-    /// <summary>Danh sách danh mục (CAT-19)</summary>
+    /// <summary>Lists categories with optional tree view.</summary>
     [HttpGet("categories")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<CategoryListResponseDto>), StatusCodes.Status200OK)]
@@ -54,7 +54,7 @@ public sealed class CategoriesController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem một danh mục kèm danh mục cha và con (CAT-18)</summary>
+    /// <summary>Gets a category with its parent and children.</summary>
     [HttpGet("categories/{categoryId}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<CategoryDetailResponseDto>), StatusCodes.Status200OK)]
@@ -70,7 +70,7 @@ public sealed class CategoriesController : GatewayBaseController
         );
     }
 
-    /// <summary>Tạo danh mục mới (CAT-15)</summary>
+    /// <summary>Creates a new category.</summary>
     [HttpPost("categories")]
     [Authorize(GatewayPolicies.SellerOrStaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<CategoryCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -89,7 +89,7 @@ public sealed class CategoriesController : GatewayBaseController
         );
     }
 
-    /// <summary>Cập nhật danh mục (CAT-16)</summary>
+    /// <summary>Updates an existing category.</summary>
     [HttpPut("categories/{categoryId}")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<CategoryUpdatedResponseDto>), StatusCodes.Status200OK)]
@@ -107,19 +107,17 @@ public sealed class CategoriesController : GatewayBaseController
         );
     }
 
-    /// <summary>Xoá mềm danh mục (CAT-17)</summary>
+    /// <summary>Soft deletes a category.</summary>
     [HttpDelete("categories/{categoryId}")]
-    [HttpDelete("categories")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public Task<IResult> DeleteCategory([FromRoute] string? categoryId = null, [FromQuery] string? id = null)
+    public Task<IResult> DeleteCategory([FromRoute] string categoryId)
     {
-        var targetId = categoryId ?? id ?? "cat-001";
-        CatalogValidation.EnsureCategoryId(targetId);
+        CatalogValidation.EnsureCategoryId(categoryId);
 
         return ForwardNoContentAsync(
             Service,
-            $"/api/v1/categories/{targetId}",
+            $"/api/v1/categories/{categoryId}",
             HttpMethod.Delete,
             mockSeed: "category-delete"
         );

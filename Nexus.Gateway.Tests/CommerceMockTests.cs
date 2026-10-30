@@ -394,21 +394,6 @@ public sealed class CommerceMockTests
         Assert.True(items.GetArrayLength() > 0);
     }
 
-    [Fact]
-    public async Task ListOrders_SingularRoute_ReturnsPagedOrdersList()
-    {
-        using var app = new Factory();
-        using var client = CreateClient(app, role: "buyer");
-
-        var response = await client.GetAsync("/api/v1/order?page=1&pageSize=10");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-        var root = doc.RootElement;
-        Assert.True(root.GetProperty("success").GetBoolean());
-        Assert.Equal(200, root.GetProperty("statusCode").GetInt32());
-    }
-
     [Theory]
     [InlineData("PendingPayment")]
     [InlineData("pending_payment")]

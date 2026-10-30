@@ -5,10 +5,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// Converter chuyển đổi hai chiều Enum cho API Gateway:
-/// - Chiều RA (BE -> FE): Chuyển Enum số sang chuỗi PascalCase (ví dụ "PendingPayment").
-/// - Chiều VÀO (FE -> BE): Parse chuỗi (không phân biệt hoa thường) về đúng Enum C#.
-/// - Lỗi: Nếu FE gửi chuỗi không hợp lệ, trả về thông báo lỗi chi tiết liệt kê danh sách giá trị hợp lệ.
+/// Bidirectional Enum JSON converter for API Gateway:
+/// - Outbound (BE -> FE): Converts integer/enum to PascalCase string (e.g. "PendingPayment").
+/// - Inbound (FE -> BE): Parses case-insensitive strings to corresponding C# enum.
+/// - Validation: If an invalid value is sent, returns detailed error with allowed values.
 /// </summary>
 public sealed class PascalCaseJsonStringEnumConverter : JsonConverterFactory
 {
@@ -59,7 +59,17 @@ public sealed class PascalCaseJsonStringEnumConverter : JsonConverterFactory
                     throw new JsonException($"Enum value for '{typeof(T).Name}' cannot be empty. Valid values are: {string.Join(", ", Enum.GetNames<T>())}.");
                 }
 
-                if (Enum.TryParse<T>(stringValue, ignoreCase: true, out var result))
+                if (!_allowIntegerValues && long.TryParse(stringValue, out _))
+                {
+                    throw new JsonException($"Invalid value '{stringValue}' for enum '{typeof(T).Name}'. Valid values are: {string.Join(", ", Enum.GetNames<T>())}.");
+                }
+
+                if (stringValue.Contains(',') && !typeof(T).IsDefined(typeof(FlagsAttribute), false))
+                {
+                    throw new JsonException($"Invalid value '{stringValue}' for enum '{typeof(T).Name}'. Valid values are: {string.Join(", ", Enum.GetNames<T>())}.");
+                }
+
+                if (Enum.TryParse<T>(stringValue, ignoreCase: true, out var result) && Enum.IsDefined(typeof(T), result))
                 {
                     return result;
                 }

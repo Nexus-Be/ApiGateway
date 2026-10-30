@@ -97,3 +97,18 @@ Gateway hỗ trợ chuyển đổi từng service độc lập mà không cần 
 | Khóa thật trong file bản mẫu | ❌ CHƯA CÓ | `appsettings.example.json` dùng `<REPLACE_WITH_JWT_SIGNING_KEY_MIN_32_CHARS>`; `appsettings.Development.example.json` dùng `<REPLACE_WITH_DEV_JWT_SIGNING_KEY_MIN_32_CHARS>` |
 | Khóa hardcode trong working tree (file bị ignore) | ✅ CÓ (rủi ro vận hành) | `Nexus.Gateway/appsettings.json` — `Jwt:Signature` là chuỗi literal; `git grep 'd)aam<'` = 0 hit nên **chưa từng bị commit** |
 Khuyến nghị: nạp `Jwt__Signature` qua biến môi trường/secret store khi deploy, không commit khóa thật.
+
+---
+
+## 5. CHUYỂN TIẾP NGỮ CẢNH ĐỊNH DANH DOWNSTREAM (IDENTITY & PERMISSION PROPAGATION)
+
+| Header Chuyển Tiếp | Nguồn Dữ Liệu | Mục Đích Nghiệp Vụ | Trạng Thái |
+|:---|:---|:---|:---:|
+| `Authorization` | Header gốc `Authorization: Bearer <token>` | Giữ nguyên vẹn token cho downstream nếu cần kiểm tra sâu | ✅ CÓ |
+| `x-trace-id` | Header `x-trace-id` hoặc sinh mới qua `Activity.Current?.Id` | Mã vết phân tán phục vụ truy vết OpenTelemetry | ✅ CÓ |
+| `x-user-id` | Claim `sub`, `id`, hoặc `NameIdentifier` | ID định danh người dùng (UUID) | ✅ CÓ |
+| `x-user-roles` | Toàn bộ claims `role` phân cách bằng dấu phẩy | Danh sách vai trò (`buyer`, `seller`, `admin`) | ✅ CÓ |
+| `x-user-email` | Claim `email` | Địa chỉ email người dùng | ✅ CÓ |
+| `x-user-permissions` | Toàn bộ claims `permission` và `permissions` phân cách dấu phẩy | Danh sách mã quyền hạn chi tiết phục vụ PBAC | ✅ CÓ |
+
+Triển khai tại `Nexus.Gateway/Dispatching/HttpBackendCaller.cs:240-305` (`ForwardContextHeaders`). Downstream microservices kiểm tra quyền trực tiếp trên header `x-user-permissions` in-memory mà không cần truy vấn ngược database.

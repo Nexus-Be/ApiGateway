@@ -6,7 +6,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
-public static class TelemetryExtension
+public static class TelemetryExtensions
 {
     public static IServiceCollection AddGatewayTelemetry(this IServiceCollection services, IConfiguration configuration)
     {

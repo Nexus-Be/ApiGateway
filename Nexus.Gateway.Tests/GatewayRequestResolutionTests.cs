@@ -2,7 +2,6 @@ using System.Net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Security;
 using Nexus.Gateway.Services;
 using Xunit;
@@ -12,11 +11,10 @@ namespace Nexus.Gateway.Tests;
 public sealed class GatewayRequestResolutionTests
 {
     [Fact]
-    public void Resolution_prefers_routed_backend_but_keeps_declarative_service_mode_separate()
+    public void Resolution_prefers_routed_backend_over_url_inference()
     {
         using var app = new Factory();
         using var client = app.CreateClient();
-        var engine = app.Services.GetRequiredService<IMockEngine>();
         var options = app.Services.GetRequiredService<IOptionsMonitor<GatewayOptions>>();
         var runtime = app.Services.GetRequiredService<IGatewayRuntimeManager>();
         var context = new DefaultHttpContext();
@@ -24,19 +22,19 @@ public sealed class GatewayRequestResolutionTests
         context.Request.Path = "/api/v1/catalog/products";
         context.SetEndpoint(new Endpoint(_ => Task.CompletedTask, new EndpointMetadataCollection(new BackendTag("users")), "collision"));
 
-        var first = GatewayRequestResolution.Resolve(context, engine, options, runtime);
+        var first = GatewayRequestResolution.Resolve(context, options, runtime);
         Assert.Equal("users", first.Service);
-        Assert.Equal("users", GatewaySecurityHelper.DetectServiceForRequest(context, engine));
-        Assert.Equal(first, GatewayRequestResolution.Resolve(context, engine, options, runtime));
+        Assert.Equal("users", GatewaySecurityHelper.DetectServiceForRequest(context));
+        Assert.Equal(first, GatewayRequestResolution.Resolve(context, options, runtime));
         Assert.Equal(first.EffectiveMode(context, "catalog", options.CurrentValue, runtime),
             first.EffectiveMode(context, "catalog", options.CurrentValue, runtime));
-        Assert.True(GatewaySecurityHelper.IsRequestInMockMode(context, options.CurrentValue, runtime, engine));
+        Assert.True(GatewaySecurityHelper.IsRequestInMockMode(context, options.CurrentValue, runtime));
     }
 
     [Theory]
     [InlineData("/api/v1/catalog/search")]
     [InlineData("/gateway/api/v1/catalog/search")]
-    public async Task Declarative_only_real_request_passes_through_to_not_found(string path)
+    public async Task Unknown_route_passes_through_to_not_found(string path)
     {
         using var app = new Factory();
         using var client = app.CreateClient();

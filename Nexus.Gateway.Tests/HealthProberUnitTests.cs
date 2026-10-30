@@ -36,14 +36,14 @@ public sealed class HealthProberUnitTests
             var options = Options.Create(new HealthProberOptions
             {
                 LogDirectory = tempDir,
-                MaxLinesPerLogFile = 5 // Giới hạn 5 dòng để kiểm tra xoay file
+                MaxLinesPerLogFile = 5 // Limit to 5 lines to test file rotation
             });
 
             var logger = new FileRollingHealthIncidentLogger(
                 new TestOptionsMonitor<HealthProberOptions>(options.Value),
                 NullLogger<FileRollingHealthIncidentLogger>.Instance);
 
-            // Ghi 12 dòng log sự cố
+            // Write 12 incident log lines
             for (int i = 1; i <= 12; i++)
             {
                 await logger.LogIncidentAsync(
@@ -58,7 +58,7 @@ public sealed class HealthProberUnitTests
             var files = Directory.GetFiles(tempDir, $"incident-{todayPrefix}-*.log");
             Array.Sort(files);
 
-            // Với 12 dòng và maxLines = 5: file 1 có 5 dòng, file 2 có 5 dòng, file 3 có 2 dòng -> tạo ra đúng 3 file
+            // With 12 lines and maxLines = 5: file 1 has 5, file 2 has 5, file 3 has 2 -> exactly 3 files
             Assert.Equal(3, files.Length);
             Assert.Equal(5, File.ReadAllLines(files[0]).Length);
             Assert.Equal(5, File.ReadAllLines(files[1]).Length);

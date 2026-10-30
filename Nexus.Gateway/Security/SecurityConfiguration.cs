@@ -9,7 +9,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Services;
 
@@ -107,8 +106,7 @@ public static class SecurityConfiguration
 
                         var authHeader = context.Request.Headers.Authorization.ToString();
                         var runtimeManager = context.HttpContext.RequestServices.GetRequiredService<IGatewayRuntimeManager>();
-                        var mockEngine = context.HttpContext.RequestServices.GetService<IMockEngine>();
-                        var isEndpointMock = GatewaySecurityHelper.IsRequestInMockMode(context.HttpContext, opts, runtimeManager, mockEngine);
+                        var isEndpointMock = GatewaySecurityHelper.IsRequestInMockMode(context.HttpContext, opts, runtimeManager);
                         var isAuthBypassed = runtimeManager.IsAuthBypassed(context.HttpContext);
 
                         // Scenario 1: Token provided

@@ -26,7 +26,7 @@ public sealed class FulfillmentController : GatewayBaseController
     {
     }
 
-    /// <summary>Xem chi tiết một vận đơn kèm lịch sử hành trình (FUL-19)</summary>
+    /// <summary>Gets shipment details with tracking history.</summary>
     [HttpGet("shipments/{shipmentId}")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<ShipmentDetailResponseDto>), StatusCodes.Status200OK)]
@@ -44,7 +44,7 @@ public sealed class FulfillmentController : GatewayBaseController
         );
     }
 
-    /// <summary>Liệt kê các vận đơn của một đơn hàng (FUL-18)</summary>
+    /// <summary>Lists shipments associated with an order.</summary>
     [HttpGet("shipments/order/{orderId}")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<List<ShipmentListItemDto>>), StatusCodes.Status200OK)]
@@ -62,7 +62,7 @@ public sealed class FulfillmentController : GatewayBaseController
         );
     }
 
-    /// <summary>Danh sách vận đơn của người bán, lọc theo trạng thái (FUL-20)</summary>
+    /// <summary>Lists seller shipments filtered by status.</summary>
     [HttpGet("seller/shipment")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<SellerShipmentListItemDto>>), StatusCodes.Status200OK)]
@@ -86,7 +86,7 @@ public sealed class FulfillmentController : GatewayBaseController
         );
     }
 
-    /// <summary>Tìm kiếm vận đơn của người bán theo từ khoá và khoảng ngày (FUL-20)</summary>
+    /// <summary>Searches seller shipments by keyword and date range.</summary>
     [HttpGet("seller/shipment/search")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<SellerShipmentListItemDto>>), StatusCodes.Status200OK)]
@@ -118,7 +118,7 @@ public sealed class FulfillmentController : GatewayBaseController
         );
     }
 
-    /// <summary>Người bán xem chi tiết vận đơn của mình (FUL-19, FUL-20)</summary>
+    /// <summary>Gets seller shipment details by shipment ID.</summary>
     [HttpGet("seller/shipment/{shipmentId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<ShipmentDetailResponseDto>), StatusCodes.Status200OK)]
@@ -136,7 +136,7 @@ public sealed class FulfillmentController : GatewayBaseController
         );
     }
 
-    /// <summary>Cập nhật trạng thái vận đơn nhận từ đơn vị vận chuyển (FUL-17)</summary>
+    /// <summary>Updates shipment tracking status from carrier.</summary>
     [HttpPatch("shipments/{shipmentId}/tracking")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<ShipmentTrackingUpdatedResponseDto>), StatusCodes.Status200OK)]
@@ -158,7 +158,7 @@ public sealed class FulfillmentController : GatewayBaseController
         );
     }
 
-    /// <summary>Người mua xác nhận đã nhận hàng (FUL-23)</summary>
+    /// <summary>Confirms shipment delivery by customer.</summary>
     [HttpPost("shipment/{shipmentId}/complete")]
     [Authorize(GatewayPolicies.Customer)]
     [ProducesResponseType(typeof(ApiResponse<ShipmentCompletedResponseDto>), StatusCodes.Status200OK)]
@@ -176,7 +176,7 @@ public sealed class FulfillmentController : GatewayBaseController
         );
     }
 
-    /// <summary>Nhận webhook trạng thái từ đơn vị vận chuyển (FUL-17)</summary>
+    /// <summary>Handles carrier shipment status webhook.</summary>
     [HttpPost("shipments/webhook")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]

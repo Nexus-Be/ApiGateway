@@ -25,7 +25,7 @@ public sealed class InventoryController : GatewayBaseController
     {
     }
 
-    /// <summary>Nhập kho theo lô nhiều SKU (CAT-09)</summary>
+    /// <summary>Batch stocks in inventory for multiple SKUs.</summary>
     [HttpPost("inventory/stock-in")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<StockInResponseDto>), StatusCodes.Status200OK)]
@@ -43,7 +43,7 @@ public sealed class InventoryController : GatewayBaseController
         );
     }
 
-    /// <summary>Nhập kho cho một biến thể (CAT-10)</summary>
+    /// <summary>Stocks in inventory for a specific variant.</summary>
     [HttpPost("variant/{variantId}/stock-in")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<StockInVariantResponseDto>), StatusCodes.Status200OK)]

@@ -6,20 +6,20 @@ using System.Text.Json;
 // NOTIFICATION REQUEST DTOs — aligned with flow_mock_excel.xlsx (NOTI section)
 // ============================================================
 
-/// <summary>NOTI-01: POST /api/v1/notifications/devices — đăng ký device token</summary>
+/// <summary>NOTI-01: POST /api/v1/notifications/devices - register device token</summary>
 public sealed class RegisterDeviceTokenRequest
 {
     public string? Platform { get; set; }  // WEB | IOS | ANDROID
     public string? Token { get; set; }
 }
 
-/// <summary>NOTI-02: DELETE /api/v1/notifications/devices — thu hồi device token</summary>
+/// <summary>NOTI-02: DELETE /api/v1/notifications/devices - revoke device token</summary>
 public sealed class RevokeDeviceTokenRequest
 {
     public string? Token { get; set; }
 }
 
-/// <summary>NOTI-04: PUT /api/v1/notifications/preferences — cập nhật tùy chọn thông báo</summary>
+/// <summary>NOTI-04: PUT /api/v1/notifications/preferences - update notification preferences</summary>
 public sealed class UpdateNotificationPreferencesRequest
 {
     public List<NotificationPreferenceItemRequest>? Preferences { get; set; }
@@ -32,14 +32,14 @@ public sealed class NotificationPreferenceItemRequest
     public bool IsEnabled { get; set; }
 }
 
-/// <summary>NOTI-06: PATCH /api/v1/notifications/me/read — đánh dấu đã đọc</summary>
+/// <summary>NOTI-06: PATCH /api/v1/notifications/me/read - mark notifications as read</summary>
 public sealed class MarkNotificationsReadRequest
 {
     public List<string>? NotificationIds { get; set; }
     public bool MarkAll { get; set; }
 }
 
-/// <summary>NOTI-07 PUT: PUT /api/v1/admin/notifications/channels/{code} — cập nhật kênh</summary>
+/// <summary>NOTI-07 PUT: PUT /api/v1/admin/notifications/channels/{code} - update channel</summary>
 public sealed class UpdateNotificationChannelRequest
 {
     public string? Name { get; set; }
@@ -48,7 +48,7 @@ public sealed class UpdateNotificationChannelRequest
     public bool IsEnabled { get; set; }
 }
 
-/// <summary>NOTI-08 POST: POST /api/v1/admin/notifications/templates — tạo template</summary>
+/// <summary>NOTI-08 POST: POST /api/v1/admin/notifications/templates - create template</summary>
 public sealed class CreateNotificationTemplateRequest
 {
     public string? Code { get; set; }

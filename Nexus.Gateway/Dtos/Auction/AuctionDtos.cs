@@ -9,7 +9,7 @@ using System.Text.Json;
 
 // ---------- REQUESTS ----------
 
-/// <summary>AUC-10: POST /api/v1/auctions — Seller tạo phiên đấu giá</summary>
+/// <summary>AUC-10: POST /api/v1/auctions - seller creates auction</summary>
 public sealed class CreateAuctionRequestDto
 {
     public string? ProductId { get; set; }
@@ -20,7 +20,7 @@ public sealed class CreateAuctionRequestDto
     public DateTimeOffset? ScheduledEndAt { get; set; }
 }
 
-/// <summary>AUC-11: PUT /api/v1/auctions/{auctionId} — Seller chỉnh sửa phiên (chưa bắt đầu)</summary>
+/// <summary>AUC-11: PUT /api/v1/auctions/{auctionId} - seller updates auction before start</summary>
 public sealed class UpdateAuctionRequestDto
 {
     public decimal? StartPriceAmount { get; set; }
@@ -29,13 +29,13 @@ public sealed class UpdateAuctionRequestDto
     public DateTimeOffset? ScheduledEndAt { get; set; }
 }
 
-/// <summary>AUC-12: POST /api/v1/auctions/{auctionId}/cancel — Seller hủy phiên</summary>
+/// <summary>AUC-12: POST /api/v1/auctions/{auctionId}/cancel - seller cancels auction</summary>
 public sealed class CancelAuctionRequestDto
 {
     public string? Reason { get; set; }
 }
 
-/// <summary>AUC-13: POST /api/v1/auctions/{auctionId}/recreate — Tạo lại phiên mới</summary>
+/// <summary>AUC-13: POST /api/v1/auctions/{auctionId}/recreate - recreate auction from failed session</summary>
 public sealed class RecreateAuctionRequestDto
 {
     public decimal? StartPriceAmount { get; set; }
@@ -44,20 +44,20 @@ public sealed class RecreateAuctionRequestDto
     public DateTimeOffset? ScheduledEndAt { get; set; }
 }
 
-/// <summary>AUC-15: POST /api/v1/admin/auctions/{auctionId}/force-cancel — Admin cưỡng chế hủy</summary>
+/// <summary>AUC-15: POST /api/v1/admin/auctions/{auctionId}/force-cancel - admin forces auction cancellation</summary>
 public sealed class ForceCancelAuctionRequestDto
 {
     public string? Reason { get; set; }
 }
 
-/// <summary>AUC-17: PUT /api/v1/admin/auction-configs/{key} — Cập nhật config</summary>
+/// <summary>AUC-17: PUT /api/v1/admin/auction-configs/{key} - update auction configuration</summary>
 public sealed class UpdateAuctionConfigRequestDto
 {
     public JsonElement? ConfigValue { get; set; }
     public string? Description { get; set; }
 }
 
-/// <summary>AUC-07: POST /api/v1/auctions/{auctionId}/bids — Buyer đặt giá</summary>
+/// <summary>AUC-07: POST /api/v1/auctions/{auctionId}/bids - buyer places a bid</summary>
 public sealed class PlaceBidRequestDto
 {
     public decimal Amount { get; set; }

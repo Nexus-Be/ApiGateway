@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Http;
 
 // ---------- PRODUCT REQUESTS ----------
 
-/// <summary>CAT-01: POST /api/v1/products — tạo sản phẩm mới kèm biến thể và danh mục</summary>
+/// <summary>CAT-01: POST /api/v1/products - create product with initial variant and category</summary>
 public sealed class CreateProductDto
 {
     public Guid? CategoryId { get; set; }
@@ -36,7 +36,7 @@ public sealed class CreateVariantDto
     public List<AttributeDto>? Attributes { get; set; }
 }
 
-/// <summary>CAT-02: PATCH /api/v1/product/{productId} — cập nhật thông tin sản phẩm</summary>
+/// <summary>CAT-02: PATCH /api/v1/product/{productId} - update product info</summary>
 public sealed class UpdateProductDto
 {
     public Guid? CategoryId { get; set; }
@@ -46,7 +46,7 @@ public sealed class UpdateProductDto
     public JsonElement? Specifications { get; set; }
 }
 
-/// <summary>CAT-12: POST /api/v1/product/{productId}pics — thêm ảnh sản phẩm (multipart)</summary>
+/// <summary>CAT-12: POST /api/v1/product/{productId}pics - add product images (multipart)</summary>
 public sealed class AddProductImagesForm
 {
     public List<IFormFile>? Files { get; set; }
@@ -57,7 +57,7 @@ public sealed class AddProductImagesForm
 
 // ---------- VARIANT REQUESTS ----------
 
-/// <summary>CAT-07: POST /api/v1/product/{productId}/variants — thêm biến thể</summary>
+/// <summary>CAT-07: POST /api/v1/product/{productId}/variants - add variant</summary>
 public sealed class CreateProductVariantDto
 {
     public string? SkuCode { get; set; }
@@ -68,7 +68,7 @@ public sealed class CreateProductVariantDto
     public List<AttributeDto>? Attributes { get; set; }
 }
 
-/// <summary>CAT-08: PATCH /api/v1/product/{productId}/variants/{variantId} — cập nhật biến thể</summary>
+/// <summary>CAT-08: PATCH /api/v1/product/{productId}/variants/{variantId} - update variant</summary>
 public sealed class UpdateVariantDto
 {
     public string? Name { get; set; }
@@ -79,7 +79,7 @@ public sealed class UpdateVariantDto
 
 // ---------- STOCK REQUESTS ----------
 
-/// <summary>CAT-09/CAT-11: POST /api/v1/product/{productId}/stock — nhập kho</summary>
+/// <summary>CAT-09/CAT-11: POST /api/v1/product/{productId}/stock - stock in</summary>
 public sealed class StockInDto
 {
     public List<StockInItemDto>? Items { get; set; }
@@ -99,7 +99,7 @@ public sealed class StockInVariantDto
 
 // ---------- CATEGORY REQUESTS ----------
 
-/// <summary>CAT-31: POST /api/v1/categories — tạo danh mục</summary>
+/// <summary>CAT-31: POST /api/v1/categories - create category</summary>
 public sealed class CreateCategoryDto
 {
     public string? Name { get; set; }
@@ -108,7 +108,7 @@ public sealed class CreateCategoryDto
     public int SortOrder { get; set; }
 }
 
-/// <summary>CAT-32: PUT /api/v1/categories/{categoryId} — cập nhật danh mục</summary>
+/// <summary>CAT-32: PUT /api/v1/categories/{categoryId} - update category</summary>
 public sealed class UpdateCategoryDto
 {
     public string? Name { get; set; }

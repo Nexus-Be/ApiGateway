@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Services;
 
 namespace Nexus.Gateway.Security;
@@ -25,8 +24,7 @@ public sealed class MockSecurityAdapterMiddleware
         HttpContext context,
         IWebHostEnvironment env,
         IOptionsMonitor<GatewayOptions> options,
-        IGatewayRuntimeManager runtimeManager,
-        IMockEngine? mockEngine = null)
+        IGatewayRuntimeManager runtimeManager)
     {
         if (!env.IsDevelopment())
         {
@@ -50,7 +48,7 @@ public sealed class MockSecurityAdapterMiddleware
         }
 
         var currentOptions = options.CurrentValue;
-        var isMock = GatewaySecurityHelper.IsRequestInMockMode(context, currentOptions, runtimeManager, mockEngine);
+        var isMock = GatewaySecurityHelper.IsRequestInMockMode(context, currentOptions, runtimeManager);
         var isAuthBypassed = runtimeManager.IsAuthBypassed(context);
 
         // ONLY bypass auth when Gateway is explicitly in Bypass/Mock mode:

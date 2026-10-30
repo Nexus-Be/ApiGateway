@@ -28,7 +28,7 @@ public sealed class AuctionController : GatewayBaseController
     {
     }
 
-    /// <summary>Xem danh sách phiên đấu giá (AUC-01)</summary>
+    /// <summary>Lists auctions with optional filtering and pagination.</summary>
     [HttpGet("auctions")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<AuctionSummaryDto>>), StatusCodes.Status200OK)]
@@ -53,7 +53,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem chi tiết 1 phiên đấu giá (AUC-02)</summary>
+    /// <summary>Gets auction details by ID.</summary>
     [HttpGet("auctions/{auctionId}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<AuctionDetailResponseDto>), StatusCodes.Status200OK)]
@@ -70,7 +70,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem lịch sử đặt giá của 1 phiên (AUC-03)</summary>
+    /// <summary>Lists bids for a specific auction.</summary>
     [HttpGet("auctions/{auctionId}/bids")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(ApiResponse<PagedData<BidItemDto>>), StatusCodes.Status200OK)]
@@ -94,7 +94,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Đặt giá cho 1 phiên (AUC-07)</summary>
+    /// <summary>Places a bid on an auction.</summary>
     [HttpPost("auctions/{auctionId}/bids")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<PlaceBidResponseDto>), StatusCodes.Status201Created)]
@@ -119,7 +119,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem các phiên mình đã tham gia đấu giá (AUC-08)</summary>
+    /// <summary>Lists bids placed by current user.</summary>
     [HttpGet("me/bids")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<MyBidItemDto>>), StatusCodes.Status200OK)]
@@ -144,7 +144,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Xem kết quả của 1 phiên đấu giá (AUC-09)</summary>
+    /// <summary>Gets results of an auction.</summary>
     [HttpGet("auctions/{auctionId}/result")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<AuctionResultResponseDto>), StatusCodes.Status200OK)]
@@ -161,7 +161,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Seller tạo phiên đấu giá (AUC-10)</summary>
+    /// <summary>Creates a new auction.</summary>
     [HttpPost("auctions")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<AuctionCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -180,7 +180,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Seller sửa phiên đấu giá khi chưa bắt đầu (AUC-11)</summary>
+    /// <summary>Updates an auction before it starts.</summary>
     [HttpPut("auctions/{auctionId}")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<AuctionUpdatedResponseDto>), StatusCodes.Status200OK)]
@@ -199,7 +199,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Seller hủy phiên đấu giá (AUC-12)</summary>
+    /// <summary>Cancels an auction.</summary>
     [HttpPost("auctions/{auctionId}/cancel")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<AuctionCancelResponseDto>), StatusCodes.Status200OK)]
@@ -220,7 +220,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Tạo lại phiên mới từ phiên đấu giá thất bại (AUC-13)</summary>
+    /// <summary>Recreates an auction from a failed session.</summary>
     [HttpPost("auctions/{auctionId}/recreate")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<AuctionRecreatedResponseDto>), StatusCodes.Status201Created)]
@@ -240,7 +240,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Seller xem toàn bộ phiên đấu giá của mình (AUC-14)</summary>
+    /// <summary>Lists auctions created by the seller.</summary>
     [HttpGet("seller/auctions")]
     [Authorize(GatewayPolicies.Seller)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<AuctionSummaryDto>>), StatusCodes.Status200OK)]
@@ -265,7 +265,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Nhật ký đổi trạng thái của 1 phiên (AUC-18)</summary>
+    /// <summary>Gets status change history of an auction.</summary>
     [HttpGet("auctions/{auctionId}/status-history")]
     [Authorize(GatewayPolicies.Staff)]
     [ProducesResponseType(typeof(ApiResponse<AuctionStatusHistoryResponseDto>), StatusCodes.Status200OK)]
@@ -282,7 +282,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin cưỡng chế hủy phiên đấu giá (AUC-15)</summary>
+    /// <summary>Forces cancellation of an auction by admin.</summary>
     [HttpPost("admin/auctions/{auctionId}/force-cancel")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AuctionForceCancelResponseDto>), StatusCodes.Status200OK)]
@@ -301,7 +301,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin theo dõi phiên đang ở bước nào của luồng đơn hàng (AUC-19)</summary>
+    /// <summary>Gets order tracking saga status for an auction.</summary>
     [HttpGet("admin/auctions/{auctionId}/saga")]
     [Authorize(GatewayPolicies.Staff)]
     [ProducesResponseType(typeof(ApiResponse<AuctionSagaResponseDto>), StatusCodes.Status200OK)]
@@ -318,7 +318,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin xem các luật đấu giá đang hiệu lực (AUC-16)</summary>
+    /// <summary>Lists active auction configuration rules.</summary>
     [HttpGet("admin/auction-configs")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AuctionConfigListResponseDto>), StatusCodes.Status200OK)]
@@ -333,7 +333,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin cập nhật cấu hình đấu giá (AUC-17)</summary>
+    /// <summary>Updates auction configuration settings.</summary>
     [HttpPut("admin/auction-configs/{key}")]
     [Authorize(GatewayPolicies.Admin)]
     [ProducesResponseType(typeof(ApiResponse<AuctionConfigResponseDto>), StatusCodes.Status200OK)]
@@ -351,7 +351,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Internal: Lấy trạng thái đấu giá theo productId (Row 146 / AUC-34)</summary>
+    /// <summary>Retrieves auction status by product ID internally.</summary>
     [HttpGet("/internal/v1/auctions/status")]
     [AllowAnonymous]
     public Task<IResult> GetInternalAuctionStatus([FromQuery] Guid productId)
@@ -371,7 +371,7 @@ public sealed class AuctionController : GatewayBaseController
         );
     }
 
-    /// <summary>Internal: Lấy tóm tắt phiên đấu giá theo auctionId (Row 147 / AUC-35)</summary>
+    /// <summary>Retrieves auction summary by auction ID internally.</summary>
     [HttpGet("/internal/v1/auctions/{auctionId}/summary")]
     [AllowAnonymous]
     public Task<IResult> GetInternalAuctionSummary([FromRoute] string auctionId)

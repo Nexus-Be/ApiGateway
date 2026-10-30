@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Nexus.Gateway.Middleware;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using StackExchange.Redis;
 
@@ -94,7 +93,6 @@ public sealed class RedisRateLimitMiddlewareRegressionTests
             store,
             new TestOptionsMonitor(new GatewayOptions { RedisFailOpenInDevelopment = failOpen }),
             new TestEnvironment { EnvironmentName = development ? "Development" : "Production" },
-            new TestMockEngine(),
             new ApiResponseFactory());
         return context;
     }
@@ -132,12 +130,5 @@ public sealed class RedisRateLimitMiddlewareRegressionTests
         public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
         public string ContentRootPath { get; set; } = string.Empty;
         public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-    }
-
-    private sealed class TestMockEngine : IMockEngine
-    {
-        public IReadOnlyList<MockEndpointDefinition> GetDefinitions() => [];
-        public MockRouteMatch Match(string httpMethod, string requestPath) => MockRouteMatch.Failed;
-        public void Reload() { }
     }
 }

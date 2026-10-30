@@ -54,7 +54,7 @@ public sealed class FileRollingHealthIncidentLogger : IHealthIncidentLogger
             sb.Append($" | Exception: {exception.GetType().Name}: {exception.Message}");
             if (!string.IsNullOrWhiteSpace(exception.StackTrace))
             {
-                // Thay thế newline trong stacktrace để entry log nằm trên 1 dòng chuẩn
+                // Replace newlines in stacktrace for single-line log format
                 var sanitizedTrace = exception.StackTrace.Replace("\r\n", " -> ").Replace("\n", " -> ");
                 sb.Append($" | Trace: {sanitizedTrace}");
             }
@@ -62,7 +62,7 @@ public sealed class FileRollingHealthIncidentLogger : IHealthIncidentLogger
 
         var logLine = sb.ToString();
 
-        // 1. Ghi log ra Serilog / Console để dev/ops thấy ngay lập tức
+        // 1. Write log to Serilog / Console
         if (status == ProberRunStatus.Unhealthy)
         {
             _logger.LogError("[HEALTH UNHEALTHY] {LogLine}", logLine);
@@ -76,7 +76,7 @@ public sealed class FileRollingHealthIncidentLogger : IHealthIncidentLogger
             _logger.LogInformation("[HEALTH EVENT] {LogLine}", logLine);
         }
 
-        // 2. Ghi vào file log chuyên biệt với cơ chế giới hạn dòng (MaxLinesPerLogFile)
+        // 2. Write to incident file with line limit rolling mechanism
         await WriteToFileWithLineLimitAsync(logLine);
     }
 
@@ -96,13 +96,13 @@ public sealed class FileRollingHealthIncidentLogger : IHealthIncidentLogger
 
             var todayPrefix = DateTime.UtcNow.ToString("yyyyMMdd");
 
-            // Nếu qua ngày mới hoặc chưa xác định file hiện tại
+            // Initialize if new day or active file not set
             if (_currentFilePath == null || _currentDatePrefix != todayPrefix)
             {
                 InitActiveFile(dir, todayPrefix, maxLines);
             }
 
-            // Nếu file hiện tại đã đạt ngưỡng số dòng tối đa -> Xoay sang file mới
+            // Rotate to new file if current file reached line threshold
             if (_currentLineCount >= maxLines)
             {
                 _currentIndex++;
@@ -127,7 +127,7 @@ public sealed class FileRollingHealthIncidentLogger : IHealthIncidentLogger
     {
         _currentDatePrefix = todayPrefix;
 
-        // Tìm tất cả các file có dạng incident-yyyyMMdd-XXXX.log
+        // Discover matching incident-yyyyMMdd-XXXX.log files
         var pattern = $"incident-{todayPrefix}-*.log";
         var existingFiles = Directory.GetFiles(dir, pattern)
             .OrderBy(f => f)
@@ -162,7 +162,7 @@ public sealed class FileRollingHealthIncidentLogger : IHealthIncidentLogger
             _currentLineCount = 0;
         }
 
-        // Nếu file cuối cùng đã đầy dòng
+        // If last file reached line limit, rotate
         if (_currentLineCount >= maxLines)
         {
             _currentIndex++;

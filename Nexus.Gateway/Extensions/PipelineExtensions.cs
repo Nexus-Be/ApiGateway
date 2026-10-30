@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Nexus.Gateway.Middleware;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Responses;
 using Nexus.Gateway.Security;
 using Nexus.Gateway.Services;
@@ -49,7 +48,7 @@ public static class PipelineExtensions
                 context.Response.Headers["X-Trace-Id"] = traceId;
                 context.Response.Headers["X-Content-Type-Options"] = "nosniff";
 
-                // 1. Phản hồi X-Gateway-Mode hiện tại
+                // 1. Reflect current X-Gateway-Mode header
                 var mode = context.Items["GatewayMode"] as string;
                 if (string.IsNullOrEmpty(mode))
                 {
@@ -73,7 +72,7 @@ public static class PipelineExtensions
                     }
                 }
 
-                // 2. Phản hồi X-Gateway-Auth hiện tại (Bypass / Enforce)
+                // 2. Reflect current X-Gateway-Auth header (Bypass / Enforce)
                 var rtmgr = context.RequestServices.GetService<IGatewayRuntimeManager>();
                 if (rtmgr != null)
                 {
@@ -104,7 +103,6 @@ public static class PipelineExtensions
         {
             GatewayRequestResolution.Resolve(
                 context,
-                context.RequestServices.GetRequiredService<IMockEngine>(),
                 context.RequestServices.GetRequiredService<IOptionsMonitor<GatewayOptions>>(),
                 context.RequestServices.GetRequiredService<IGatewayRuntimeManager>());
             await next(context);
@@ -114,7 +112,6 @@ public static class PipelineExtensions
         app.UseRedisRateLimit();
         app.UseRateLimiter();
         app.UseAuthorization();
-        app.UseMockEngine();
         app.UseRequestTimeouts();
 
         if (isDevelopment)

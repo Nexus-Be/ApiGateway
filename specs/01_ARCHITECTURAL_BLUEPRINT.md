@@ -46,16 +46,11 @@ Gateway được tái cấu trúc thành 3 khối phân tách triệt để, đ�
    - Truy vấn cấu hình từ `IOptionsMonitor<GatewayOptions>`.
    - Kết hợp với `IGatewayRuntimeManager` để hỗ trợ Hot-Reload từ `gateway.runtime.json` và Header Override (`X-Service-Mode-{service}: Real`).
 2. **`IMockDataMapper` / `MockDataMapper`** (`Dispatching/MockDataMapper.cs`):
-   - Quét tìm file seed JSON: Ưu tiên `Seeds/{service}/{operation}.json`, dự phòng `Mocks/{service}/{operation}.json`.
+   - Quét tìm file seed JSON theo thứ tự: `Seeds/{service}/{operation}.json`, `Seeds/{operation}/{operation}.json`, `Seeds/auth/{operation}.json`, `Seeds/users/{operation}.json`, `Seeds/{service}-{operation}.json`, `Seeds/{operation}.json`.
    - Áp dụng `MockDelayMs` và `MockStatus` nếu được cấu hình.
-   - Parse JSON qua `MessageParser<T>.ParseJson()` $\rightarrow$ Nếu file seed JSON sai kiểu dữ liệu hoặc thiếu trường so với Protobuf, lỗi sẽ bị bắt ngay lập tức.
-   - ⚠️ MỘT PHẦN: hiện chỉ có seed thật cho `users` và `auth` (9 file); các service khác chưa có seed nên endpoint Mock tương ứng chưa trả được dữ liệu.
-3. **`IGrpcServiceCaller` / `GrpcServiceCaller`** (`Dispatching/GrpcServiceCaller.cs`):
-   - Tạo `CallOptions` với `deadline` dựa trên `TimeoutSeconds`.
-   - Forward `Authorization: Bearer <token>`, `Idempotency-Key`, và `x-trace-id`.
-   - Thực thi cuộc gọi gRPC bất đồng bộ.
-   - ⚠️ MỘT PHẦN: chỉ service `users` có typed client được DI (`Extensions/GrpcClientsExtension.cs`), nên chỉ service này gọi được Real.
-4. **`IGatewayDispatcher` / `GatewayDispatcher`** (`Dispatching/GatewayDispatcher.cs`):
+   - Trả `JsonElement` thô; envelope `ApiResponse<T>` do `IApiResponseFactory` bọc.
+   - ✅ CÓ seed thật cho 9 nhóm service (163 file).
+3. **`IGatewayDispatcher` / `GatewayDispatcher`** (`Dispatching/GatewayDispatcher.cs`):
    - Tích hợp **Circuit Breaker Fast-Fail** cùng `IHealthProberManager`: Nếu service con bị Unhealthy hoặc đang Recovering, lập tức ngắt mạch trong 0ms trả về HTTP 503 `DOWNSTREAM_UNHEALTHY`.
    - Cung cấp hai phương thức điều phối duy nhất:
      - `Task<IResult> DispatchAsync<T>(...)`: Cho các endpoint trả về đối tượng đơn lẻ.
@@ -72,6 +67,6 @@ Thứ tự middleware đang chạy (đọc trực tiếp từ `UseGatewayPipelin
 | 3 | Rewrite `/gateway/api/*` → `/api/*` | ✅ CÓ | `Extensions/PipelineExtensions.cs:65-72` |
 | 4 | `UseRouting` → `UseCors` → `GatewayRequestResolution.Resolve` (snapshot per-request) | ✅ CÓ | `Extensions/PipelineExtensions.cs:74-85` |
 | 5 | `UseMockSecurityAdapter` → `UseAuthentication` → `UseRedisRateLimit` → `UseRateLimiter` → `UseAuthorization` | ✅ CÓ | `Extensions/PipelineExtensions.cs:86-90` |
-| 6 | `UseMockEngine` (declarative mock) → `UseRequestTimeouts` (65s, 504) | ✅ CÓ | `Extensions/PipelineExtensions.cs:91-92`; `Extensions/CoreServicesExtension.cs:93-97` |
+| 6 | `UseRequestTimeouts` (65s, 504) | ✅ CÓ | `Extensions/PipelineExtensions.cs` |
 | 7 | Health endpoint: `/health/live` (`MapHealthChecks`), `/health/ready` (503 khi options không hợp lệ) | ✅ CÓ | `Extensions/PipelineExtensions.cs:101-103` |
 | 8 | `/` → redirect `/swagger` (chỉ Development) + Swagger UI | ✅ CÓ | `Extensions/PipelineExtensions.cs:94-99` |

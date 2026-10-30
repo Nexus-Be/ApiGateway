@@ -131,10 +131,7 @@ public sealed class MockDataMapper : IMockDataMapper
             Path.Combine(_environment.ContentRootPath, "Seeds", "users", $"{operation}.json"),
             // 2. Flat format under Seeds/
             Path.Combine(_environment.ContentRootPath, "Seeds", $"{service}-{operation}.json"),
-            Path.Combine(_environment.ContentRootPath, "Seeds", $"{operation}.json"),
-            // 3. Fallback compatibility with Mocks/
-            Path.Combine(_environment.ContentRootPath, "Mocks", service, $"{operation}.json"),
-            Path.Combine(_environment.ContentRootPath, "Mocks", $"{operation}.json")
+            Path.Combine(_environment.ContentRootPath, "Seeds", $"{operation}.json")
         };
 
         return candidates.FirstOrDefault(File.Exists) ?? candidates[0];

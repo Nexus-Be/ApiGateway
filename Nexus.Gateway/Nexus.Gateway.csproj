@@ -21,7 +21,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Update="Mocks/**/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Update="Seeds/**/*.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 

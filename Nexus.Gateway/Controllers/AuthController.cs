@@ -26,6 +26,7 @@ public sealed class AuthController : GatewayBaseController
     {
     }
 
+    /// <summary>Registers a new user account and dispatches an OTP verification email.</summary>
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -49,6 +50,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Verifies an account using a 6-digit OTP code.</summary>
     [HttpPost("otp/verify")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -68,6 +70,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Resends a new 6-digit OTP code to the user's email address.</summary>
     [HttpPost("otp/resend")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -87,6 +90,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Authenticates user credentials and returns JWT access and refresh tokens.</summary>
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-login")]
@@ -118,6 +122,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Refreshes an expired access token using a valid refresh token.</summary>
     [HttpPost("refresh")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-login")]
@@ -137,6 +142,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Initiates the password reset process by emailing a verification OTP code.</summary>
     [HttpPost("password/forgot")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -155,6 +161,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Resets the user password using a verified OTP code.</summary>
     [HttpPut("password/reset")]
     [AllowAnonymous]
     [EnableRateLimiting("auth-strict")]
@@ -181,6 +188,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Changes the password for the currently authenticated user.</summary>
     [HttpPatch("password")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<ChangePasswordResponseDto>), StatusCodes.Status200OK)]
@@ -205,6 +213,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Revokes the active refresh token and logs out the current session.</summary>
     [HttpPost("logout")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<LogoutResponseDto>), StatusCodes.Status200OK)]
@@ -220,6 +229,7 @@ public sealed class AuthController : GatewayBaseController
         );
     }
 
+    /// <summary>Revokes all active sessions and refresh tokens for the current user.</summary>
     [HttpPost("logout-all")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<LogoutAllResponseDto>), StatusCodes.Status200OK)]

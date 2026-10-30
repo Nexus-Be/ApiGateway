@@ -26,7 +26,7 @@ public sealed class NotificationController : GatewayBaseController
     {
     }
 
-    /// <summary>Đăng ký hoặc làm mới device token (NOTI-01)</summary>
+    /// <summary>Registers or refreshes device token.</summary>
     [HttpPost("notifications/devices")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<RegisterDeviceTokenResponseDto>), StatusCodes.Status200OK)]
@@ -55,7 +55,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Thu hồi hoặc vô hiệu hóa device token qua DELETE body (NOTI-02)</summary>
+    /// <summary>Revokes device token via DELETE body.</summary>
     [HttpDelete("notifications/devices")]
     [Authorize(GatewayPolicies.Authenticated)]
     public Task<IResult> RevokeDeviceToken([FromBody] RevokeDeviceTokenRequest body)
@@ -74,7 +74,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Thu hồi hoặc vô hiệu hóa device token qua route parameter (NOTI-02 / Row 187)</summary>
+    /// <summary>Revokes device token via route parameter.</summary>
     [HttpDelete("notifications/devices/{token}")]
     [Authorize(GatewayPolicies.Authenticated)]
     public Task<IResult> RevokeDeviceTokenByRoute([FromRoute] string token)
@@ -92,7 +92,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Lấy danh sách cấu hình bật/tắt nhận thông báo của người dùng (NOTI-03)</summary>
+    /// <summary>Retrieves user notification preferences.</summary>
     [HttpGet("notifications/preferences")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<List<NotificationPreferenceItemDto>>), StatusCodes.Status200OK)]
@@ -107,7 +107,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Cập nhật tùy chọn bật/tắt nhận thông báo (NOTI-04)</summary>
+    /// <summary>Updates user notification preferences.</summary>
     [HttpPut("notifications/preferences")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<UpdatePreferencesResponseDto>), StatusCodes.Status200OK)]
@@ -128,7 +128,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Lấy danh sách lịch sử thông báo in-app quả chuông (NOTI-05)</summary>
+    /// <summary>Retrieves in-app notification history for current user.</summary>
     [HttpGet("notifications/me")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<InAppNotificationItemDto>>), StatusCodes.Status200OK)]
@@ -159,7 +159,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Đánh dấu thông báo đã đọc qua batch body (NOTI-06 / NOTI-08)</summary>
+    /// <summary>Marks notifications as read via batch body.</summary>
     [HttpPatch("notifications/me/read")]
     [Authorize(GatewayPolicies.Authenticated)]
     [ProducesResponseType(typeof(ApiResponse<MarkReadResponseDto>), StatusCodes.Status200OK)]
@@ -175,7 +175,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff xem cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
+    /// <summary>Retrieves notification channel configuration.</summary>
     [HttpGet("admin/notifications/channels/{code}")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<NotificationChannelResponseDto>), StatusCodes.Status200OK)]
@@ -190,7 +190,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff cập nhật cấu hình kênh gửi thông báo (NOTI-07 sheet)</summary>
+    /// <summary>Updates notification channel configuration.</summary>
     [HttpPut("admin/notifications/channels/{code}")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<NotificationChannelResponseDto>), StatusCodes.Status200OK)]
@@ -206,7 +206,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff xem danh sách mẫu thông báo (NOTI-08 sheet / NOTI-12)</summary>
+    /// <summary>Lists notification templates.</summary>
     [HttpGet("admin/notifications/templates")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<List<NotificationTemplateItemDto>>), StatusCodes.Status200OK)]
@@ -228,7 +228,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff tạo mẫu nội dung thông báo mới (NOTI-08 sheet / NOTI-10)</summary>
+    /// <summary>Creates a new notification template.</summary>
     [HttpPost("admin/notifications/templates")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<NotificationTemplateCreatedResponseDto>), StatusCodes.Status201Created)]
@@ -252,7 +252,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff tra cứu lịch sử thông báo toàn hệ thống (NOTI-09 sheet)</summary>
+    /// <summary>Searches system notification history.</summary>
     [HttpGet("admin/notifications")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<AdminNotificationItemDto>>), StatusCodes.Status200OK)]
@@ -280,7 +280,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff tra cứu nhật ký sự kiện kỹ thuật message bus (NOTI-13)</summary>
+    /// <summary>Retrieves technical event logs.</summary>
     [HttpGet("admin/event-logs")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<PagedData<EventLogItemDto>>), StatusCodes.Status200OK)]
@@ -306,7 +306,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff xem chi tiết toàn bộ raw JSON payload của sự kiện kỹ thuật (NOTI-14)</summary>
+    /// <summary>Gets detailed payload of a technical event log.</summary>
     [HttpGet("admin/event-logs/{id}")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<EventLogDetailResponseDto>), StatusCodes.Status200OK)]
@@ -321,7 +321,7 @@ public sealed class NotificationController : GatewayBaseController
         );
     }
 
-    /// <summary>Admin/Staff theo dõi trạng thái sức khỏe Message Broker (NOTI-16 sheet / NOTI-14)</summary>
+    /// <summary>Retrieves message broker health status.</summary>
     [HttpGet("admin/health/broker")]
     [Authorize(GatewayPolicies.StaffOrAdmin)]
     [ProducesResponseType(typeof(ApiResponse<BrokerHealthResponseDto>), StatusCodes.Status200OK)]

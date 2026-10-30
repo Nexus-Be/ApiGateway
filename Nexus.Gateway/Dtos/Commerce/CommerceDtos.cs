@@ -6,7 +6,7 @@ namespace Nexus.Gateway.Dtos.Commerce;
 
 // ---------- CART REQUESTS ----------
 
-/// <summary>CART-02: POST /api/v1/cart/items — thêm sản phẩm vào giỏ</summary>
+/// <summary>CART-02: POST /api/v1/cart/items - add items to cart</summary>
 public sealed class AddCartItemRequest
 {
     public string? ProductId { get; set; }
@@ -14,20 +14,20 @@ public sealed class AddCartItemRequest
     public int Quantity { get; set; }
 }
 
-/// <summary>CART-03: PATCH /api/v1/cart/items/{id} — đổi số lượng</summary>
+/// <summary>CART-03: PATCH /api/v1/cart/items/{id} - update item quantity</summary>
 public sealed class UpdateCartItemRequest
 {
     public int Quantity { get; set; }
 }
 
-/// <summary>CART-04: DELETE /api/v1/cart/items — xóa 1 hoặc nhiều item</summary>
+/// <summary>CART-04: DELETE /api/v1/cart/items - remove items from cart</summary>
 public sealed class RemoveCartItemsRequest
 {
     public List<string>? CartItemIds { get; set; }
     public bool All { get; set; }
 }
 
-/// <summary>CART-05: DELETE /api/v1/cart/items/all — xóa toàn bộ</summary>
+/// <summary>CART-05: DELETE /api/v1/cart/items/all - clear entire cart</summary>
 public sealed class ClearCartRequest
 {
     public bool All { get; set; }
@@ -76,7 +76,7 @@ public sealed class ProductVoucherDto
     public string? Code { get; set; }
 }
 
-/// <summary>ORD-01: POST /api/v1/orders — tạo order</summary>
+/// <summary>ORD-01: POST /api/v1/orders - create order</summary>
 public sealed class CreateOrderRequest
 {
     public string? QuoteId { get; set; }
@@ -86,7 +86,7 @@ public sealed class CreateOrderRequest
     public string? Note { get; set; }
 }
 
-/// <summary>ORD-04: POST /api/v1/orders/{orderId}/cancel — hủy đơn</summary>
+/// <summary>ORD-04: POST /api/v1/orders/{orderId}/cancel - cancel order</summary>
 public sealed class CancelOrderRequest
 {
     public string? ReasonCode { get; set; } // BUYER_CHANGED_MIND | FOUND_BETTER_PRICE | OTHER
@@ -102,7 +102,7 @@ public sealed class SubOrderDecisionRequest
     public string? ReasonText { get; set; }
 }
 
-/// <summary>ORD-11: POST /api/v1/subOrder/{subOrderId}/refund — hoàn tiền sub-order</summary>
+/// <summary>ORD-11: POST /api/v1/subOrder/{subOrderId}/refund - refund sub-order</summary>
 public sealed class RefundSubOrderRequest
 {
     public string? Reason { get; set; } // DEFECTIVE_PRODUCT | MISSING_ITEMS | OTHER
@@ -119,7 +119,7 @@ public sealed class CreateProductReviewRequest
     public List<string>? Images { get; set; }
 }
 
-/// <summary>ORD-08: POST /api/v1/order/{orderId}/user/{userId} — đánh giá người dùng</summary>
+/// <summary>ORD-08: POST /api/v1/order/{orderId}/user/{userId} - submit user feedback</summary>
 public sealed class CreateUserFeedbackRequest
 {
     public int Rating { get; set; }

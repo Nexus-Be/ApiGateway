@@ -307,7 +307,9 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
             gatewayNode.Remove("GatewayMode");
 
             var updatedJson = rootNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(_runtimeConfigPath, updatedJson, cancellationToken);
+            var tempFile = $"{_runtimeConfigPath}.tmp.{Guid.NewGuid():N}";
+            await File.WriteAllTextAsync(tempFile, updatedJson, cancellationToken);
+            File.Move(tempFile, _runtimeConfigPath, overwrite: true);
             _logger.LogInformation("Successfully persisted GatewayMode '{Mode}' to {ConfigPath}", mode, _runtimeConfigPath);
         }
         catch (Exception ex)
@@ -356,7 +358,9 @@ public sealed class GatewayRuntimeManager : IGatewayRuntimeManager
             }
 
             var updatedJson = rootNode.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(_runtimeConfigPath, updatedJson, cancellationToken);
+            var tempFile = $"{_runtimeConfigPath}.tmp.{Guid.NewGuid():N}";
+            await File.WriteAllTextAsync(tempFile, updatedJson, cancellationToken);
+            File.Move(tempFile, _runtimeConfigPath, overwrite: true);
             _logger.LogInformation("Successfully persisted service mode updates to {ConfigPath}", _runtimeConfigPath);
         }
         catch (Exception ex)

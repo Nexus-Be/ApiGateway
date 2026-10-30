@@ -1,13 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Nexus.Gateway.MockEngine;
 using Nexus.Gateway.Services;
 
 namespace Nexus.Gateway.Security;
 
 public static class GatewaySecurityHelper
 {
-    public static string DetectServiceForRequest(HttpContext context, IMockEngine? mockEngine = null)
+    public static string DetectServiceForRequest(HttpContext context)
     {
         if (GatewayRequestResolution.Get(context) is { } resolution)
             return resolution.Service;
@@ -20,17 +19,7 @@ public static class GatewaySecurityHelper
             return backendTag.ToLowerInvariant();
         }
 
-        // 2. From MockEngine if matched
-        if (mockEngine != null)
-        {
-            var match = mockEngine.Match(context.Request.Method, context.Request.Path);
-            if (match.IsMatch && !string.IsNullOrEmpty(match.Definition?.Service))
-            {
-                return match.Definition.Service.ToLowerInvariant();
-            }
-        }
-
-        // 3. From URL Path conventions
+        // 2. From URL Path conventions
         var path = context.Request.Path.Value ?? "";
         return InferServiceFromUrl(path);
     }
@@ -68,10 +57,9 @@ public static class GatewaySecurityHelper
     public static bool IsRequestInMockMode(
         HttpContext context,
         GatewayOptions options,
-        IGatewayRuntimeManager runtimeManager,
-        IMockEngine? mockEngine = null)
+        IGatewayRuntimeManager runtimeManager)
     {
-        var service = DetectServiceForRequest(context, mockEngine);
+        var service = DetectServiceForRequest(context);
         var config = options.GetService(service);
         var configuredMode = config?.Mode ?? "Mock";
         var effectiveMode = GatewayRequestResolution.Get(context) is { } resolution

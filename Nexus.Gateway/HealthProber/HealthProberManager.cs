@@ -19,7 +19,6 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHealthIncidentLogger _incidentLogger;
     private readonly IDockerContainerRecoveryService _recoveryService;
-    private readonly ISagaRollbackPublisher _sagaPublisher;
     private readonly ILogger<HealthProberManager> _logger;
 
     private readonly ConcurrentDictionary<string, ServiceHealthState> _states = new(StringComparer.OrdinalIgnoreCase);
@@ -31,7 +30,6 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
         IHttpClientFactory httpClientFactory,
         IHealthIncidentLogger incidentLogger,
         IDockerContainerRecoveryService recoveryService,
-        ISagaRollbackPublisher sagaPublisher,
         ILogger<HealthProberManager> logger)
     {
         _gatewayOptions = gatewayOptions;
@@ -39,7 +37,6 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
         _httpClientFactory = httpClientFactory;
         _incidentLogger = incidentLogger;
         _recoveryService = recoveryService;
-        _sagaPublisher = sagaPublisher;
         _logger = logger;
 
         foreach (var svc in GatewayOptions.CanonicalServices)
@@ -90,7 +87,7 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
         var state = GetState(serviceName);
         if (state == null) return true;
 
-        // Nếu service bị Unhealthy hoặc đang trong quá trình Recovering container thì chặn ngay
+        // Reject if service is Unhealthy or currently Recovering
         return state.Status != ProberRunStatus.Unhealthy && state.Status != ProberRunStatus.Recovering;
     }
 
@@ -102,7 +99,7 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
             return Task.FromResult(false);
         }
 
-        // Dừng worker cũ nếu đang chạy
+        // Stop previous worker if running
         if (_workers.TryRemove(canonical, out var oldCts))
         {
             try
@@ -261,7 +258,7 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
                 {
                     state.Status = ProberRunStatus.Healthy;
                     state.ConsecutiveFailures = 0;
-                    state.AutoRecoveryCount = 0; // Đã sống lại bình thường, reset số lần auto recovery
+                    state.AutoRecoveryCount = 0; // Service recovered, reset auto-recovery counter
                     state.LastError = null;
                 }
                 else
@@ -270,7 +267,7 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
 
                     if (isUnderStartPeriod)
                     {
-                        // Đang trong thời gian ân hạn (StartPeriod) -> Chưa tính lỗi vào Retries
+                        // Still within StartPeriod grace window -> Do not increment failure counter
                         state.Status = ProberRunStatus.Starting;
                         _logger.LogInformation("Service '{Service}' probe failed during StartPeriod grace window: {Error}", serviceName, sample.ErrorMessage);
                     }
@@ -335,19 +332,9 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
         string reason,
         CancellationToken cancellationToken)
     {
-        _logger.LogCritical("Service '{Service}' is UNHEALTHY! Initiating Circuit Breaker, Saga Rollback and Container Recovery.", serviceName);
+        _logger.LogCritical("Service '{Service}' is UNHEALTHY: {Reason}. Initiating Circuit Breaker and Container Recovery.", serviceName, reason);
 
-        // 1. Kích hoạt Saga Rollback Event lên RabbitMQ
-        try
-        {
-            await _sagaPublisher.PublishServiceUnhealthyEventAsync(serviceName, reason, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to publish ServiceUnhealthyIntegrationEvent for '{Service}'", serviceName);
-        }
-
-        // 2. Kích hoạt Docker Auto-Recovery nếu được bật
+        // Trigger Docker Auto-Recovery if enabled
         var opts = _proberOptions.CurrentValue;
         if (opts.AutoRecoverContainer)
         {
@@ -366,7 +353,7 @@ public sealed class HealthProberManager : IHealthProberManager, IHostedService
                 var success = await _recoveryService.RecoverContainerAsync(serviceName, cancellationToken);
                 if (success)
                 {
-                    // Chuyển sang Starting và reset StartPeriod để container có thời gian khởi động
+                    // Transition to Starting and reset StartPeriod to allow container startup
                     state.Status = ProberRunStatus.Starting;
                     state.StartedAt = DateTime.UtcNow;
                     state.ConsecutiveFailures = 0;
